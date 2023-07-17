@@ -1,0 +1,44 @@
+services:
+  query:
+    build: ../
+    ports:
+      - 3001:3000
+    networks:
+      - ${DEFAULT_NETWORK}
+    depends_on:
+      - mongodb
+      - postgres
+
+  mongodb:
+    profiles:
+      - local_mongo
+    restart: always
+    image: mongo:4.4
+    ports:
+      - 27017:27017
+    command: mongod --wiredTigerCacheSizeGB 8
+    volumes:
+      - dbdata:/data/db
+
+  postgres:
+    profiles:
+      - local_postgres
+    image: postgres:12-alpine
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB=off
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  dbdata:
+  pgdata:
+
+networks:
+  default:
+  po_default:
+    external: true
+    name: po_default
