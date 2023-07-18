@@ -1,13 +1,32 @@
 services:
+  init:
+    build: ../
+    networks:
+      - ${DEFAULT_NETWORK}
+    depends_on:
+      postgres:
+        condition: service_started
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_HOST=postgres
+    command: sh -cx "sleep 1 && npx mikro-orm migration:up"
+
   query:
     build: ../
     ports:
       - 3001:3000
     networks:
       - ${DEFAULT_NETWORK}
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_HOST=postgres
     depends_on:
-      - mongodb
-      - postgres
+      mongodb:
+        condition: service_started
+      init:
+        condition: service_completed_successfully
 
   mongodb:
     profiles:
@@ -17,6 +36,8 @@ services:
     ports:
       - 27017:27017
     command: mongod --wiredTigerCacheSizeGB 8
+    networks:
+      - ${DEFAULT_NETWORK}
     volumes:
       - dbdata:/data/db
 
@@ -32,6 +53,8 @@ services:
       - POSTGRES_DB=off
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - ${DEFAULT_NETWORK}
 
 volumes:
   dbdata:
