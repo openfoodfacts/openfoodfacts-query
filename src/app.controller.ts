@@ -1,5 +1,5 @@
-import { EntityManager } from '@mikro-orm/core';
-import { Controller, Get, Logger, Query } from '@nestjs/common';
+import { EntityManager } from '@mikro-orm/postgresql';
+import { Body, Controller, Get, Logger, Post, Query } from '@nestjs/common';
 import { Product } from './domain/entities/product';
 import { ProductTag } from './domain/entities/product-tag';
 import { MongoClient } from 'mongodb';
@@ -159,6 +159,34 @@ export class AppController {
     await this.evaluateTags();
   }
 
+  @Post('query')
+  async query(@Body() body: any) {
+    this.logger.log(body);
+
+    const match = body.find((o: any) => o['$match']);
+    const group = body.find((o: any) => o['$group']);
+
+    const tag = group['$group']['_id'].substring(1);
+    const qb = this.em
+      .createQueryBuilder(ProductTag, 'pt')
+      .select('value _id, count(*) count')
+      .where({ 'pt.tag_type': tag })
+      .groupBy('value')
+      .orderBy({ ['1']: 'ASC' });
+
+    const results = await qb.execute();
+    this.logger.log(results);
+    return results;
+    return [
+      { _id: 'unknown', count: 200 },
+      { _id: 'd', count: 20 },
+      { _id: 'b', count: 10 },
+      { _id: 'c', count: 90 },
+      { _id: 'e', count: 70 },
+      { _id: 'not-applicable', count: 40 },
+    ];
+  }
+
   private async evaluateTags() {
     const connection = this.em.getConnection();
     for (const tag of this.tags) {
@@ -168,8 +196,8 @@ export class AppController {
         select id, tag.ordinality, '${tag}', tag.value from off.product 
         cross join jsonb_array_elements_text(data->'${tag}') with ordinality tag`,
       );
+      await connection.execute('commit');
     }
-    await connection.execute('commit');
     this.logger.log('Finished');
   }
 
@@ -187,8 +215,8 @@ export class AppController {
   }
 
   async deleteProducts(update) {
+    await this.deleteProductChildren();
     if (!update) {
-      await this.deleteProductChildren();
       await this.deleteAndFlush(Product);
     }
   }
@@ -222,42 +250,6 @@ export class AppController {
     product.servingQuantity = data.serving_quantity;
     product.servingSize = data.serving_size;
     product.lastModified = new Date(data.last_modified_t * 1000);
-    //if (update) await this.em.nativeDelete(ProductTag, { product: product });
-    //await this.importTags(id, data);
-    /*
-        await this.em.nativeDelete(ProductIngredient, { product: product });
-        this.importIngredients(product, 0, data.ingredients);
-    
-        await this.em.nativeDelete(ProductNutrient, { product: product });
-        this.importNutrients(product, data.nutriments);
-    */
-    //return product;
-  }
-
-  private async importTags(id: string, data: any) {
-    const connection = this.em.getConnection();
-    for (const tag of this.tags) {
-      const tagArray = data[tag];
-      let i = 0;
-      for (const value of tagArray ?? []) {
-        connection.execute(
-          'insert into off.product_tag (product_id, sequence, tag_type, value) values (?,?,?,?)',
-          [id, i++, tag, value],
-          'run',
-        );
-        /*
-        this.em.persist(
-          this.em.create(ProductTag, {
-            product: product,
-            sequence: i++,
-            value: value,
-            tagType: tag,
-            //tag: this.cachedTags[taxonomyGroup].find((tag) => tag.id === value)
-          }),
-        );
-        */
-      }
-    }
   }
 
   /*
