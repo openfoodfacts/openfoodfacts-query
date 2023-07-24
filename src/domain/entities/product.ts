@@ -46,6 +46,9 @@ export class Product {
   @Property({ type: 'double' })
   ServingQuantity?: number;
 
+  @Property()
+  LastModified?: Date;
+
   @OneToMany(() => ProductTag, (e) => e.product)
   tags = new Collection<ProductTag>(this);
 }

@@ -1,5 +1,11 @@
 import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
-import { Platform, TextType, Type } from '@mikro-orm/core';
+import { DateTimeType, Platform, TextType, Type } from '@mikro-orm/core';
+
+class DateTimeNtzType extends DateTimeType {
+  getColumnType(): string {
+    return 'timestamp';
+  }
+}
 
 export default {
   entities: ['./dist/domain/entities'],
@@ -11,14 +17,19 @@ export default {
   host: process.env.POSTGRES_HOST,
   schema: 'off',
   type: 'postgresql',
+  forceUtcTimezone: true,
   discovery: {
     getMappedType(type: string, platform: Platform) {
       // override the mapping for string properties only
       if (type === 'string') {
         return Type.getType(TextType);
       }
+      if (type === 'datetime') {
+        return new DateTimeNtzType();
+      }
 
-      return platform.getDefaultMappedType(type);
+      const mappedType = platform.getDefaultMappedType(type);
+      return mappedType;
     },
   },
 };

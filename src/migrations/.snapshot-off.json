@@ -95,6 +95,16 @@
           "primary": false,
           "nullable": true,
           "mappedType": "double"
+        },
+        "last_modified": {
+          "name": "last_modified",
+          "type": "timestamp",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
         }
       },
       "name": "product",

@@ -12,7 +12,7 @@ export class AppController {
   constructor(private em: EntityManager) {}
 
   // Lowish batch size seems to work best, probably due to the size of the product document
-  importBatchSize = 300;
+  importBatchSize = 50;
   importLogInterval = 1000;
 
   @Get('importfromfile?')
@@ -130,6 +130,7 @@ export class AppController {
     product.NutritionPreparedPer = data.nutrition_data_prepared_per;
     product.ServingQuantity = data.serving_quantity;
     product.ServingSize = data.serving_size;
+    product.LastModified = new Date(data.last_modified_t * 1000);
 
     if (update) await this.em.nativeDelete(ProductTag, { product: product });
     this.importTags(product, data);
