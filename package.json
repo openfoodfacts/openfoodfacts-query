@@ -22,12 +22,14 @@
   "dependencies": {
     "@mikro-orm/core": "^5.7.13",
     "@mikro-orm/migrations": "^5.7.13",
+    "@mikro-orm/nestjs": "^5.2.0",
     "@mikro-orm/postgresql": "^5.7.13",
     "@mikro-orm/reflection": "^5.7.13",
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
     "id128": "^1.6.6",
+    "mongodb": "^5.7.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.2.0"
   },
