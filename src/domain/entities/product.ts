@@ -35,19 +35,25 @@ export class Product {
   ingredientsText?: string;
 
   @Property()
-  NutritionAsSoldPer?: string;
+  nutritionAsSoldPer?: string;
 
   @Property()
-  NutritionPreparedPer?: string;
+  nutritionPreparedPer?: string;
 
   @Property()
-  ServingSize?: string;
+  servingSize?: string;
 
   @Property({ type: 'double' })
-  ServingQuantity?: number;
+  servingQuantity?: number;
 
   @Property()
-  LastModified?: Date;
+  lastModified?: Date;
+
+  @Property()
+  creator?: string;
+
+  @Property()
+  ownersTags?: string;
 
   @OneToMany(() => ProductTag, (e) => e.product)
   tags = new Collection<ProductTag>(this);

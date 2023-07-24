@@ -105,6 +105,24 @@
           "nullable": true,
           "length": 6,
           "mappedType": "datetime"
+        },
+        "creator": {
+          "name": "creator",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "owners_tags": {
+          "name": "owners_tags",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
         }
       },
       "name": "product",

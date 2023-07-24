@@ -12,140 +12,11 @@ export class AppController {
   constructor(private em: EntityManager) {}
 
   // Lowish batch size seems to work best, probably due to the size of the product document
-  importBatchSize = 50;
+  importBatchSize = 100;
   importLogInterval = 1000;
 
-  @Get('importfromfile?')
-  async importFromFile(@Query('update') update = false) {
-    const rl = readline.createInterface({
-      input: fs.createReadStream('jsonl/openfoodfacts-products.jsonl'),
-    });
-
-    await this.deleteProducts(update);
-    //await this.cacheTags();
-    const start = new Date().getTime();
-    let i = 0;
-    for await (const line of rl) {
-      try {
-        i++;
-        const data = JSON.parse(line.replace(/\\u0000/g, ''));
-
-        this.em.persist(await this.fixupProduct(update, data));
-        if (!(i % this.importBatchSize)) {
-          await this.em.flush();
-          this.em.clear();
-        }
-        if (!(i % this.importLogInterval)) {
-          this.logger.log(new Date().getTime() - start + ': ' + i);
-        }
-      } catch (e) {
-        this.logger.log(e.message + ': ' + line);
-      }
-    }
-    await this.em.flush();
-    this.logger.log(new Date().getTime() - start + ': ' + i);
-  }
-
-  @Get('importfrommongo?')
-  async importFromMongo(@Query('update') update = false) {
-    const start = new Date().getTime();
-    await this.deleteProducts(update);
-    //await this.cacheTags();
-    this.logger.log(new Date().getTime() - start + ': Connecting to MongoDB');
-    const client = new MongoClient('mongodb://127.0.0.1:27017');
-    await client.connect();
-    const db = client.db('off');
-    const products = db.collection('products');
-    const cursor =
-      products.find(/*{}, {
-      projection: {
-        code: 1,
-        data_quality_tags: 1,
-        additives_tags: 1,
-        allergens_hierarchy: 1,
-        states_tags: 1,
-        categories_tags: 1,
-        countries_hierarchy: 1,
-        misc_tags: 1
-      }
-    }*/);
-    let i = 0;
-    this.logger.log(new Date().getTime() - start + ': Starting import');
-    while (true) {
-      const data = await cursor.next();
-      if (!data) break;
-
-      this.em.persist(await this.fixupProduct(update, data));
-      if (!(++i % this.importBatchSize)) {
-        await this.em.flush();
-        this.em.clear();
-      }
-      if (!(i % this.importLogInterval)) {
-        this.logger.log(new Date().getTime() - start + ': ' + i);
-      }
-    }
-    await this.em.flush();
-    this.logger.log(new Date().getTime() - start + ': ' + i);
-    await cursor.close();
-    await client.close();
-  }
-
-  private async findOrNewProduct(update: boolean, data: any) {
-    let product: Product;
-    if (update) {
-      const code = data.code;
-      if (code) product = await this.em.findOne(Product, { code: code });
-    }
-    if (!product) product = new Product();
-    return product;
-  }
-
-  async deleteProducts(update) {
-    if (!update) {
-      await this.deleteProductChildren();
-      await this.deleteAndFlush(Product);
-    }
-  }
-
-  async deleteProductChildren() {
-    await this.deleteAndFlush(ProductTag);
-    //await this.deleteAndFlush(ProductIngredient);
-    //await this.deleteAndFlush(ProductNutrient);
-  }
-
-  async deleteAndFlush(entityName: { new (...args: any): object }) {
-    this.logger.log('Deleting ' + entityName.name);
-    await this.em.nativeDelete(entityName, {});
-    await this.em.flush();
-  }
-
-  async fixupProduct(update: boolean, data: any): Promise<Product> {
-    const product = await this.findOrNewProduct(update, data);
-    //product.data = data;
-
-    product.name = data.product_name;
-    product.code = data.code;
-    product.ingredientsText = data.ingredients_text;
-    product.NutritionAsSoldPer = data.nutrition_data_per;
-    product.NutritionPreparedPer = data.nutrition_data_prepared_per;
-    product.ServingQuantity = data.serving_quantity;
-    product.ServingSize = data.serving_size;
-    product.LastModified = new Date(data.last_modified_t * 1000);
-
-    if (update) await this.em.nativeDelete(ProductTag, { product: product });
-    this.importTags(product, data);
-    /*
-        await this.em.nativeDelete(ProductIngredient, { product: product });
-        this.importIngredients(product, 0, data.ingredients);
-    
-        await this.em.nativeDelete(ProductNutrient, { product: product });
-        this.importNutrients(product, data.nutriments);
-    */
-    return product;
-  }
-
   private tags = [
-    'creator',
+    //'creator',
     'countries_tags',
     'brands_tags',
     'categories_tags',
@@ -199,16 +70,182 @@ export class AppController {
     'teams_tags',
     'categories_properties_tags',
     'ecoscore_tags',
-    'owners_tags',
+    //'owners_tags',
     'food_groups_tags',
     'weighers_tags',
   ];
 
-  private importTags(product: Product, data: any) {
+  private fields = [
+    'code',
+    'product_name',
+    'ingredients_text',
+    'nutrition_data_per',
+    'nutrition_data_prepared_per',
+    'serving_quantity',
+    'serving_size',
+    'creator',
+    'ownders_tags',
+    'last_modified_t',
+  ];
+
+  @Get('importfromfile?')
+  async importFromFile(@Query('update') update = false) {
+    const rl = readline.createInterface({
+      input: fs.createReadStream('jsonl/openfoodfacts-products.jsonl'),
+    });
+
+    await this.deleteProducts(update);
+    //await this.cacheTags();
+    let i = 0;
+    for await (const line of rl) {
+      try {
+        i++;
+        const data = JSON.parse(line.replace(/\\u0000/g, ''));
+        await this.fixupProduct(update, data);
+        if (!(i % this.importBatchSize)) {
+          await this.em.flush();
+          this.em.clear();
+        }
+        if (!(i % this.importLogInterval)) {
+          this.logger.log(i);
+        }
+      } catch (e) {
+        this.logger.log(e.message + ': ' + line);
+      }
+    }
+    await this.em.flush();
+    this.logger.log(i);
+    await this.evaluateTags();
+  }
+
+  @Get('importfrommongo?')
+  async importFromMongo(@Query('update') update = false) {
+    await this.deleteProducts(update);
+    //await this.cacheTags();
+    this.logger.log('Connecting to MongoDB');
+    const client = new MongoClient('mongodb://127.0.0.1:27017');
+    await client.connect();
+    const db = client.db('off');
+    const products = db.collection('products');
+    const projection = {};
+    for (const key of this.fields) {
+      projection[key] = 1;
+    }
+    for (const key of this.tags) {
+      projection[key] = 1;
+    }
+    const cursor = products.find({}, { projection });
+    let i = 0;
+    this.logger.log('Starting import');
+    while (true) {
+      const data = await cursor.next();
+      if (!data) break;
+
+      i++;
+      await this.fixupProduct(update, data);
+      if (!(i % this.importBatchSize)) {
+        await this.em.flush();
+        this.em.clear();
+      }
+      if (!(i % this.importLogInterval)) {
+        this.logger.log(i);
+      }
+    }
+    //await this.em.getConnection().execute('commit');
+    await this.em.flush();
+    this.logger.log(i);
+    await cursor.close();
+    await client.close();
+    await this.evaluateTags();
+  }
+
+  private async evaluateTags() {
+    const connection = this.em.getConnection();
+    for (const tag of this.tags) {
+      this.logger.log(tag);
+      await connection.execute(
+        `insert into off.product_tag (product_id, sequence, tag_type, value)
+        select id, tag.ordinality, '${tag}', tag.value from off.product 
+        cross join jsonb_array_elements_text(data->'${tag}') with ordinality tag`,
+      );
+    }
+    await connection.execute('commit');
+    this.logger.log('Finished');
+  }
+
+  private async findOrNewProduct(update: boolean, data: any) {
+    let product: Product;
+    if (update) {
+      const code = data.code;
+      if (code) product = await this.em.findOne(Product, { code: code });
+    }
+    if (!product) {
+      product = new Product();
+      this.em.persist(product);
+    }
+    return product;
+  }
+
+  async deleteProducts(update) {
+    if (!update) {
+      await this.deleteProductChildren();
+      await this.deleteAndFlush(Product);
+    }
+  }
+
+  async deleteProductChildren() {
+    await this.deleteAndFlush(ProductTag);
+    //await this.deleteAndFlush(ProductIngredient);
+    //await this.deleteAndFlush(ProductNutrient);
+  }
+
+  async deleteAndFlush(entityName: { new (...args: any): object }) {
+    this.logger.log('Deleting ' + entityName.name);
+    await this.em.nativeDelete(entityName, {});
+    await this.em.flush();
+  }
+
+  async fixupProduct(update: boolean, data: any): Promise<void> {
+    const product = await this.findOrNewProduct(update, data);
+    const dataToStore = {};
+    for (const key of this.tags) {
+      dataToStore[key] = data[key];
+    }
+    product.data = dataToStore;
+    product.name = data.product_name;
+    product.code = data.code;
+    product.creator = data.creator;
+    product.ownersTags = data.owners_tags;
+    product.ingredientsText = data.ingredients_text;
+    product.nutritionAsSoldPer = data.nutrition_data_per;
+    product.nutritionPreparedPer = data.nutrition_data_prepared_per;
+    product.servingQuantity = data.serving_quantity;
+    product.servingSize = data.serving_size;
+    product.lastModified = new Date(data.last_modified_t * 1000);
+    //if (update) await this.em.nativeDelete(ProductTag, { product: product });
+    //await this.importTags(id, data);
+    /*
+        await this.em.nativeDelete(ProductIngredient, { product: product });
+        this.importIngredients(product, 0, data.ingredients);
+    
+        await this.em.nativeDelete(ProductNutrient, { product: product });
+        this.importNutrients(product, data.nutriments);
+    */
+    //return product;
+  }
+
+  private async importTags(id: string, data: any) {
+    const connection = this.em.getConnection();
     for (const tag of this.tags) {
       const tagArray = data[tag];
       let i = 0;
       for (const value of tagArray ?? []) {
+        connection.execute(
+          'insert into off.product_tag (product_id, sequence, tag_type, value) values (?,?,?,?)',
+          [id, i++, tag, value],
+          'run',
+        );
+        /*
         this.em.persist(
           this.em.create(ProductTag, {
             product: product,
@@ -218,6 +255,7 @@ export class AppController {
             //tag: this.cachedTags[taxonomyGroup].find((tag) => tag.id === value)
           }),
         );
+        */
       }
     }
   }
