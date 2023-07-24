@@ -132,18 +132,7 @@ export class AppController {
     product.ServingSize = data.serving_size;
 
     if (update) await this.em.nativeDelete(ProductTag, { product: product });
-    this.importTags(
-      data.data_quality_tags,
-      product,
-      'data_quality',
-      'data_quality',
-    );
-    this.importTags(data.additives_tags, product, 'additives', 'ingredients');
-    this.importTags(data.allergens_hierarchy, product, 'allergens', 'traces');
-    this.importTags(data.states_tags, product, 'states', 'states');
-    this.importTags(data.categories_tags, product, 'categories', 'categories');
-    this.importTags(data.countries_hierarchy, product, 'countries', 'origins');
-    this.importTags(data.misc_tags, product, 'misc', 'misc');
+    this.importTags(product, data);
     /*
         await this.em.nativeDelete(ProductIngredient, { product: product });
         this.importIngredients(product, 0, data.ingredients);
@@ -154,23 +143,81 @@ export class AppController {
     return product;
   }
 
-  private importTags(
-    tagArray: any,
-    product: Product,
-    tagType: string,
-    taxonomyGroup: string,
-  ) {
-    let i = 0;
-    for (const value of tagArray ?? []) {
-      this.em.persist(
-        this.em.create(ProductTag, {
-          product: product,
-          sequence: i++,
-          value: value,
-          tagType: tagType,
-          //tag: this.cachedTags[taxonomyGroup].find((tag) => tag.id === value)
-        }),
-      );
+  private tags = [
+    'creator',
+    'countries_tags',
+    'brands_tags',
+    'categories_tags',
+    'labels_tags',
+    'packaging_tags',
+    'origins_tags',
+    'manufacturing_places_tags',
+    'emb_codes_tags',
+    'ingredients_tags',
+    'additives_tags',
+    'vitamins_tags',
+    'minerals_tags',
+    'amino_acids_tags',
+    'nucleotides_tags',
+    'allergens_tags',
+    'traces_tags',
+    'nova_groups_tags',
+    'nutrition_grades_tags',
+    'languages_tags',
+    'creator_tags',
+    'editors_tags',
+    'states_tags',
+    'entry_dates_tags',
+    'last_edit_dates_tags',
+    'codes_tags',
+    'nutrient_levels_tags',
+    'stores_tags',
+    'informers_tags',
+    'photographers_tags',
+    'checkers_tags',
+    'correctors_tags',
+    'ingredients_from_palm_oil_tags',
+    'ingredients_that_may_be_from_palm_oil_tags',
+    'purchase_places_tags',
+    'ingredients_n_tags',
+    'pnns_groups_1_tags',
+    'pnns_groups_2_tags',
+    'misc_tags',
+    'quality_tags',
+    'unknown_nutrients_tags',
+    'last_image_dates_tags',
+    'cities_tags',
+    'ingredients_analysis_tags',
+    'popularity_tags',
+    'data_sources_tags',
+    'data_quality_tags',
+    'data_quality_bugs_tags',
+    'data_quality_info_tags',
+    'data_quality_warnings_tags',
+    'data_quality_errors_tags',
+    'teams_tags',
+    'categories_properties_tags',
+    'ecoscore_tags',
+    'owners_tags',
+    'food_groups_tags',
+    'weighers_tags',
+  ];
+
+  private importTags(product: Product, data: any) {
+    for (const tag of this.tags) {
+      const tagArray = data[tag];
+      let i = 0;
+      for (const value of tagArray ?? []) {
+        this.em.persist(
+          this.em.create(ProductTag, {
+            product: product,
+            sequence: i++,
+            value: value,
+            tagType: tag,
+            //tag: this.cachedTags[taxonomyGroup].find((tag) => tag.id === value)
+          }),
+        );
+      }
     }
   }
 
