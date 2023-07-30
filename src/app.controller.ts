@@ -9,7 +9,7 @@ import * as readline from 'readline';
 @Controller()
 export class AppController {
   private logger = new Logger(AppController.name);
-  constructor(private em: EntityManager) {}
+  constructor(private em: EntityManager) { }
 
   // Lowish batch size seems to work best, probably due to the size of the product document
   importBatchSize = 100;
@@ -91,7 +91,7 @@ export class AppController {
   @Get('importfromfile?')
   async importFromFile(@Query('update') update = false) {
     const rl = readline.createInterface({
-      input: fs.createReadStream('jsonl/openfoodfacts-products.jsonl'),
+      input: fs.createReadStream('data/openfoodfacts-products.jsonl'),
     });
 
     await this.deleteProducts(update);
@@ -116,6 +116,44 @@ export class AppController {
     await this.em.flush();
     this.logger.log(i);
     await this.evaluateTags();
+  }
+
+  @Get('convertfiletocsv?')
+  async convertFileToCsv() {
+    const rl = readline.createInterface({
+      input: fs.createReadStream('data/openfoodfacts-products.jsonl'),
+    });
+
+    const out = fs.openSync('data/product_tags.csv', 'w');
+    //await this.cacheTags();
+    let i = 0;
+    for await (const line of rl) {
+      try {
+        i++;
+        const data = JSON.parse(line.replace(/\\u0000/g, ''));
+        for (const key of this.tags) {
+          for (const [index, value] of Object.entries(data[key] || [])) {
+            fs.appendFileSync(out, `${data._id},${key},${index},${value}\n`);
+          }
+        }
+        if (data.creator)
+          fs.appendFileSync(out, `${data._id},creator,0,${data.creator}\n`);
+
+        if (data.owners_tags)
+          fs.appendFileSync(
+            out,
+            `${data._id},owners_tags,0,${data.owners_tags}\n`,
+          );
+
+        if (!(i % this.importLogInterval)) {
+          this.logger.log(i);
+        }
+      } catch (e) {
+        this.logger.log(e.message + ': ' + line);
+      }
+    }
+    fs.closeSync(out);
+    this.logger.log(i);
   }
 
   @Get('importfrommongo?')
@@ -222,12 +260,15 @@ export class AppController {
   }
 
   async deleteProductChildren() {
-    await this.deleteAndFlush(ProductTag);
+    const connection = this.em.getConnection();
+    await connection.execute('truncate off.product_tag');
+    await connection.execute('commit');
+    //deleteAndFlush(ProductTag);
     //await this.deleteAndFlush(ProductIngredient);
     //await this.deleteAndFlush(ProductNutrient);
   }
 
-  async deleteAndFlush(entityName: { new (...args: any): object }) {
+  async deleteAndFlush(entityName: { new(...args: any): object }) {
     this.logger.log('Deleting ' + entityName.name);
     await this.em.nativeDelete(entityName, {});
     await this.em.flush();

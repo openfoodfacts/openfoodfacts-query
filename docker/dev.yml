@@ -44,7 +44,7 @@ services:
   postgres:
     profiles:
       - local_postgres
-    image: postgres:12-alpine
+    image: citusdata/citus
     ports:
       - 5432:5432
     environment:
@@ -52,13 +52,14 @@ services:
       - POSTGRES_PASSWORD
       - POSTGRES_DB=off
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - citusdata:/var/lib/postgresql/data
+      - ../data:/mnt/data
     networks:
       - ${DEFAULT_NETWORK}
 
 volumes:
   dbdata:
-  pgdata:
+  citusdata:
 
 networks:
   default:
