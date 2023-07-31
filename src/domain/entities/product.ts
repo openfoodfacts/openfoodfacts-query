@@ -6,7 +6,6 @@ import {
   PrimaryKey,
   Property,
 } from '@mikro-orm/core';
-import { ProductTag } from './product-tag';
 import { Ulid } from 'id128';
 import { FullTextType } from '@mikro-orm/postgresql';
 
@@ -54,7 +53,4 @@ export class Product {
 
   @Property()
   ownersTags?: string;
-
-  @OneToMany(() => ProductTag, (e) => e.product)
-  tags = new Collection<ProductTag>(this);
 }

@@ -171,8 +171,8 @@
           "nullable": false,
           "mappedType": "uuid"
         },
-        "tag_type": {
-          "name": "tag_type",
+        "value": {
+          "name": "value",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -188,36 +188,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
-        },
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
         }
       },
-      "name": "product_tag",
+      "name": "product_ecoscore_tag",
       "schema": "off",
       "indexes": [
         {
-          "keyName": "product_tag_tag_type_value_product_id_index",
-          "columnNames": [
-            "tag_type",
-            "value",
-            "product_id"
-          ],
-          "composite": true,
-          "primary": false,
-          "unique": false
-        },
-        {
-          "keyName": "product_tag_pkey",
+          "keyName": "product_ecoscore_tag_pkey",
           "columnNames": [
             "product_id",
-            "tag_type",
+            "value",
             "sequence"
           ],
           "composite": true,
@@ -227,12 +207,73 @@
       ],
       "checks": [],
       "foreignKeys": {
-        "product_tag_product_id_foreign": {
-          "constraintName": "product_tag_product_id_foreign",
+        "product_ecoscore_tag_product_id_foreign": {
+          "constraintName": "product_ecoscore_tag_product_id_foreign",
           "columnNames": [
             "product_id"
           ],
-          "localTableName": "off.product_tag",
+          "localTableName": "off.product_ecoscore_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "off.product",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        }
+      },
+      "name": "product_nutrition_grades_tag",
+      "schema": "off",
+      "indexes": [
+        {
+          "keyName": "product_nutrition_grades_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value",
+            "sequence"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_nutrition_grades_tag_product_id_foreign": {
+          "constraintName": "product_nutrition_grades_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "off.product_nutrition_grades_tag",
           "referencedColumnNames": [
             "id"
           ],

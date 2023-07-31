@@ -1,11 +1,11 @@
 import { EntityManager } from '@mikro-orm/postgresql';
 import { Body, Controller, Get, Logger, Post, Query } from '@nestjs/common';
 import { Product } from './domain/entities/product';
-import { ProductTag } from './domain/entities/product-tag';
 import { MongoClient } from 'mongodb';
 import * as fs from 'fs';
 import * as readline from 'readline';
 import { Ulid } from 'id128';
+import { TAG_MAPPINGS } from './domain/entities/product-tags';
 
 @Controller()
 export class AppController {
@@ -116,7 +116,7 @@ export class AppController {
     }
     await this.em.flush();
     this.logger.log(i);
-    await this.evaluateTags();
+    //await this.evaluateTags();
   }
 
   @Get('convertfiletocsv?')
@@ -193,7 +193,7 @@ export class AppController {
     this.logger.log(i);
     await cursor.close();
     await client.close();
-    await this.evaluateTags();
+    //await this.evaluateTags();
   }
 
   @Post('query')
@@ -205,9 +205,8 @@ export class AppController {
 
     const tag = group['$group']['_id'].substring(1);
     const qb = this.em
-      .createQueryBuilder(ProductTag, 'pt')
+      .createQueryBuilder(TAG_MAPPINGS[tag], 'pt')
       .select('value _id, count(*) count')
-      .where({ 'pt.tag_type': tag })
       .groupBy('value')
       .orderBy({ ['1']: 'ASC' });
 
@@ -259,10 +258,13 @@ export class AppController {
   }
 
   async deleteProductChildren() {
-    const connection = this.em.getConnection();
-    await connection.execute('truncate off.product_tag');
-    await connection.execute('commit');
+    //const connection = this.em.getConnection();
+    //await connection.execute('truncate off.product_tag');
+    //await connection.execute('commit');
     //deleteAndFlush(ProductTag);
+    for (const entity of Object.values(TAG_MAPPINGS)) {
+      await this.deleteAndFlush(entity);
+    }
     //await this.deleteAndFlush(ProductIngredient);
     //await this.deleteAndFlush(ProductNutrient);
   }
@@ -275,11 +277,11 @@ export class AppController {
 
   async fixupProduct(update: boolean, data: any): Promise<void> {
     const product = await this.findOrNewProduct(update, data);
-    const dataToStore = {};
-    for (const key of this.tags) {
-      dataToStore[key] = data[key];
-    }
-    product.data = dataToStore;
+    // const dataToStore = {};
+    // for (const key of this.tags) {
+    //   dataToStore[key] = data[key];
+    // }
+    // product.data = dataToStore;
     product.name = data.product_name;
     product.code = data.code;
     product.creator = data.creator;
@@ -290,8 +292,17 @@ export class AppController {
     product.servingQuantity = data.serving_quantity;
     product.servingSize = data.serving_size;
     product.lastModified = new Date(data.last_modified_t * 1000);
+    this.importTags(product, data);
   }
 
+  importTags(product: Product, data: any) {
+    for (const [tag, entity] of Object.entries(TAG_MAPPINGS)) {
+      const tags = data[tag] ?? [];
+      for (const [sequence, value] of tags.entries()) {
+        this.em.persist(new entity(product, sequence, value));
+      }
+    }
+  }
   /*
   importIngredients(product: Product, sequence: number, ingredients: any[], parent?: ProductIngredient) {
     for (const offIngredient of ingredients ?? []) {
