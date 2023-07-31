@@ -1,4 +1,4 @@
-import { EntityManager } from '@mikro-orm/postgresql';
+import { EntityManager, QueryBuilder } from '@mikro-orm/postgresql';
 import { Body, Controller, Get, Logger, Post, Query } from '@nestjs/common';
 import { Product } from './domain/entities/product';
 import { MongoClient } from 'mongodb';
@@ -6,6 +6,8 @@ import * as fs from 'fs';
 import * as readline from 'readline';
 import { Ulid } from 'id128';
 import { TAG_MAPPINGS } from './domain/entities/product-tags';
+import { BaseProductTag } from './domain/entities/base-product-tag';
+import { EntityName } from '@mikro-orm/core';
 
 @Controller()
 export class AppController {
@@ -27,7 +29,7 @@ export class AppController {
     'serving_quantity',
     'serving_size',
     'creator',
-    'ownders_tags',
+    'owners_tags',
     'last_modified_t',
   ];
 
@@ -140,29 +142,58 @@ export class AppController {
 
   @Post('query')
   async query(@Body() body: any) {
+    const start = Date.now();
     this.logger.log(body);
 
-    const match = body.find((o: any) => o['$match']);
-    const group = body.find((o: any) => o['$group']);
+    const match = body.find((o: any) => o['$match'])?.['$match'];
+    const group = body.find((o: any) => o['$group'])?.['$group'];
 
-    const tag = group['$group']['_id'].substring(1);
+    const tag = group['_id'].substring(1);
+    const { entity, column } = this.getEntityAndColumn(tag);
     const qb = this.em
-      .createQueryBuilder(TAG_MAPPINGS[tag], 'pt')
-      .select('value _id, count(*) count')
-      .groupBy('value')
-      .orderBy({ ['1']: 'ASC' });
+      .createQueryBuilder(entity, 'pt')
+      .select(`${column} _id, count(*) count`);
+
+    const matchTag = Object.keys(match)[0];
+    let matchValue = Object.values(match)[0];
+    const not = matchValue?.['$ne'];
+    if (matchTag) {
+      if (not) {
+        matchValue = not;
+      }
+      const { entity: matchEntity, column: matchColumn } =
+        this.getEntityAndColumn(matchTag);
+      const qbWhere = this.em
+        .createQueryBuilder(matchEntity, 'pt2')
+        .select('*')
+        .where(`pt2.product_id = pt.product_id and pt2.${matchColumn} = ?`, [
+          matchValue,
+        ]);
+      qb.where(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
+    }
+    qb.groupBy(column)
+      .orderBy({ ['2']: 'DESC' })
+      .limit(10000);
 
     const results = await qb.execute();
-    this.logger.log(results);
+    //this.logger.log(results);
+    this.logger.log(
+      `Processed ${tag}${matchTag ? `where ${matchTag} ${not ? '!=' : '=='} ${matchValue}` : ''
+      } in ${Date.now() - start} ms. Returning ${results.length} records`,
+    );
     return results;
-    return [
-      { _id: 'unknown', count: 200 },
-      { _id: 'd', count: 20 },
-      { _id: 'b', count: 10 },
-      { _id: 'c', count: 90 },
-      { _id: 'e', count: 70 },
-      { _id: 'not-applicable', count: 40 },
-    ];
+  }
+
+  private getEntityAndColumn(tag: any) {
+    let entity: EntityName<object>;
+    let column = 'value';
+    if (this.fields.includes(tag)) {
+      entity = Product;
+      column = tag;
+    } else {
+      entity = TAG_MAPPINGS[tag];
+    }
+    return { entity, column };
   }
 
   private async evaluateTags() {
