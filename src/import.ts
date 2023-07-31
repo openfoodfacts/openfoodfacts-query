@@ -8,8 +8,8 @@ async function bootstrap() {
   const orm = app.get(MikroORM);
   try {
     await RequestContext.createAsync(orm.em, async () => {
-      await app.get(AppController).importFromMongo();
-      //await app.get(AppController).importFromFile();
+      //await app.get(AppController).importFromMongo();
+      await app.get(AppController).importFromFile();
       //await app.get(AppController).convertFileToCsv();
     });
   } finally {
