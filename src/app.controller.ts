@@ -5,6 +5,7 @@ import { ProductTag } from './domain/entities/product-tag';
 import { MongoClient } from 'mongodb';
 import * as fs from 'fs';
 import * as readline from 'readline';
+import { Ulid } from 'id128';
 
 @Controller()
 export class AppController {
@@ -124,26 +125,24 @@ export class AppController {
       input: fs.createReadStream('data/openfoodfacts-products.jsonl'),
     });
 
-    const out = fs.openSync('data/product_tags.csv', 'w');
+    const out = fs.openSync('data/product_tag.csv', 'w');
     //await this.cacheTags();
     let i = 0;
     for await (const line of rl) {
       try {
         i++;
         const data = JSON.parse(line.replace(/\\u0000/g, ''));
+        const id = Ulid.generate().toRaw();
         for (const key of this.tags) {
           for (const [index, value] of Object.entries(data[key] || [])) {
-            fs.appendFileSync(out, `${data._id},${key},${index},${value}\n`);
+            fs.appendFileSync(out, `${id},${key},${index},${value}\n`);
           }
         }
         if (data.creator)
-          fs.appendFileSync(out, `${data._id},creator,0,${data.creator}\n`);
+          fs.appendFileSync(out, `${id},creator,0,${data.creator}\n`);
 
         if (data.owners_tags)
-          fs.appendFileSync(
-            out,
-            `${data._id},owners_tags,0,${data.owners_tags}\n`,
-          );
+          fs.appendFileSync(out, `${id},owners_tags,0,${data.owners_tags}\n`);
 
         if (!(i % this.importLogInterval)) {
           this.logger.log(i);
