@@ -1,22 +1,17 @@
-import { Index, ManyToOne, PrimaryKey, Property } from '@mikro-orm/core';
+import { ManyToOne, PrimaryKey, Property } from '@mikro-orm/core';
 import { Product } from './product';
 
-@Index({ properties: ['value'] })
 export abstract class BaseProductTag {
-  constructor(product: Product, sequence: number, value: string) {
+  constructor(product: Product, value: string) {
     this.product = product;
-    this.sequence = sequence;
     this.value = value;
   }
 
-  @ManyToOne({ primary: true })
-  product: Product;
-
-  @Property()
+  @PrimaryKey()
   value: string;
 
-  @PrimaryKey()
-  sequence: number;
+  @ManyToOne({ primary: true })
+  product: Product;
 
   @Property()
   obsolete = false;

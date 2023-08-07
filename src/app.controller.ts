@@ -247,11 +247,10 @@ export class AppController {
     for (const [tag, entity] of Object.entries(TAG_MAPPINGS)) {
       let logText = `Updated ${tag}`;
       const tableName = this.em.getMetadata(entity).tableName;
-      if (updateId) {
+      if (updateId && !obsolete) { // Note this relies in doing no obsolete first
         const results = await connection.execute(
           `delete from off.${tableName} 
-        where ${obsolete ? '' : 'NOT '}obsolete 
-        AND product_id in (select id from off.product 
+        where product_id in (select id from off.product 
         where last_update_id = ?)`,
           [updateId],
           'run',
@@ -259,9 +258,9 @@ export class AppController {
         logText += ` deleted ${results['affectedRows']},`;
       }
       const results = await connection.execute(
-        `insert into off.${tableName} (product_id, sequence, value, obsolete)
-        select id, tag.ordinality, tag.value, ? from off.product 
-        cross join jsonb_array_elements_text(data->'${tag}') with ordinality tag
+        `insert into off.${tableName} (product_id, value, obsolete)
+        select DISTINCT id, tag.value, ? from off.product 
+        cross join jsonb_array_elements_text(data->'${tag}') tag
         where ${obsolete ? '' : 'NOT '}obsolete
         ${updateId ? `AND last_update_id = ?` : ''}`,
         [obsolete, updateId],
@@ -320,14 +319,5 @@ export class AppController {
     }
     product.lastUpdateId = updateId;
     //this.importTags(product, data);
-  }
-
-  importTags(product: Product, data: any) {
-    for (const [tag, entity] of Object.entries(TAG_MAPPINGS)) {
-      const tags = data[tag] ?? [];
-      for (const [sequence, value] of tags.entries()) {
-        this.em.persist(new entity(product, sequence, value));
-      }
-    }
   }
 }
