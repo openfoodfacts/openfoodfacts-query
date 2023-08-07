@@ -169,4 +169,5 @@ export const TAG_MAPPINGS = {
   ecoscore_tags: ProductEcoscoreTag,
   food_groups_tags: ProductFoodGroupsTag,
   weighers_tags: ProductWeighersTag,
+  // TODO: Other Nutritional Substances
 };

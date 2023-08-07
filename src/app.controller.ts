@@ -6,7 +6,6 @@ import * as fs from 'fs';
 import * as readline from 'readline';
 import { Ulid } from 'id128';
 import { TAG_MAPPINGS } from './domain/entities/product-tags';
-import { BaseProductTag } from './domain/entities/base-product-tag';
 import { EntityName } from '@mikro-orm/core';
 
 @Controller()
@@ -34,33 +33,52 @@ export class AppController {
   ];
 
   @Get('importfromfile?')
-  async importFromFile(@Query('update') update = false) {
+  async importFromFile(@Query('from') from = null) {
+    const updateId = from ? Ulid.generate().toRaw() : null;
+    const fromTime = from ? Math.floor(new Date(from).getTime() / 1000) : null;
     const rl = readline.createInterface({
       input: fs.createReadStream('data/openfoodfacts-products.jsonl'),
     });
 
-    await this.deleteProducts(update);
+    if (!from) await this.deleteAllProducts();
     //await this.cacheTags();
     let i = 0;
+    let skip = 0;
     for await (const line of rl) {
       try {
-        i++;
+        if (from) {
+          const tIndex = line.indexOf('"last_modified_t":');
+          if (tIndex > 0) {
+            const lastModified = parseInt(
+              line.substring(tIndex + 18, line.indexOf(',', tIndex)),
+            );
+            if (lastModified < fromTime) {
+              skip++;
+              if (!(skip % this.importLogInterval)) {
+                this.logger.log(`Skippped ${skip}`);
+              }
+              continue;
+            }
+          }
+        }
+
         const data = JSON.parse(line.replace(/\\u0000/g, ''));
-        await this.fixupProduct(update, data);
+        i++;
+        await this.fixupProduct(updateId, data);
         if (!(i % this.importBatchSize)) {
           await this.em.flush();
           this.em.clear();
         }
         if (!(i % this.importLogInterval)) {
-          this.logger.log(i);
+          this.logger.log(`Updated ${i}`);
         }
       } catch (e) {
         this.logger.log(e.message + ': ' + line);
       }
     }
     await this.em.flush();
-    this.logger.log(i);
-    //await this.evaluateTags();
+    this.logger.log(`${i} Products imported`);
+    await this.updateTags(updateId);
   }
 
   @Get('convertfiletocsv?')
@@ -92,7 +110,7 @@ export class AppController {
           this.logger.log(i);
         }
       } catch (e) {
-        this.logger.log(e.message + ': ' + line);
+        this.logger.error(line, e);
       }
     }
     fs.closeSync(out);
@@ -100,8 +118,14 @@ export class AppController {
   }
 
   @Get('importfrommongo?')
-  async importFromMongo(@Query('update') update = false) {
-    await this.deleteProducts(update);
+  async importFromMongo(@Query('from') from = null) {
+    const filter = {};
+    if (from) {
+      const fromTime = Math.floor(new Date(from).getTime() / 1000);
+      filter['last_modified_t'] = { $gt: fromTime };
+    }
+    const updateId = from ? Ulid.generate().toRaw() : null;
+    if (!from) await this.deleteAllProducts();
     //await this.cacheTags();
     this.logger.log('Connecting to MongoDB');
     const client = new MongoClient('mongodb://127.0.0.1:27017');
@@ -115,7 +139,7 @@ export class AppController {
     for (const key of this.tags) {
       projection[key] = 1;
     }
-    const cursor = products.find({}, { projection });
+    const cursor = products.find(filter, { projection });
     let i = 0;
     this.logger.log('Starting import');
     while (true) {
@@ -123,7 +147,7 @@ export class AppController {
       if (!data) break;
 
       i++;
-      await this.fixupProduct(update, data);
+      await this.fixupProduct(updateId, data);
       if (!(i % this.importBatchSize)) {
         await this.em.flush();
         this.em.clear();
@@ -134,10 +158,10 @@ export class AppController {
     }
     //await this.em.getConnection().execute('commit');
     await this.em.flush();
-    this.logger.log(i);
+    this.logger.log(`${i} Products imported`);
     await cursor.close();
     await client.close();
-    //await this.evaluateTags();
+    await this.updateTags(updateId);
   }
 
   @Post('query')
@@ -178,7 +202,7 @@ export class AppController {
     const results = await qb.execute();
     //this.logger.log(results);
     this.logger.log(
-      `Processed ${tag}${matchTag ? `where ${matchTag} ${not ? '!=' : '=='} ${matchValue}` : ''
+      `Processed ${tag}${matchTag ? ` where ${matchTag} ${not ? '!=' : '=='} ${matchValue}` : ''
       } in ${Date.now() - start} ms. Returning ${results.length} records`,
     );
     return results;
@@ -196,23 +220,39 @@ export class AppController {
     return { entity, column };
   }
 
-  private async evaluateTags() {
+  private async updateTags(updateId: string) {
     const connection = this.em.getConnection();
-    for (const tag of this.tags) {
-      this.logger.log(tag);
-      await connection.execute(
-        `insert into off.product_tag (product_id, sequence, tag_type, value)
-        select id, tag.ordinality, '${tag}', tag.value from off.product 
-        cross join jsonb_array_elements_text(data->'${tag}') with ordinality tag`,
+    for (const [tag, entity] of Object.entries(TAG_MAPPINGS)) {
+      let logText = `Updated ${tag}`;
+      const tableName = this.em.getMetadata(entity).tableName;
+      if (updateId) {
+        const results = await connection.execute(
+          `delete from off.${tableName} 
+        where product_id in (select id from off.product 
+        where last_update_id = ?)`,
+          [updateId],
+          'run',
+        );
+        logText += ` deleted ${results['affectedRows']},`;
+      }
+      const results = await connection.execute(
+        `insert into off.${tableName} (product_id, sequence, value)
+        select id, tag.ordinality, tag.value from off.product 
+        cross join jsonb_array_elements_text(data->'${tag}') with ordinality tag
+        ${updateId ? `where last_update_id = ?` : ''}`,
+        [updateId],
+        'run',
       );
-      await connection.execute('commit');
+      logText += ` inserted ${results['affectedRows']} rows`;
+      this.logger.log(logText);
     }
+    await connection.execute('commit');
     this.logger.log('Finished');
   }
 
-  private async findOrNewProduct(update: boolean, data: any) {
+  private async findOrNewProduct(updateId: string, data: any) {
     let product: Product;
-    if (update) {
+    if (updateId) {
       const code = data.code;
       if (code) product = await this.em.findOne(Product, { code: code });
     }
@@ -223,23 +263,12 @@ export class AppController {
     return product;
   }
 
-  async deleteProducts(update) {
-    await this.deleteProductChildren();
-    if (!update) {
-      await this.deleteAndFlush(Product);
-    }
-  }
-
-  async deleteProductChildren() {
-    //const connection = this.em.getConnection();
-    //await connection.execute('truncate off.product_tag');
-    //await connection.execute('commit');
-    //deleteAndFlush(ProductTag);
-    for (const entity of Object.values(TAG_MAPPINGS)) {
-      await this.deleteAndFlush(entity);
-    }
-    //await this.deleteAndFlush(ProductIngredient);
-    //await this.deleteAndFlush(ProductNutrient);
+  async deleteAllProducts() {
+    await this.em.execute('truncate table off.product cascade');
+    // for (const entity of Object.values(TAG_MAPPINGS)) {
+    //   await this.deleteAndFlush(entity);
+    // }
+    // await this.deleteAndFlush(Product);
   }
 
   async deleteAndFlush(entityName: { new(...args: any): object }) {
@@ -248,13 +277,19 @@ export class AppController {
     await this.em.flush();
   }
 
-  async fixupProduct(update: boolean, data: any): Promise<void> {
-    const product = await this.findOrNewProduct(update, data);
-    // const dataToStore = {};
-    // for (const key of this.tags) {
-    //   dataToStore[key] = data[key];
-    // }
-    // product.data = dataToStore;
+  async deleteProductChildren(product: Product) {
+    for (const entity of Object.values(TAG_MAPPINGS)) {
+      await this.em.nativeDelete(entity, { product: product });
+    }
+  }
+
+  async fixupProduct(updateId: string, data: any): Promise<void> {
+    const product = await this.findOrNewProduct(updateId, data);
+    const dataToStore = {};
+    for (const key of this.tags) {
+      dataToStore[key] = data[key];
+    }
+    product.data = dataToStore;
     product.name = data.product_name;
     product.code = data.code;
     product.creator = data.creator;
@@ -264,8 +299,13 @@ export class AppController {
     product.nutritionPreparedPer = data.nutrition_data_prepared_per;
     product.servingQuantity = data.serving_quantity;
     product.servingSize = data.serving_size;
-    product.lastModified = new Date(data.last_modified_t * 1000);
-    this.importTags(product, data);
+    try {
+      product.lastModified = new Date(data.last_modified_t * 1000);
+    } catch (e) {
+      this.logger.log(`${e.message}: ${data.last_modified_t}.`);
+    }
+    product.lastUpdateId = updateId;
+    //this.importTags(product, data);
   }
 
   importTags(product: Product, data: any) {

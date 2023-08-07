@@ -53,4 +53,10 @@ export class Product {
 
   @Property()
   ownersTags?: string;
+
+  @Property({ type: 'uuid', index: true })
+  lastUpdateId?: string;
+
+  @Property()
+  obsolete = false;
 }
