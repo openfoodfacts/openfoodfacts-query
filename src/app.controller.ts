@@ -130,6 +130,85 @@ export class AppController {
     await client.close();
   }
 
+  private async updateTags(updateId: string, obsolete = false) {
+    const connection = this.em.getConnection();
+    for (const [tag, entity] of Object.entries(TAG_MAPPINGS)) {
+      let logText = `Updated ${tag}`;
+      const tableName = this.em.getMetadata(entity).tableName;
+      if (updateId && !obsolete) { // Note this relies in doing no obsolete first
+        const results = await connection.execute(
+          `delete from off.${tableName} 
+        where product_id in (select id from off.product 
+        where last_update_id = ?)`,
+          [updateId],
+          'run',
+        );
+        logText += ` deleted ${results['affectedRows']},`;
+      }
+      const results = await connection.execute(
+        `insert into off.${tableName} (product_id, value, obsolete)
+        select DISTINCT id, tag.value, ? from off.product 
+        cross join jsonb_array_elements_text(data->'${tag}') tag
+        where ${obsolete ? '' : 'NOT '}obsolete
+        ${updateId ? `AND last_update_id = ?` : ''}`,
+        [obsolete, updateId],
+        'run',
+      );
+      logText += ` inserted ${results['affectedRows']}${obsolete ? ' obsolete' : ''
+        } rows`;
+      this.logger.log(logText);
+    }
+    await connection.execute('commit');
+    this.logger.log('Finished');
+  }
+
+  private async findOrNewProduct(updateId: string, data: any) {
+    let product: Product;
+    if (updateId) {
+      const code = data.code;
+      if (code) product = await this.em.findOne(Product, { code: code });
+    }
+    if (!product) {
+      product = new Product();
+      this.em.persist(product);
+    }
+    return product;
+  }
+
+  async deleteAllProducts() {
+    await this.em.execute('truncate table off.product cascade');
+  }
+
+  async fixupProduct(
+    updateId: string,
+    data: any,
+    obsolete = false,
+  ): Promise<void> {
+    const product = await this.findOrNewProduct(updateId, data);
+    const dataToStore = {};
+    for (const key of this.tags) {
+      dataToStore[key] = data[key];
+    }
+    product.data = dataToStore;
+    product.name = data.product_name;
+    product.code = data.code;
+    product.creator = data.creator;
+    product.ownersTags = data.owners_tags;
+    product.ingredientsText = data.ingredients_text;
+    product.nutritionAsSoldPer = data.nutrition_data_per;
+    product.nutritionPreparedPer = data.nutrition_data_prepared_per;
+    product.servingQuantity = data.serving_quantity;
+    product.servingSize = data.serving_size;
+    product.obsolete = obsolete;
+    try {
+      product.lastModified = new Date(data.last_modified_t * 1000);
+    } catch (e) {
+      this.logger.log(`${e.message}: ${data.last_modified_t}.`);
+    }
+    product.lastUpdateId = updateId;
+    //this.importTags(product, data);
+  }
+
   @Post('aggregate')
   async aggregate(@Body() body: any[]) {
     const start = Date.now();
@@ -253,84 +332,5 @@ export class AppController {
       entity = TAG_MAPPINGS[tag];
     }
     return { entity, column };
-  }
-
-  private async updateTags(updateId: string, obsolete = false) {
-    const connection = this.em.getConnection();
-    for (const [tag, entity] of Object.entries(TAG_MAPPINGS)) {
-      let logText = `Updated ${tag}`;
-      const tableName = this.em.getMetadata(entity).tableName;
-      if (updateId && !obsolete) { // Note this relies in doing no obsolete first
-        const results = await connection.execute(
-          `delete from off.${tableName} 
-        where product_id in (select id from off.product 
-        where last_update_id = ?)`,
-          [updateId],
-          'run',
-        );
-        logText += ` deleted ${results['affectedRows']},`;
-      }
-      const results = await connection.execute(
-        `insert into off.${tableName} (product_id, value, obsolete)
-        select DISTINCT id, tag.value, ? from off.product 
-        cross join jsonb_array_elements_text(data->'${tag}') tag
-        where ${obsolete ? '' : 'NOT '}obsolete
-        ${updateId ? `AND last_update_id = ?` : ''}`,
-        [obsolete, updateId],
-        'run',
-      );
-      logText += ` inserted ${results['affectedRows']}${obsolete ? ' obsolete' : ''
-        } rows`;
-      this.logger.log(logText);
-    }
-    await connection.execute('commit');
-    this.logger.log('Finished');
-  }
-
-  private async findOrNewProduct(updateId: string, data: any) {
-    let product: Product;
-    if (updateId) {
-      const code = data.code;
-      if (code) product = await this.em.findOne(Product, { code: code });
-    }
-    if (!product) {
-      product = new Product();
-      this.em.persist(product);
-    }
-    return product;
-  }
-
-  async deleteAllProducts() {
-    await this.em.execute('truncate table off.product cascade');
-  }
-
-  async fixupProduct(
-    updateId: string,
-    data: any,
-    obsolete = false,
-  ): Promise<void> {
-    const product = await this.findOrNewProduct(updateId, data);
-    const dataToStore = {};
-    for (const key of this.tags) {
-      dataToStore[key] = data[key];
-    }
-    product.data = dataToStore;
-    product.name = data.product_name;
-    product.code = data.code;
-    product.creator = data.creator;
-    product.ownersTags = data.owners_tags;
-    product.ingredientsText = data.ingredients_text;
-    product.nutritionAsSoldPer = data.nutrition_data_per;
-    product.nutritionPreparedPer = data.nutrition_data_prepared_per;
-    product.servingQuantity = data.serving_quantity;
-    product.servingSize = data.serving_size;
-    product.obsolete = obsolete;
-    try {
-      product.lastModified = new Date(data.last_modified_t * 1000);
-    } catch (e) {
-      this.logger.log(`${e.message}: ${data.last_modified_t}.`);
-    }
-    product.lastUpdateId = updateId;
-    //this.importTags(product, data);
   }
 }
