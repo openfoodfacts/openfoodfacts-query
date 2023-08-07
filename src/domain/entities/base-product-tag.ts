@@ -17,4 +17,7 @@ export abstract class BaseProductTag {
 
   @PrimaryKey()
   sequence: number;
+
+  @Property()
+  obsolete = false;
 }

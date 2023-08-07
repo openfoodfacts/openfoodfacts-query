@@ -216,6 +216,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_additives_tag",
@@ -285,6 +295,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_allergens_tag",
@@ -354,6 +374,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_amino_acids_tag",
@@ -423,6 +453,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_brands_tag",
@@ -492,6 +532,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_categories_properties_tag",
@@ -561,6 +611,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_categories_tag",
@@ -630,6 +690,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_checkers_tag",
@@ -699,6 +769,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_cities_tag",
@@ -768,6 +848,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_codes_tag",
@@ -837,6 +927,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_correctors_tag",
@@ -906,6 +1006,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_countries_tag",
@@ -975,6 +1085,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_creator_tag",
@@ -1044,6 +1164,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_data_quality_bugs_tag",
@@ -1113,6 +1243,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_data_quality_errors_tag",
@@ -1182,6 +1322,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_data_quality_info_tag",
@@ -1251,6 +1401,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_data_quality_tag",
@@ -1320,6 +1480,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_data_quality_warnings_tag",
@@ -1389,6 +1559,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_data_sources_tag",
@@ -1458,6 +1638,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_ecoscore_tag",
@@ -1527,6 +1717,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_editors_tag",
@@ -1596,6 +1796,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_emb_codes_tag",
@@ -1665,6 +1875,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_entry_dates_tag",
@@ -1734,6 +1954,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_food_groups_tag",
@@ -1803,6 +2033,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_informers_tag",
@@ -1872,6 +2112,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_ingredients_analysis_tag",
@@ -1941,6 +2191,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_ingredients_from_palm_oil_tag",
@@ -2010,6 +2270,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_ingredients_ntag",
@@ -2079,6 +2349,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_ingredients_tag",
@@ -2148,6 +2428,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_ingredients_that_may_be_from_palm_oil_tag",
@@ -2217,6 +2507,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_labels_tag",
@@ -2286,6 +2586,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_languages_tag",
@@ -2355,6 +2665,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_last_edit_dates_tag",
@@ -2424,6 +2744,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_last_image_dates_tag",
@@ -2493,6 +2823,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_manufacturing_places_tag",
@@ -2562,6 +2902,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_minerals_tag",
@@ -2631,6 +2981,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_misc_tag",
@@ -2700,6 +3060,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_nova_groups_tag",
@@ -2769,6 +3139,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_nucleotides_tag",
@@ -2838,6 +3218,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_nutrient_levels_tag",
@@ -2907,6 +3297,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_nutrition_grades_tag",
@@ -2976,6 +3376,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_origins_tag",
@@ -3045,6 +3455,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_packaging_tag",
@@ -3114,6 +3534,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_photographers_tag",
@@ -3183,6 +3613,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_pnns_groups1tag",
@@ -3252,6 +3692,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_pnns_groups2tag",
@@ -3321,6 +3771,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_popularity_tag",
@@ -3390,6 +3850,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_purchase_places_tag",
@@ -3459,6 +3929,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_quality_tag",
@@ -3528,6 +4008,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_states_tag",
@@ -3597,6 +4087,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_stores_tag",
@@ -3666,6 +4166,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_teams_tag",
@@ -3735,6 +4245,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_traces_tag",
@@ -3804,6 +4324,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_unknown_nutrients_tag",
@@ -3873,6 +4403,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_vitamins_tag",
@@ -3942,6 +4482,16 @@
           "primary": false,
           "nullable": false,
           "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
         }
       },
       "name": "product_weighers_tag",

@@ -81,42 +81,6 @@ export class AppController {
     await this.updateTags(updateId);
   }
 
-  @Get('convertfiletocsv?')
-  async convertFileToCsv() {
-    const rl = readline.createInterface({
-      input: fs.createReadStream('data/openfoodfacts-products.jsonl'),
-    });
-
-    const out = fs.openSync('data/product_tag.csv', 'w');
-    //await this.cacheTags();
-    let i = 0;
-    for await (const line of rl) {
-      try {
-        i++;
-        const data = JSON.parse(line.replace(/\\u0000/g, ''));
-        const id = Ulid.generate().toRaw();
-        for (const key of this.tags) {
-          for (const [index, value] of Object.entries(data[key] || [])) {
-            fs.appendFileSync(out, `${id},${key},${index},${value}\n`);
-          }
-        }
-        if (data.creator)
-          fs.appendFileSync(out, `${id},creator,0,${data.creator}\n`);
-
-        if (data.owners_tags)
-          fs.appendFileSync(out, `${id},owners_tags,0,${data.owners_tags}\n`);
-
-        if (!(i % this.importLogInterval)) {
-          this.logger.log(i);
-        }
-      } catch (e) {
-        this.logger.error(line, e);
-      }
-    }
-    fs.closeSync(out);
-    this.logger.log(i);
-  }
-
   @Get('importfrommongo?')
   async importFromMongo(@Query('from') from = null) {
     const filter = {};
@@ -131,7 +95,6 @@ export class AppController {
     const client = new MongoClient('mongodb://127.0.0.1:27017');
     await client.connect();
     const db = client.db('off');
-    const products = db.collection('products');
     const projection = {};
     for (const key of this.fields) {
       projection[key] = 1;
@@ -139,29 +102,32 @@ export class AppController {
     for (const key of this.tags) {
       projection[key] = 1;
     }
-    const cursor = products.find(filter, { projection });
-    let i = 0;
-    this.logger.log('Starting import');
-    while (true) {
-      const data = await cursor.next();
-      if (!data) break;
+    for (const obsolete of [false, true]) {
+      const products = db.collection(`products${obsolete ? '_obsolete' : ''}`);
+      const cursor = products.find(filter, { projection });
+      let i = 0;
+      this.logger.log('Starting import');
+      while (true) {
+        const data = await cursor.next();
+        if (!data) break;
 
-      i++;
-      await this.fixupProduct(updateId, data);
-      if (!(i % this.importBatchSize)) {
-        await this.em.flush();
-        this.em.clear();
+        i++;
+        await this.fixupProduct(updateId, data, obsolete);
+        if (!(i % this.importBatchSize)) {
+          await this.em.flush();
+          this.em.clear();
+        }
+        if (!(i % this.importLogInterval)) {
+          this.logger.log(`Updated ${i}`);
+        }
       }
-      if (!(i % this.importLogInterval)) {
-        this.logger.log(i);
-      }
+      //await this.em.getConnection().execute('commit');
+      await this.em.flush();
+      this.logger.log(`${i}${obsolete ? ' Obsolete' : ''} Products imported`);
+      await cursor.close();
+      await this.updateTags(updateId, obsolete);
     }
-    //await this.em.getConnection().execute('commit');
-    await this.em.flush();
-    this.logger.log(`${i} Products imported`);
-    await cursor.close();
     await client.close();
-    await this.updateTags(updateId);
   }
 
   @Post('query')
@@ -176,7 +142,8 @@ export class AppController {
     const { entity, column } = this.getEntityAndColumn(tag);
     const qb = this.em
       .createQueryBuilder(entity, 'pt')
-      .select(`${column} _id, count(*) count`);
+      .select(`${column} _id, count(*) count`)
+      .where('not pt.obsolete');
 
     const matchTag = Object.keys(match)[0];
     let matchValue = Object.values(match)[0];
@@ -193,7 +160,7 @@ export class AppController {
         .where(`pt2.product_id = pt.product_id and pt2.${matchColumn} = ?`, [
           matchValue,
         ]);
-      qb.where(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
+      qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
     }
     qb.groupBy(column)
       .orderBy({ ['2']: 'DESC' })
@@ -220,7 +187,7 @@ export class AppController {
     return { entity, column };
   }
 
-  private async updateTags(updateId: string) {
+  private async updateTags(updateId: string, obsolete = false) {
     const connection = this.em.getConnection();
     for (const [tag, entity] of Object.entries(TAG_MAPPINGS)) {
       let logText = `Updated ${tag}`;
@@ -228,7 +195,8 @@ export class AppController {
       if (updateId) {
         const results = await connection.execute(
           `delete from off.${tableName} 
-        where product_id in (select id from off.product 
+        where ${obsolete ? '' : 'NOT '}obsolete 
+        AND product_id in (select id from off.product 
         where last_update_id = ?)`,
           [updateId],
           'run',
@@ -236,14 +204,16 @@ export class AppController {
         logText += ` deleted ${results['affectedRows']},`;
       }
       const results = await connection.execute(
-        `insert into off.${tableName} (product_id, sequence, value)
-        select id, tag.ordinality, tag.value from off.product 
+        `insert into off.${tableName} (product_id, sequence, value, obsolete)
+        select id, tag.ordinality, tag.value, ? from off.product 
         cross join jsonb_array_elements_text(data->'${tag}') with ordinality tag
-        ${updateId ? `where last_update_id = ?` : ''}`,
-        [updateId],
+        where ${obsolete ? '' : 'NOT '}obsolete
+        ${updateId ? `AND last_update_id = ?` : ''}`,
+        [obsolete, updateId],
         'run',
       );
-      logText += ` inserted ${results['affectedRows']} rows`;
+      logText += ` inserted ${results['affectedRows']}${obsolete ? ' obsolete' : ''
+        } rows`;
       this.logger.log(logText);
     }
     await connection.execute('commit');
@@ -265,25 +235,13 @@ export class AppController {
 
   async deleteAllProducts() {
     await this.em.execute('truncate table off.product cascade');
-    // for (const entity of Object.values(TAG_MAPPINGS)) {
-    //   await this.deleteAndFlush(entity);
-    // }
-    // await this.deleteAndFlush(Product);
   }
 
-  async deleteAndFlush(entityName: { new(...args: any): object }) {
-    this.logger.log('Deleting ' + entityName.name);
-    await this.em.nativeDelete(entityName, {});
-    await this.em.flush();
-  }
-
-  async deleteProductChildren(product: Product) {
-    for (const entity of Object.values(TAG_MAPPINGS)) {
-      await this.em.nativeDelete(entity, { product: product });
-    }
-  }
-
-  async fixupProduct(updateId: string, data: any): Promise<void> {
+  async fixupProduct(
+    updateId: string,
+    data: any,
+    obsolete = false,
+  ): Promise<void> {
     const product = await this.findOrNewProduct(updateId, data);
     const dataToStore = {};
     for (const key of this.tags) {
@@ -299,6 +257,7 @@ export class AppController {
     product.nutritionPreparedPer = data.nutrition_data_prepared_per;
     product.servingQuantity = data.serving_quantity;
     product.servingSize = data.serving_size;
+    product.obsolete = obsolete;
     try {
       product.lastModified = new Date(data.last_modified_t * 1000);
     } catch (e) {
@@ -316,59 +275,4 @@ export class AppController {
       }
     }
   }
-  /*
-  importIngredients(product: Product, sequence: number, ingredients: any[], parent?: ProductIngredient) {
-    for (const offIngredient of ingredients ?? []) {
-      const ingredient = this.em.create(ProductIngredient, {
-        product: product,
-        sequence: sequence++,
-        id: offIngredient.id,
-        ingredientText: offIngredient.text,
-        percentMin: offIngredient.percent_min,
-        percentMax: offIngredient.percent_max,
-        percentEstimate: offIngredient.percent_estimate,
-        parent: parent,
-        ingredient: this.cachedTags['ingredients'].find((tag) => tag.id === offIngredient.id)
-      });
-      this.em.persist(ingredient);
-      if (offIngredient.ingredients) {
-        sequence = this.importIngredients(product, sequence, offIngredient.ingredients, ingredient);
-      }
-    }
-    return sequence;
-  }
-
-  importNutrients(product: Product, nurientData: { [key: string]: any }) {
-    const nutrients: { [key: string]: ProductNutrient } = {};
-    for (const [key, value] of Object.entries(nurientData || {})) {
-      const parts = key.split('_');
-      const nutrientId = parts[0];
-      const nutrient = nutrients[nutrientId]
-        ??= new ProductNutrient(product, nutrientId, this.cachedTags['nutrients'].find((tag) => tag.id === 'zz:' + nutrientId));
-      this.em.persist(nutrient);
-
-      const prepared = (parts[1] === 'prepared');
-      const suffix = prepared ? parts[2] : parts[1];
-      if (suffix === 'unit')
-        nutrient.enteredUnit = value;
-      else if (suffix === 'modifier')
-        if (prepared) nutrient.modifierPrepared = value;
-        else nutrient.modifierAsSold = value;
-      else if (suffix === 'label')
-        nutrient.enteredName = value;
-      else if (suffix === 'value')
-        if (prepared) nutrient.enteredQuantityPrepared = value; //TODO: Need to make sure values are valid numbers
-        else nutrient.enteredQuantityAsSold = value;
-      else if (suffix === '100g')
-        if (prepared) nutrient.quantityPer100gPrepared = value;
-        else nutrient.quantityPer100gAsSold = value;
-      else if (suffix === 'serving')
-        if (prepared) nutrient.quantityPerServingPrepared = value;
-        else nutrient.quantityPerServingAsSold = value;
-      else
-        if (prepared) nutrient.normalisedQuantityPrepared = value;
-        else nutrient.normalisedQuantityAsSold = value;
-    }
-  }
-  */
 }
