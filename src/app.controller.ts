@@ -137,13 +137,17 @@ export class AppController {
 
     const match = body.find((o: any) => o['$match'])?.['$match'];
     const group = body.find((o: any) => o['$group'])?.['$group'];
+    const count = body.some((o: any) => o['$count']);
 
     const tag = group['_id'].substring(1);
     const { entity, column } = this.getEntityAndColumn(tag);
-    const qb = this.em
-      .createQueryBuilder(entity, 'pt')
-      .select(`${column} _id, count(*) count`)
-      .where('not pt.obsolete');
+    const qb = this.em.createQueryBuilder(entity, 'pt');
+    if (!count) {
+      qb.select(`${column} _id, count(*) count`);
+    } else {
+      qb.select(`count(DISTINCT ${column}) count`);
+    }
+    qb.where('not pt.obsolete');
 
     const matchTag = Object.keys(match)[0];
     let matchValue = Object.values(match)[0];
@@ -162,9 +166,11 @@ export class AppController {
         ]);
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
     }
-    qb.groupBy(column)
-      .orderBy({ ['2']: 'DESC' })
-      .limit(10000);
+    if (!count) {
+      qb.groupBy(column)
+        .orderBy({ ['2']: 'DESC' })
+        .limit(10000);
+    }
 
     const results = await qb.execute();
     //this.logger.log(results);
@@ -172,6 +178,12 @@ export class AppController {
       `Processed ${tag}${matchTag ? ` where ${matchTag} ${not ? '!=' : '=='} ${matchValue}` : ''
       } in ${Date.now() - start} ms. Returning ${results.length} records`,
     );
+    if (count) {
+      const response = {};
+      response[tag] = results[0].count;
+      this.logger.log(response);
+      return response;
+    }
     return results;
   }
 
