@@ -83,6 +83,13 @@ export class AppController {
 
   @Get('importfrommongo?')
   async importFromMongo(@Query('from') from = null) {
+    if (!from && from != null) {
+      const result = await this.em
+        .createQueryBuilder(Product, 'p')
+        .select(['max(p.last_modified) modified'])
+        .execute();
+      from = result?.[0]?.['modified'];
+    }
     const filter = {};
     if (from) {
       const fromTime = Math.floor(new Date(from).getTime() / 1000);
