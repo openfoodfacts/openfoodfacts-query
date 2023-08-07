@@ -139,14 +139,18 @@ export class AppController {
       const match = body.find((o: any) => o['$match'])?.['$match'];
       const group = body.find((o: any) => o['$group'])?.['$group'];
       const count = body.some((o: any) => o['$count']);
+      const limit = body.find((o: any) => o['$limit'])?.['$limit'];
+      const skip = body.find((o: any) => o['$skip'])?.['$skip'];
 
-      const tag = group['_id'].substring(1);
+      let tag = group['_id'].substring(1);
+      if (tag === 'users_tags') tag = 'creator';
+
       const { entity, column } = this.getEntityAndColumn(tag);
-      const qb = this.em.createQueryBuilder(entity, 'pt');
+      let qb = this.em.createQueryBuilder(entity, 'pt');
       if (!count) {
         qb.select(`${column} _id, count(*) count`);
       } else {
-        qb.select(`count(*) count`);
+        qb.select(`${column}`).distinct();
       }
       qb.where('not pt.obsolete');
 
@@ -167,12 +171,16 @@ export class AppController {
           ]);
         qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
       }
-      if (!count) {
-        qb.groupBy(column)
-          .orderBy({ ['2']: 'DESC' })
-          .limit(10000);
+      if (count) {
+        qb = this.em.createQueryBuilder(qb, 'temp');
+        qb.select('count(*) count');
+      } else {
+        qb.groupBy(column).orderBy({ ['2']: 'DESC' });
+        if (limit) qb.limit(limit);
+        if (skip) qb.offset(skip);
       }
 
+      this.logger.log(qb.getFormattedQuery());
       const results = await qb.execute();
       //this.logger.log(results);
       this.logger.log(
