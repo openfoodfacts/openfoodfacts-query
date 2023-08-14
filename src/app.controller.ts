@@ -99,7 +99,9 @@ export class AppController {
     if (!from) await this.deleteAllProducts();
     //await this.cacheTags();
     this.logger.log('Connecting to MongoDB');
-    const client = new MongoClient('mongodb://127.0.0.1:27017');
+    const client = new MongoClient(
+      `mongodb://${process.env['MONGODB_HOST']}:27017`,
+    );
     await client.connect();
     const db = client.db('off');
     const projection = {};

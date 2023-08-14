@@ -1,5 +1,7 @@
 services:
-  init:
+  init_local:
+    profiles:
+      - local_postgres
     build: ../
     networks:
       - ${DEFAULT_NETWORK}
@@ -12,8 +14,22 @@ services:
       - POSTGRES_HOST=postgres
     command: sh -cx "sleep 1 && npx mikro-orm migration:up"
 
-  query:
+  init_po:
+    profiles:
+      - po_postgres
     build: ../
+    networks:
+      - ${DEFAULT_NETWORK}
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_HOST=postgres
+    command: sh -cx "npx mikro-orm migration:up"
+
+  query_local:
+    build: ../
+    profiles:
+      - local_postgres
     ports:
       - 3001:3000
     networks:
@@ -22,10 +38,26 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - POSTGRES_HOST=postgres
+      - MONGODB_HOST
     depends_on:
-      mongodb:
-        condition: service_started
-      init:
+      init_local:
+        condition: service_completed_successfully
+
+  query_po:
+    build: ../
+    profiles:
+      - po_postgres
+    ports:
+      - 3001:3000
+    networks:
+      - ${DEFAULT_NETWORK}
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_HOST=postgres
+      - MONGODB_HOST
+    depends_on:
+      init_po:
         condition: service_completed_successfully
 
   mongodb:
