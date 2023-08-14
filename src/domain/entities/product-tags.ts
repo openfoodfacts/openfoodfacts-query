@@ -2,63 +2,63 @@ import { Entity } from '@mikro-orm/core';
 import { BaseProductTag } from './base-product-tag';
 
 @Entity()
-export class ProductCountriesTag extends BaseProductTag { }
+export class ProductCountriesTag extends BaseProductTag {}
 @Entity()
-export class ProductNutritionGradesTag extends BaseProductTag { }
+export class ProductNutritionGradesTag extends BaseProductTag {}
 @Entity()
-export class ProductNovaGroupsTag extends BaseProductTag { }
+export class ProductNovaGroupsTag extends BaseProductTag {}
 @Entity()
-export class ProductEcoscoreTag extends BaseProductTag { }
+export class ProductEcoscoreTag extends BaseProductTag {}
 @Entity()
-export class ProductBrandsTag extends BaseProductTag { }
+export class ProductBrandsTag extends BaseProductTag {}
 @Entity()
-export class ProductCategoriesTag extends BaseProductTag { }
+export class ProductCategoriesTag extends BaseProductTag {}
 @Entity()
-export class ProductLabelsTag extends BaseProductTag { }
+export class ProductLabelsTag extends BaseProductTag {}
 @Entity()
-export class ProductPackagingTag extends BaseProductTag { }
+export class ProductPackagingTag extends BaseProductTag {}
 @Entity()
-export class ProductOriginsTag extends BaseProductTag { }
+export class ProductOriginsTag extends BaseProductTag {}
 @Entity()
-export class ProductManufacturingPlacesTag extends BaseProductTag { }
+export class ProductManufacturingPlacesTag extends BaseProductTag {}
 @Entity()
-export class ProductEmbCodesTag extends BaseProductTag { }
+export class ProductEmbCodesTag extends BaseProductTag {}
 @Entity()
-export class ProductIngredientsTag extends BaseProductTag { }
+export class ProductIngredientsTag extends BaseProductTag {}
 @Entity()
-export class ProductAdditivesTag extends BaseProductTag { }
+export class ProductAdditivesTag extends BaseProductTag {}
 @Entity()
-export class ProductVitaminsTag extends BaseProductTag { }
+export class ProductVitaminsTag extends BaseProductTag {}
 @Entity()
-export class ProductMineralsTag extends BaseProductTag { }
+export class ProductMineralsTag extends BaseProductTag {}
 @Entity()
-export class ProductAminoAcidsTag extends BaseProductTag { }
+export class ProductAminoAcidsTag extends BaseProductTag {}
 @Entity()
-export class ProductNucleotidesTag extends BaseProductTag { }
+export class ProductNucleotidesTag extends BaseProductTag {}
 @Entity()
-export class ProductOtherNutritionalSubstancesTag extends BaseProductTag { }
+export class ProductOtherNutritionalSubstancesTag extends BaseProductTag {}
 @Entity()
-export class ProductAllergensTag extends BaseProductTag { }
+export class ProductAllergensTag extends BaseProductTag {}
 @Entity()
-export class ProductTracesTag extends BaseProductTag { }
+export class ProductTracesTag extends BaseProductTag {}
 @Entity()
-export class ProductMiscTag extends BaseProductTag { }
+export class ProductMiscTag extends BaseProductTag {}
 @Entity()
-export class ProductLanguagesTag extends BaseProductTag { }
+export class ProductLanguagesTag extends BaseProductTag {}
 @Entity()
-export class ProductCreatorTag extends BaseProductTag { }
+export class ProductCreatorTag extends BaseProductTag {}
 @Entity()
-export class ProductStatesTag extends BaseProductTag { }
+export class ProductStatesTag extends BaseProductTag {}
 @Entity()
-export class ProductDataSourcesTag extends BaseProductTag { }
+export class ProductDataSourcesTag extends BaseProductTag {}
 @Entity()
-export class ProductEntryDatesTag extends BaseProductTag { }
+export class ProductEntryDatesTag extends BaseProductTag {}
 @Entity()
-export class ProductLastEditDatesTag extends BaseProductTag { }
+export class ProductLastEditDatesTag extends BaseProductTag {}
 @Entity()
-export class ProductLastCheckDatesTag extends BaseProductTag { }
+export class ProductLastCheckDatesTag extends BaseProductTag {}
 @Entity()
-export class ProductTeamsTag extends BaseProductTag { }
+export class ProductTeamsTag extends BaseProductTag {}
 
 /* From Config_off.pm
 # fields for drilldown facet navigation
