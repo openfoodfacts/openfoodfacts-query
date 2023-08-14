@@ -7,11 +7,11 @@ export abstract class BaseProductTag {
     this.value = value;
   }
 
-  @PrimaryKey()
-  value: string;
-
   @ManyToOne({ primary: true })
   product: Product;
+
+  @PrimaryKey({ index: true })
+  value: string;
 
   @Property()
   obsolete = false;
