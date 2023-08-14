@@ -109,11 +109,11 @@ export class AppController {
     for (const key of this.tags) {
       projection[key] = 1;
     }
+    this.logger.log('Starting import' + (from ? ' from ' + from : ''));
     for (const obsolete of [false, true]) {
       const products = db.collection(`products${obsolete ? '_obsolete' : ''}`);
       const cursor = products.find(filter, { projection });
       let i = 0;
-      this.logger.log('Starting import');
       while (true) {
         const data = await cursor.next();
         if (!data) break;
@@ -132,17 +132,18 @@ export class AppController {
       await this.em.flush();
       this.logger.log(`${i}${obsolete ? ' Obsolete' : ''} Products imported`);
       await cursor.close();
-      await this.updateTags(updateId, obsolete);
     }
+    await this.updateTags(updateId);
     await client.close();
+    this.logger.log('Finished');
   }
 
-  private async updateTags(updateId: string, obsolete = false) {
+  private async updateTags(updateId: string) {
     const connection = this.em.getConnection();
     for (const [tag, entity] of Object.entries(TAG_MAPPINGS)) {
       let logText = `Updated ${tag}`;
       const tableName = this.em.getMetadata(entity).tableName;
-      if (updateId && !obsolete) { // Note this relies in doing no obsolete first
+      if (updateId) {
         const results = await connection.execute(
           `delete from off.${tableName} 
         where product_id in (select id from off.product 
@@ -154,19 +155,16 @@ export class AppController {
       }
       const results = await connection.execute(
         `insert into off.${tableName} (product_id, value, obsolete)
-        select DISTINCT id, tag.value, ? from off.product 
+        select DISTINCT id, tag.value, obsolete from off.product 
         cross join jsonb_array_elements_text(data->'${tag}') tag
-        where ${obsolete ? '' : 'NOT '}obsolete
-        ${updateId ? `AND last_update_id = ?` : ''}`,
-        [obsolete, updateId],
+        ${updateId ? `WHERE last_update_id = ?` : ''}`,
+        [updateId],
         'run',
       );
-      logText += ` inserted ${results['affectedRows']}${obsolete ? ' obsolete' : ''
-        } rows`;
+      await connection.execute('commit');
+      logText += ` inserted ${results['affectedRows']} rows`;
       this.logger.log(logText);
     }
-    await connection.execute('commit');
-    this.logger.log('Finished');
   }
 
   private async findOrNewProduct(updateId: string, data: any) {
