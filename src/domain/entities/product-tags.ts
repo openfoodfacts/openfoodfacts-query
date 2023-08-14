@@ -60,64 +60,6 @@ export class ProductLastCheckDatesTag extends BaseProductTag { }
 @Entity()
 export class ProductTeamsTag extends BaseProductTag { }
 
-/*@Entity()
-export class ProductEditorsTag extends BaseProductTag { }
-@Entity()
-export class ProductCodesTag extends BaseProductTag { }
-@Entity()
-export class ProductNutrientLevelsTag extends BaseProductTag { }
-@Entity()
-export class ProductStoresTag extends BaseProductTag { }
-@Entity()
-export class ProductInformersTag extends BaseProductTag { }
-@Entity()
-export class ProductPhotographersTag extends BaseProductTag { }
-@Entity()
-export class ProductCheckersTag extends BaseProductTag { }
-@Entity()
-export class ProductCorrectorsTag extends BaseProductTag { }
-@Entity()
-export class ProductIngredientsFromPalmOilTag extends BaseProductTag { }
-@Entity()
-export class ProductIngredientsThatMayBeFromPalmOilTag extends BaseProductTag { }
-@Entity()
-export class ProductPurchasePlacesTag extends BaseProductTag { }
-@Entity()
-export class ProductIngredientsNTag extends BaseProductTag { }
-@Entity()
-export class ProductPnnsGroups1Tag extends BaseProductTag { }
-@Entity()
-export class ProductPnnsGroups2Tag extends BaseProductTag { }
-@Entity()
-export class ProductQualityTag extends BaseProductTag { }
-@Entity()
-export class ProductUnknownNutrientsTag extends BaseProductTag { }
-@Entity()
-export class ProductLastImageDatesTag extends BaseProductTag { }
-@Entity()
-export class ProductCitiesTag extends BaseProductTag { }
-@Entity()
-export class ProductIngredientsAnalysisTag extends BaseProductTag { }
-@Entity()
-export class ProductPopularityTag extends BaseProductTag { }
-@Entity()
-export class ProductDataQualityTag extends BaseProductTag { }
-@Entity()
-export class ProductDataQualityBugsTag extends BaseProductTag { }
-@Entity()
-export class ProductDataQualityInfoTag extends BaseProductTag { }
-@Entity()
-export class ProductDataQualityWarningsTag extends BaseProductTag { }
-@Entity()
-export class ProductDataQualityErrorsTag extends BaseProductTag { }
-@Entity()
-export class ProductCategoriesPropertiesTag extends BaseProductTag { }
-@Entity()
-export class ProductFoodGroupsTag extends BaseProductTag { }
-@Entity()
-export class ProductWeighersTag extends BaseProductTag { }
-*/
-
 /* From Config_off.pm
 # fields for drilldown facet navigation
 
@@ -183,35 +125,4 @@ export const TAG_MAPPINGS = {
   last_edit_dates_tags: ProductLastEditDatesTag,
   last_check_dates_tags: ProductLastCheckDatesTag,
   teams_tags: ProductTeamsTag,
-  /* The following aren't used in queries
-  codes_tags: ProductCodesTag,
-  nutrient_levels_tags: ProductNutrientLevelsTag,
-  stores_tags: ProductStoresTag,
-  informers_tags: ProductInformersTag,
-  photographers_tags: ProductPhotographersTag,
-  editors_tags: ProductEditorsTag,
-  checkers_tags: ProductCheckersTag,
-  correctors_tags: ProductCorrectorsTag,
-  ingredients_from_palm_oil_tags: ProductIngredientsFromPalmOilTag,
-  ingredients_that_may_be_from_palm_oil_tags:
-    ProductIngredientsThatMayBeFromPalmOilTag,
-  purchase_places_tags: ProductPurchasePlacesTag,
-  ingredients_n_tags: ProductIngredientsNTag,
-  pnns_groups_1_tags: ProductPnnsGroups1Tag,
-  pnns_groups_2_tags: ProductPnnsGroups2Tag,
-  quality_tags: ProductQualityTag,
-  unknown_nutrients_tags: ProductUnknownNutrientsTag,
-  last_image_dates_tags: ProductLastImageDatesTag,
-  cities_tags: ProductCitiesTag,
-  ingredients_analysis_tags: ProductIngredientsAnalysisTag,
-  popularity_tags: ProductPopularityTag,
-  data_quality_tags: ProductDataQualityTag,
-  data_quality_bugs_tags: ProductDataQualityBugsTag,
-  data_quality_info_tags: ProductDataQualityInfoTag,
-  data_quality_warnings_tags: ProductDataQualityWarningsTag,
-  data_quality_errors_tags: ProductDataQualityErrorsTag,
-  categories_properties_tags: ProductCategoriesPropertiesTag,
-  food_groups_tags: ProductFoodGroupsTag,
-  weighers_tags: ProductWeighersTag,
-  */
 };
