@@ -60,3 +60,16 @@ export class Product {
   @Property()
   obsolete = false;
 }
+
+export const MAPPED_FIELDS = [
+  'code',
+  'product_name',
+  'ingredients_text',
+  'nutrition_data_per',
+  'nutrition_data_prepared_per',
+  'serving_quantity',
+  'serving_size',
+  'creator',
+  'owners_tags',
+  'last_modified_t',
+];

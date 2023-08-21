@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Product } from '../entities/product';
+import { MAPPED_FIELDS, Product } from '../entities/product';
 import { Ulid } from 'id128';
 import { MongoClient } from 'mongodb';
 import { EntityManager } from '@mikro-orm/postgresql';
-import { TAG_MAPPINGS } from '../entities/product-tags';
+import { MAPPED_TAGS } from '../entities/product-tags';
 import * as fs from 'fs';
 import * as readline from 'readline';
 
@@ -17,20 +17,7 @@ export class ImportService {
   importBatchSize = 100;
   importLogInterval = 1000;
 
-  private tags = Object.keys(TAG_MAPPINGS);
-
-  fields = [
-    'code',
-    'product_name',
-    'ingredients_text',
-    'nutrition_data_per',
-    'nutrition_data_prepared_per',
-    'serving_quantity',
-    'serving_size',
-    'creator',
-    'owners_tags',
-    'last_modified_t',
-  ];
+  private tags = Object.keys(MAPPED_TAGS);
 
   async importFromMongo(from?: string) {
     if (!from && from != null) {
@@ -55,7 +42,7 @@ export class ImportService {
     await client.connect();
     const db = client.db('off');
     const projection = {};
-    for (const key of this.fields) {
+    for (const key of MAPPED_FIELDS) {
       projection[key] = 1;
     }
     for (const key of this.tags) {
@@ -135,7 +122,7 @@ export class ImportService {
 
   private async updateTags(update: boolean, updateId: string) {
     const connection = this.em.getConnection();
-    for (const [tag, entity] of Object.entries(TAG_MAPPINGS)) {
+    for (const [tag, entity] of Object.entries(MAPPED_TAGS)) {
       let logText = `Updated ${tag}`;
       const tableName = this.em.getMetadata(entity).tableName;
       if (update) {

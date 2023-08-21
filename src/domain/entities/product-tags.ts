@@ -95,7 +95,7 @@ export class ProductTeamsTag extends BaseProductTag {}
 );
 */
 
-export const TAG_MAPPINGS = {
+export const MAPPED_TAGS = {
   countries_tags: ProductCountriesTag,
   nutrition_grades_tags: ProductNutritionGradesTag,
   nova_groups_tags: ProductNovaGroupsTag,

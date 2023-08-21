@@ -4,9 +4,10 @@ import { ImportService } from './import.service';
 import { EntityManager, MikroORM, RequestContext } from '@mikro-orm/core';
 import { Product } from '../entities/product';
 import { ProductIngredientsTag } from '../entities/product-tags';
+import { randomCode } from '../../../test/test.helper';
 
 let index = 0;
-const productId = 'TEST-' + (Math.random() * 1e12).toFixed();
+const productId = randomCode();
 jest.mock('mongodb', () => {
   return {
     MongoClient: jest.fn(() => ({
