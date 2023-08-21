@@ -1,10 +1,9 @@
-import { Test } from '@nestjs/testing';
 import { DomainModule } from '../domain.module';
 import { ImportService } from './import.service';
-import { EntityManager, MikroORM, RequestContext } from '@mikro-orm/core';
+import { EntityManager } from '@mikro-orm/core';
 import { Product } from '../entities/product';
 import { ProductIngredientsTag } from '../entities/product-tags';
-import { randomCode } from '../../../test/test.helper';
+import { createTestingModule, randomCode } from '../../../test/test.helper';
 
 let index = 0;
 const productId = randomCode();
@@ -35,28 +34,19 @@ jest.mock('mongodb', () => {
 
 describe('importFromMongo', () => {
   it('should import a new product', async () => {
-    const app = await Test.createTestingModule({
-      imports: [DomainModule],
-    }).compile();
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      importService.deleteAllProducts = jest.fn();
+      await importService.importFromMongo();
 
-    const orm = app.get(MikroORM);
-    try {
-      await RequestContext.createAsync(orm.em, async () => {
-        const importService = app.get(ImportService);
-        importService.deleteAllProducts = jest.fn();
-        await importService.importFromMongo();
-
-        expect(importService.deleteAllProducts).toHaveBeenCalled();
-        const em = app.get(EntityManager);
-        const product = await em.findOne(Product, { code: productId });
-        expect(product).toBeTruthy();
-        const ingredients = await em.findOne(ProductIngredientsTag, {
-          product: product,
-        });
-        expect(ingredients).toBeTruthy();
+      expect(importService.deleteAllProducts).toHaveBeenCalled();
+      const em = app.get(EntityManager);
+      const product = await em.findOne(Product, { code: productId });
+      expect(product).toBeTruthy();
+      const ingredients = await em.findOne(ProductIngredientsTag, {
+        product: product,
       });
-    } finally {
-      await orm.close();
-    }
+      expect(ingredients).toBeTruthy();
+    });
   });
 });

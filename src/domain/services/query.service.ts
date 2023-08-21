@@ -1,6 +1,10 @@
 import { EntityName } from '@mikro-orm/core';
 import { EntityManager } from '@mikro-orm/postgresql';
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { MAPPED_TAGS } from '../entities/product-tags';
 import { MAPPED_FIELDS, Product } from '../entities/product';
 
@@ -132,6 +136,8 @@ export class QueryService {
     } else {
       entity = MAPPED_TAGS[tag];
     }
+    if (entity == null)
+      throw new UnprocessableEntityException(`Tag '${tag}' is not supported`);
     return { entity, column };
   }
 }
