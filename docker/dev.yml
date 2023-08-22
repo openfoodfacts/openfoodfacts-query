@@ -1,82 +1,6 @@
 services:
-  init_local:
-    profiles:
-      - local_postgres
-    build: ../
-    networks:
-      - ${DEFAULT_NETWORK}
-    depends_on:
-      postgres:
-        condition: service_started
-    environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_HOST=postgres
-    command: sh -cx "sleep 1 && npx mikro-orm migration:up"
-
-  init_po:
-    profiles:
-      - po_postgres
-    build: ../
-    networks:
-      - ${DEFAULT_NETWORK}
-    environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_HOST=postgres
-    command: sh -cx "npx mikro-orm migration:up"
-
-  query_local:
-    build: ../
-    profiles:
-      - local_postgres
-    ports:
-      - 3001:3000
-    networks:
-      - ${DEFAULT_NETWORK}
-    environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_HOST=postgres
-      - MONGODB_HOST
-    depends_on:
-      init_local:
-        condition: service_completed_successfully
-
-  query_po:
-    build: ../
-    profiles:
-      - po_postgres
-    ports:
-      - 3001:3000
-    networks:
-      - ${DEFAULT_NETWORK}
-    environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_HOST=postgres
-      - MONGODB_HOST
-    depends_on:
-      init_po:
-        condition: service_completed_successfully
-
-  mongodb:
-    profiles:
-      - local_mongo
-    restart: always
-    image: mongo:4.4
-    ports:
-      - 27017:27017
-    command: mongod --wiredTigerCacheSizeGB 8
-    networks:
-      - ${DEFAULT_NETWORK}
-    volumes:
-      - dbdata:/data/db
-
-  postgres:
-    profiles:
-      - local_postgres
-    image: citusdata/citus
+  query_postgres:
+    image: postgres:12-alpine
     ports:
       - 5432:5432
     environment:
@@ -84,14 +8,41 @@ services:
       - POSTGRES_PASSWORD
       - POSTGRES_DB=off
     volumes:
-      - citusdata:/var/lib/postgresql/data
+      - dbdata:/var/lib/postgresql/data
       - ../data:/mnt/data
     networks:
-      - ${DEFAULT_NETWORK}
+      - po_default
+
+  init:
+    build: ../
+    networks:
+      - po_default
+    depends_on:
+      query_postgres:
+        condition: service_started
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_HOST=query_postgres
+    command: sh -cx "sleep 1 && npx mikro-orm migration:up"
+
+  query:
+    build: ../
+    ports:
+      - 5511:5510
+    networks:
+      - po_default
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_HOST=query_postgres
+      - MONGODB_HOST=mongodb
+    depends_on:
+      init:
+        condition: service_completed_successfully
 
 volumes:
   dbdata:
-  citusdata:
 
 networks:
   default:

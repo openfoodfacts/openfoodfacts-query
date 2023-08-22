@@ -80,7 +80,7 @@ export class QueryService {
 
   async count(body: any) {
     const start = Date.now();
-    this.logger.log(body);
+    this.logger.debug(body);
 
     const tags = Object.keys(body);
     const tag = tags[0];
@@ -114,16 +114,14 @@ export class QueryService {
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
       extraMatchLog += ` and ${matchTag} ${not ? '!=' : '=='} ${matchValue}`;
     }
-    this.logger.log(qb.getFormattedQuery());
+    this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
-    //this.logger.log(results);
+    const response = results[0].count;
     this.logger.log(
       `Processed ${tag} ${not ? '!=' : '=='} ${matchValue}${extraMatchLog} in ${
         Date.now() - start
-      } ms.`,
+      } ms. Count: ${response}`,
     );
-    const response = results[0].count;
-    this.logger.log(response);
     return parseInt(response);
   }
 
@@ -136,8 +134,11 @@ export class QueryService {
     } else {
       entity = MAPPED_TAGS[tag];
     }
-    if (entity == null)
-      throw new UnprocessableEntityException(`Tag '${tag}' is not supported`);
+    if (entity == null) {
+      const message = `Tag '${tag}' is not supported`;
+      this.logger.warn(message);
+      throw new UnprocessableEntityException(message);
+    }
     return { entity, column };
   }
 }
