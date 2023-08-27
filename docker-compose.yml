@@ -1,0 +1,26 @@
+x-query-conf: &query-conf
+  image: ghcr.io/openfoodfacts/openfoodfacts-query/query:${TAG}
+  environment:
+    - POSTGRES_HOST
+    - POSTGRES_DB
+    - POSTGRES_USER
+    - POSTGRES_PASSWORD
+    - MONGODB_HOST
+  networks:
+    - po_default
+
+services:
+  query_init:
+    <<: *query-conf
+    command: sh -cx "npx mikro-orm migration:up"
+
+  query:
+    <<: *query-conf
+    depends_on:
+      query_init:
+        condition: service_completed_successfully
+
+networks:
+  po_default:
+    external: true
+    name: po_default

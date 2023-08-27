@@ -1,3 +1,12 @@
+x-query-conf: &query-conf
+  build: .
+  image: openfoodfacts-query/query:dev
+  environment:
+    # Use own Postgres in development mode
+    - POSTGRES_HOST=query_postgres
+    # Use Product Opener's MongoDB
+    - MONGODB_HOST=mongodb
+
 services:
   query_postgres:
     image: postgres:12-alpine
@@ -6,46 +15,26 @@ services:
     environment:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
-      - POSTGRES_DB=off
+      - POSTGRES_DB
     volumes:
       - dbdata:/var/lib/postgresql/data
-      - ../data:/mnt/data
     networks:
       - po_default
 
-  init:
-    build: ../
-    networks:
-      - po_default
+  query_init:
+    <<: *query-conf
+    # Need a dependency and an extra sleep before migrations to allow local postgres to initialise
     depends_on:
       query_postgres:
         condition: service_started
-    environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_HOST=query_postgres
     command: sh -cx "sleep 1 && npx mikro-orm migration:up"
 
   query:
-    build: ../
+    <<: *query-conf
+    # Expose port locally for testing purposes.
+    # Use a different number so does not clash with locally running instance
     ports:
       - 5511:5510
-    networks:
-      - po_default
-    environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_HOST=query_postgres
-      - MONGODB_HOST=mongodb
-    depends_on:
-      init:
-        condition: service_completed_successfully
 
 volumes:
   dbdata:
-
-networks:
-  default:
-  po_default:
-    external: true
-    name: po_default
