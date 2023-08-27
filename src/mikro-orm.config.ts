@@ -1,5 +1,12 @@
 import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
-import { DateTimeType, Platform, TextType, Type } from '@mikro-orm/core';
+import {
+  DateTimeType,
+  Platform,
+  TextType,
+  Type,
+  defineConfig,
+} from '@mikro-orm/core';
+import { SCHEMA } from './constants';
 
 class DateTimeNtzType extends DateTimeType {
   getColumnType(): string {
@@ -7,15 +14,18 @@ class DateTimeNtzType extends DateTimeType {
   }
 }
 
-export default {
+export default defineConfig({
   entities: ['./dist/domain/entities'],
   entitiesTs: ['./src/domain/entities'],
   metadataProvider: TsMorphMetadataProvider,
-  dbName: 'off',
+  dbName: process.env.POSTGRES_DB,
   user: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
   host: process.env.POSTGRES_HOST,
-  schema: 'off',
+  schema: SCHEMA,
+  driverOptions: {
+    searchPath: [SCHEMA, 'public'],
+  },
   type: 'postgresql',
   forceUtcTimezone: true,
   discovery: {
@@ -32,4 +42,4 @@ export default {
       return mappedType;
     },
   },
-};
+});

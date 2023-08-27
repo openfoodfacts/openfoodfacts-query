@@ -127,8 +127,8 @@ export class ImportService {
       const tableName = this.em.getMetadata(entity).tableName;
       if (update) {
         const results = await connection.execute(
-          `delete from off.${tableName} 
-        where product_id in (select id from off.product 
+          `delete from ${tableName} 
+        where product_id in (select id from product 
         where last_update_id = ?)`,
           [updateId],
           'run',
@@ -136,8 +136,8 @@ export class ImportService {
         logText += ` deleted ${results['affectedRows']},`;
       }
       const results = await connection.execute(
-        `insert into off.${tableName} (product_id, value, obsolete)
-        select DISTINCT id, tag.value, obsolete from off.product 
+        `insert into ${tableName} (product_id, value, obsolete)
+        select DISTINCT id, tag.value, obsolete from product 
         cross join jsonb_array_elements_text(data->'${tag}') tag
         ${updateId ? `WHERE last_update_id = ?` : ''}`,
         [updateId],
@@ -150,7 +150,7 @@ export class ImportService {
   }
 
   async deleteAllProducts() {
-    await this.em.execute('truncate table off.product cascade');
+    await this.em.execute('truncate table product cascade');
   }
 
   async importFromFile(from = null) {
