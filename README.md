@@ -8,6 +8,18 @@ This project extracts key product data from MongoDB into a Postgres database in 
 
 When running locally the project expects a Postgres database to be available on port 5432 and a Mongo database on port 27017, both on localhost. Running docker-compose will create a suitable Postgres database if needed. The database name can be set in the environment, but the schema name is always "query".
 
+To get started, run the following:
+
+```
+npm install
+npm run build
+npm run migration:up
+```
+
+You can then start in watch mode with:
+
+`npm run start:dev`
+
 The service is exposed on port 5510, to avoid clashing with Robotoff.
 
 ### Calling from Product Opener
@@ -44,7 +56,7 @@ The `make refresh_product_tags` command from Product Opener will refresh the Que
 
 `http://localhost:5510/importfrommongo?from`
 
-The "from" option nsures that an incremental import is performed. If no date is supplied then the query service will look at the latest modified time for products it already has and only fetch products from MongoDB that have been modified since then. An explicit date can also be specified in the from parameter, e.g. "from=2023-02-23". If no from parameter is applied then all data in the Postgres database will be deleted and a full import will be performed.
+The "from" option ensures that an incremental import is performed. If no date is supplied then the query service will look at the latest modified time for products it already has and only fetch products from MongoDB that have been modified since then. An explicit date can also be specified in the from parameter, e.g. "from=2023-02-23". If no from parameter is applied then all data in the Postgres database will be deleted and a full import will be performed.
 
 There is also an importfromfile endpoint which will import from a file called openfoodfacts-products.jsonl in the data directory. Note this may need to be manually created on teh container if running in docker.
 
