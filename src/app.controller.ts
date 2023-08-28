@@ -15,8 +15,11 @@ export class AppController {
   }
 
   @Get('importfrommongo?')
-  async importFromMongo(@Query('from') from = null) {
-    await this.importService.importFromMongo(from);
+  async importFromMongo(
+    @Query('from') from = null,
+    @Query('skip') skip = null,
+  ) {
+    await this.importService.importFromMongo(from, skip);
   }
 
   @Post('aggregate')

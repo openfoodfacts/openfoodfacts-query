@@ -19,7 +19,7 @@ export class ImportService {
 
   private tags = Object.keys(MAPPED_TAGS);
 
-  async importFromMongo(from?: string) {
+  async importFromMongo(from?: string, skip?: number) {
     if (!from && from != null) {
       const result = await this.em
         .createQueryBuilder(Product, 'p')
@@ -58,6 +58,7 @@ export class ImportService {
         if (!data) break;
 
         i++;
+        if (skip && i < skip) continue;
         await this.fixupProduct(!!from, updateId, data, obsolete);
         if (!(i % this.importBatchSize)) {
           await this.em.flush();
@@ -93,16 +94,12 @@ export class ImportService {
     product.code = data.code;
     product.creator = data.creator;
     product.ownersTags = data.owners_tags;
-    product.ingredientsText = data.ingredients_text;
-    product.nutritionAsSoldPer = data.nutrition_data_per;
-    product.nutritionPreparedPer = data.nutrition_data_prepared_per;
-    product.servingQuantity = data.serving_quantity;
-    product.servingSize = data.serving_size;
     product.obsolete = obsolete;
-    try {
-      product.lastModified = new Date(data.last_modified_t * 1000);
-    } catch (e) {
-      this.logger.log(`${e.message}: ${data.last_modified_t}.`);
+    const lastModified = new Date(data.last_modified_t * 1000);
+    if (isNaN(+lastModified)) {
+      this.logger.log(`Invalid last_modified_t: ${data.last_modified_t}.`);
+    } else {
+      product.lastModified = lastModified;
     }
     product.lastUpdateId = updateId;
   }
