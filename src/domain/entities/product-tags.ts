@@ -46,8 +46,6 @@ export class ProductMiscTag extends BaseProductTag {}
 @Entity()
 export class ProductLanguagesTag extends BaseProductTag {}
 @Entity()
-export class ProductCreatorTag extends BaseProductTag {}
-@Entity()
 export class ProductStatesTag extends BaseProductTag {}
 @Entity()
 export class ProductDataSourcesTag extends BaseProductTag {}
@@ -118,7 +116,6 @@ export const MAPPED_TAGS = {
   traces_tags: ProductTracesTag,
   misc_tags: ProductMiscTag,
   languages_tags: ProductLanguagesTag,
-  creator_tags: ProductCreatorTag,
   states_tags: ProductStatesTag,
   data_sources_tags: ProductDataSourcesTag,
   entry_dates_tags: ProductEntryDatesTag,
