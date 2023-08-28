@@ -58,7 +58,9 @@ The `make refresh_product_tags` command from Product Opener will refresh the Que
 
 The "from" option ensures that an incremental import is performed. If no date is supplied then the query service will look at the latest modified time for products it already has and only fetch products from MongoDB that have been modified since then. An explicit date can also be specified in the from parameter, e.g. "from=2023-02-23". If no from parameter is applied then all data in the Postgres database will be deleted and a full import will be performed.
 
-There is also an importfromfile endpoint which will import from a file called openfoodfacts-products.jsonl in the data directory. Note this may need to be manually created on teh container if running in docker.
+## Import from File
+
+There is also an importfromfile endpoint which will import from a file called openfoodfacts-products.jsonl in the data directory. This local folder is mapped to the container in dev.yml.
 
 ## Performing queries
 
