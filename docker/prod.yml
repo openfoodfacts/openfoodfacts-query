@@ -1,0 +1,13 @@
+services:
+  query_postgres:
+    networks:
+      - webnet
+
+  query:
+    networks:
+      - webnet
+
+networks:
+  webnet:
+    external: true
+    name: po_webnet

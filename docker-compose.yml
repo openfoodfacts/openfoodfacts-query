@@ -7,8 +7,6 @@ services:
       - POSTGRES_DB
     volumes:
       - dbdata:/var/lib/postgresql/data
-    networks:
-      - po_default
 
   query:
     image: ghcr.io/openfoodfacts/openfoodfacts-query:${TAG}
@@ -19,16 +17,9 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - MONGO_URI
-    networks:
-      - po_default
     depends_on:
       query_postgres:
         condition: service_started
-
-networks:
-  po_default:
-    external: true
-    name: po_default
 
 volumes:
   dbdata:

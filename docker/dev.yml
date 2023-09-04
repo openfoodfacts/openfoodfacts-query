@@ -5,6 +5,8 @@ services:
       - 5512:5432
     volumes:
       - ./data:/mnt/data
+    networks:
+      - po_default
 
   query:
     build: .
@@ -18,3 +20,10 @@ services:
       - 5511:5510
     volumes:
       - ./data:/data
+    networks:
+      - po_default
+
+networks:
+  po_default:
+    external: true
+    name: po_default
