@@ -35,7 +35,7 @@ jobs:
         if: matrix.env == 'off-query-org'
         run: |
           # deploy target
-          echo "SSH_HOST=10.1.0.200" >> $GITHUB_ENV
+          echo "SSH_HOST=10.1.0.201" >> $GITHUB_ENV
           # configurations
           echo "MONGO_URI=mongodb://213.36.253.195:27017" >> $GITHUB_ENV
 
