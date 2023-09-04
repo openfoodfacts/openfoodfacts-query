@@ -1,39 +1,20 @@
-x-query-conf: &query-conf
-  build: .
-  image: openfoodfacts-query/query:dev
-  environment:
-    # Use own Postgres in development mode
-    - POSTGRES_HOST=query_postgres
-    - POSTGRES_PORT=5432
-    # Use Product Opener's MongoDB
-    - MONGODB_HOST=mongodb
-
 services:
   query_postgres:
-    image: postgres:12-alpine
+    # Expose port locally for testing purposes.
     ports:
       - 5512:5432
-    environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
     volumes:
-      - dbdata:/var/lib/postgresql/data
       - ./data:/mnt/data
-    networks:
-      - po_default
 
   query:
-    <<: *query-conf
+    build: .
+    image: openfoodfacts-query:dev
+    environment:
+      # Use Product Opener's MongoDB
+      - MONGODB_HOST=mongodb
     # Expose port locally for testing purposes.
     # Use a different number so does not clash with locally running instance
-    depends_on:
-      query_postgres:
-        condition: service_started
     ports:
       - 5511:5510
     volumes:
       - ./data:/data
-
-volumes:
-  dbdata:
