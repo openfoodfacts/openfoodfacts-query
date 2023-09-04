@@ -18,7 +18,7 @@ services:
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD
-      - MONGODB_HOST
+      - MONGO_URI
     networks:
       - po_default
     depends_on:
