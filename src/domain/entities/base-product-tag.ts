@@ -7,7 +7,7 @@ export abstract class BaseProductTag {
     this.value = value;
   }
 
-  @ManyToOne({ primary: true })
+  @ManyToOne({ primary: true, onDelete: 'cascade' })
   product: Product;
 
   @PrimaryKey({ index: true })
