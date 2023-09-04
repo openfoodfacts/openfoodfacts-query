@@ -11,7 +11,7 @@ services:
     image: openfoodfacts-query:dev
     environment:
       # Use Product Opener's MongoDB
-      - MONGODB_HOST=mongodb
+      - MONGO_URI=mongodb://mongodb:27017
     # Expose port locally for testing purposes.
     # Use a different number so does not clash with locally running instance
     ports:

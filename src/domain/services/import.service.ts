@@ -36,9 +36,7 @@ export class ImportService {
     if (!from) await this.deleteAllProducts();
 
     this.logger.log('Connecting to MongoDB');
-    const client = new MongoClient(
-      `mongodb://${process.env['MONGODB_HOST']}:27017`,
-    );
+    const client = new MongoClient(process.env.MONGO_URI);
     await client.connect();
     const db = client.db('off');
     const projection = {};
