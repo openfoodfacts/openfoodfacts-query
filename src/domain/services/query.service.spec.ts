@@ -3,7 +3,9 @@ import { EntityManager } from '@mikro-orm/core';
 import { Product } from '../entities/product';
 import {
   ProductAdditivesTag,
+  ProductAminoAcidsTag,
   ProductIngredientsTag,
+  ProductOriginsTag,
 } from '../entities/product-tags';
 import { QueryService } from './query.service';
 import { createTestingModule, randomCode } from '../../../test/test.helper';
@@ -74,3 +76,97 @@ describe('count', () => {
     });
   });
 });
+
+describe('aggregate', () => {
+  it('should group products with a tag', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.aggregate([
+        { $match: {} },
+        { $group: { _id: '$origins_tags' } },
+      ]);
+      const myTag = response.find((r) => r._id === originValue);
+      expect(myTag).toBeTruthy();
+      expect(parseInt(myTag.count)).toBe(3);
+    });
+  });
+
+  it('should filter products when grouping', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.aggregate([
+        { $match: { amino_acids_tags: aminoValue } },
+        { $group: { _id: '$origins_tags' } },
+      ]);
+      const myTag = response.find((r) => r._id === originValue);
+      expect(myTag).toBeTruthy();
+      expect(parseInt(myTag.count)).toBe(2);
+    });
+  });
+
+  it('should be able to do not filtering', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.aggregate([
+        { $match: { amino_acids_tags: { $ne: aminoValue } } },
+        { $group: { _id: '$origins_tags' } },
+      ]);
+      const myTag = response.find((r) => r._id === originValue);
+      expect(myTag).toBeTruthy();
+      expect(parseInt(myTag.count)).toBe(1);
+    });
+  });
+
+  it('should be able to just count', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const queryService = app.get(QueryService);
+      const query = [
+        { $match: {} },
+        { $group: { _id: '$origins_tags' } },
+        { $count: 1 },
+      ];
+      const beforeResponse = await queryService.aggregate(query);
+      const beforeCount = parseInt(beforeResponse['origins_tags']);
+
+      await createTestTags(app);
+      const response = await queryService.aggregate(query);
+      expect(parseInt(response['origins_tags'])).toBe(beforeCount + 1);
+    });
+  });
+});
+
+async function createTestTags(app) {
+  const em = app.get(EntityManager);
+  // Create some dummy products with a specific tag
+  const product1 = em.create(Product, { code: randomCode() });
+  const product2 = em.create(Product, { code: randomCode() });
+  const product3 = em.create(Product, { code: randomCode() });
+  // Using origins and amino acids as they are smaller than most
+  const originValue = randomCode();
+  const aminoValue = randomCode();
+  em.create(ProductOriginsTag, {
+    product: product1,
+    value: originValue,
+  });
+  em.create(ProductOriginsTag, {
+    product: product2,
+    value: originValue,
+  });
+  em.create(ProductOriginsTag, {
+    product: product3,
+    value: originValue,
+  });
+  em.create(ProductAminoAcidsTag, {
+    product: product1,
+    value: aminoValue,
+  });
+  em.create(ProductAminoAcidsTag, {
+    product: product2,
+    value: aminoValue,
+  });
+  await em.flush();
+  return { originValue, aminoValue };
+}

@@ -15,7 +15,7 @@ export class QueryService {
 
   async aggregate(body: any[]) {
     const start = Date.now();
-    this.logger.log(body);
+    this.logger.debug(body);
 
     const match = body.find((o: any) => o['$match'])?.['$match'];
     const group = body.find((o: any) => o['$group'])?.['$group'];
@@ -61,10 +61,10 @@ export class QueryService {
       if (skip) qb.offset(skip);
     }
 
-    this.logger.log(qb.getFormattedQuery());
+    this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
     //this.logger.log(results);
-    this.logger.log(
+    this.logger.debug(
       `Processed ${tag}${
         matchTag ? ` where ${matchTag} ${not ? '!=' : '=='} ${matchValue}` : ''
       } in ${Date.now() - start} ms. Returning ${results.length} records`,
@@ -72,7 +72,7 @@ export class QueryService {
     if (count) {
       const response = {};
       response[tag] = results[0].count;
-      this.logger.log(response);
+      this.logger.debug(response);
       return response;
     }
     return results;
