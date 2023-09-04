@@ -10,15 +10,8 @@ x-query-conf: &query-conf
     - po_default
 
 services:
-  query_init:
-    <<: *query-conf
-    command: sh -cx "npx mikro-orm migration:up"
-
   query:
     <<: *query-conf
-    depends_on:
-      query_init:
-        condition: service_completed_successfully
 
 networks:
   po_default:

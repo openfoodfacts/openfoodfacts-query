@@ -1,4 +1,5 @@
 import { MikroORM, RequestContext } from '@mikro-orm/core';
+import { logger } from '@mikro-orm/nestjs';
 import { Test, TestingModule } from '@nestjs/testing';
 import { randomBytes } from 'crypto';
 
@@ -19,6 +20,9 @@ export async function createTestingModule(
     await RequestContext.createAsync(orm.em, async () => {
       await callback(app);
     });
+  } catch (e) {
+    (e.errors ?? [e]).map((e) => logger.error(e.message, e.stack));
+    throw e;
   } finally {
     await orm.close();
   }

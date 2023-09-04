@@ -4,6 +4,7 @@ x-query-conf: &query-conf
   environment:
     # Use own Postgres in development mode
     - POSTGRES_HOST=query_postgres
+    - POSTGRES_PORT=5432
     # Use Product Opener's MongoDB
     - MONGODB_HOST=mongodb
 
@@ -11,7 +12,7 @@ services:
   query_postgres:
     image: postgres:12-alpine
     ports:
-      - 5432:5432
+      - 5512:5432
     environment:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
@@ -22,18 +23,13 @@ services:
     networks:
       - po_default
 
-  query_init:
-    <<: *query-conf
-    # Need a dependency and an extra sleep before migrations to allow local postgres to initialise
-    depends_on:
-      query_postgres:
-        condition: service_started
-    command: sh -cx "sleep 1 && npx mikro-orm migration:up"
-
   query:
     <<: *query-conf
     # Expose port locally for testing purposes.
     # Use a different number so does not clash with locally running instance
+    depends_on:
+      query_postgres:
+        condition: service_started
     ports:
       - 5511:5510
     volumes:
