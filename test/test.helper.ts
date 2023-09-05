@@ -16,6 +16,21 @@ export async function createTestingModule(
   }).compile();
 
   const orm = app.get(MikroORM);
+
+  // Code here took a lot of attempts to get right
+  // If just do migrations without constraints then they can interfere with each other
+  // Tried doing migraitons in the global-setup script but that doesn't work due to a Jest issue
+  const connection = orm.em.getConnection();
+  try {
+    await connection.execute(
+      `CREATE TABLE if not exists lock_table(id int4 NOT NULL)`,
+    );
+  } catch (e) {}
+  await connection.execute('BEGIN');
+  await connection.execute(`LOCK TABLE lock_table`);
+  await orm.getMigrator().up({ transaction: orm.em.getTransactionContext() });
+  await connection.execute(`COMMIT`);
+
   try {
     await RequestContext.createAsync(orm.em, async () => {
       await callback(app);
