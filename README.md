@@ -48,7 +48,9 @@ The unit tests use testcontainers to create a temporary Postgres database in Doc
 
 By default, product opener is configured to call the "query" host on the "po_default" network. To configure Product Opener to use a locally running instance update the following line in the Product Opener .env file:
 
-`QUERY_URL=http://host.docker.internal:5510`
+```
+QUERY_URL=http://host.docker.internal:5510
+```
 
 ## Running in Docker
 
@@ -76,7 +78,9 @@ The dev.yml Docker Compose joins the services to the po_default network to ease 
 
 The `make refresh_product_tags` command from Product Opener will refresh the Query Postgres database with the current tags from MongoDB. This can also be invoked from a browser with:
 
-`http://localhost:5510/importfrommongo?from`
+```
+http://localhost:5510/importfrommongo?from
+```
 
 The "from" option ensures that an incremental import is performed. If no date is supplied then the query service will look at the latest modified time for products it already has and only fetch products from MongoDB that have been modified since then. An explicit date can also be specified in the from parameter, e.g. "from=2023-02-23". If no from parameter is applied then all data in the Postgres database will be deleted and a full import will be performed.
 
@@ -87,3 +91,9 @@ There is also an importfromfile endpoint which will import from a file called op
 ## Performing queries
 
 The "count" and "aggregate" POST endpoints accept a MongoDB style filter and aggregate pipeline respectively. Syntax support is only basic and is limted to what Product Opener currently uses. See the tests for some examples of what is supported.
+
+# TODO
+
+- Run tests on PR
+- Add branch protection
+- Configure production deployment
