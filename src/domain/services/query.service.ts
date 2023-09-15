@@ -35,12 +35,12 @@ export class QueryService {
     }
     qb.where('not pt.obsolete');
 
-    const matchTag = Object.keys(match)[0];
-    let matchValue = Object.values(match)[0];
-    const not = matchValue?.['$ne'];
-    if (matchTag) {
+    const whereLog = [];
+    for (const [matchTag, matchValue] of Object.entries(match)) {
+      let whereValue = matchValue;
+      const not = matchValue?.['$ne'];
       if (not) {
-        matchValue = not;
+        whereValue = not;
       }
       const { entity: matchEntity, column: matchColumn } =
         this.getEntityAndColumn(matchTag);
@@ -48,10 +48,12 @@ export class QueryService {
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
         .where(`pt2.product_id = pt.product_id and pt2.${matchColumn} = ?`, [
-          matchValue,
+          whereValue,
         ]);
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
+      whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
     }
+
     if (count) {
       qb = this.em.createQueryBuilder(qb, 'temp');
       qb.select('count(*) count');
@@ -66,7 +68,7 @@ export class QueryService {
     //this.logger.log(results);
     this.logger.debug(
       `Processed ${tag}${
-        matchTag ? ` where ${matchTag} ${not ? '!=' : '=='} ${matchValue}` : ''
+        whereLog.length ? ` where ${whereLog.join(' and ')}` : ''
       } in ${Date.now() - start} ms. Returning ${results.length} records`,
     );
     if (count) {

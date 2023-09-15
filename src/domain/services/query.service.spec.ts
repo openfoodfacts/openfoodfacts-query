@@ -147,7 +147,7 @@ describe('aggregate', () => {
         {
           $match: {
             amino_acids_tags: aminoValue,
-            neucleotides_tags: neucleotideValue,
+            nucleotides_tags: neucleotideValue,
           },
         },
         { $group: { _id: '$origins_tags' } },
