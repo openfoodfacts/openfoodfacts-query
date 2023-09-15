@@ -76,6 +76,19 @@ describe('count', () => {
       }
     });
   });
+  it('should cope with more than two filters', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue, neucleotideValue } =
+        await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        amino_acids_tags: aminoValue,
+        nucleotides_tags: neucleotideValue,
+      });
+      expect(response).toBe(1);
+    });
+  });
 });
 
 describe('aggregate', () => {
