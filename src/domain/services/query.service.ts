@@ -1,5 +1,5 @@
 import { EntityName } from '@mikro-orm/core';
-import { EntityManager } from '@mikro-orm/postgresql';
+import { EntityManager, QueryBuilder } from '@mikro-orm/postgresql';
 import {
   Injectable,
   Logger,
@@ -35,23 +35,8 @@ export class QueryService {
     }
     qb.where('not pt.obsolete');
 
-    const matchTag = Object.keys(match)[0];
-    let matchValue = Object.values(match)[0];
-    const not = matchValue?.['$ne'];
-    if (matchTag) {
-      if (not) {
-        matchValue = not;
-      }
-      const { entity: matchEntity, column: matchColumn } =
-        this.getEntityAndColumn(matchTag);
-      const qbWhere = this.em
-        .createQueryBuilder(matchEntity, 'pt2')
-        .select('*')
-        .where(`pt2.product_id = pt.product_id and pt2.${matchColumn} = ?`, [
-          matchValue,
-        ]);
-      qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
-    }
+    const whereLog = this.addMatches(match, qb);
+
     if (count) {
       qb = this.em.createQueryBuilder(qb, 'temp');
       qb.select('count(*) count');
@@ -66,7 +51,7 @@ export class QueryService {
     //this.logger.log(results);
     this.logger.debug(
       `Processed ${tag}${
-        matchTag ? ` where ${matchTag} ${not ? '!=' : '=='} ${matchValue}` : ''
+        whereLog.length ? ` where ${whereLog.join(' and ')}` : ''
       } in ${Date.now() - start} ms. Returning ${results.length} records`,
     );
     if (count) {
@@ -76,6 +61,28 @@ export class QueryService {
       return response;
     }
     return results;
+  }
+
+  private addMatches(match: any, qb: QueryBuilder<object>) {
+    const whereLog = [];
+    for (const [matchTag, matchValue] of Object.entries(match)) {
+      let whereValue = matchValue;
+      const not = matchValue?.['$ne'];
+      if (not) {
+        whereValue = not;
+      }
+      const { entity: matchEntity, column: matchColumn } =
+        this.getEntityAndColumn(matchTag);
+      const qbWhere = this.em
+        .createQueryBuilder(matchEntity, 'pt2')
+        .select('*')
+        .where(`pt2.product_id = pt.product_id and pt2.${matchColumn} = ?`, [
+          whereValue,
+        ]);
+      qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
+      whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
+    }
+    return whereLog;
   }
 
   async count(body: any) {
@@ -95,32 +102,16 @@ export class QueryService {
       matchValue = not;
     }
     qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
-    const matchTag = tags[1];
-    let extraMatchLog = '';
-    if (matchTag) {
-      let matchValue = body[matchTag];
-      const not = matchValue?.['$ne'];
-      if (not) {
-        matchValue = not;
-      }
-      const { entity: matchEntity, column: matchColumn } =
-        this.getEntityAndColumn(matchTag);
-      const qbWhere = this.em
-        .createQueryBuilder(matchEntity, 'pt2')
-        .select('*')
-        .where(`pt2.product_id = pt.product_id and pt2.${matchColumn} = ?`, [
-          matchValue,
-        ]);
-      qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
-      extraMatchLog += ` and ${matchTag} ${not ? '!=' : '=='} ${matchValue}`;
-    }
+    delete body[tag];
+    const whereLog = this.addMatches(body, qb);
+
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
     const response = results[0].count;
     this.logger.log(
-      `Processed ${tag} ${not ? '!=' : '=='} ${matchValue}${extraMatchLog} in ${
-        Date.now() - start
-      } ms. Count: ${response}`,
+      `Processed ${tag} ${not ? '!=' : '=='} ${matchValue}${
+        whereLog.length ? ` and ${whereLog.join(' and ')}` : ''
+      } in ${Date.now() - start} ms. Count: ${response}`,
     );
     return parseInt(response);
   }
