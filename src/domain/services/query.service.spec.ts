@@ -5,6 +5,7 @@ import {
   ProductAdditivesTag,
   ProductAminoAcidsTag,
   ProductIngredientsTag,
+  ProductNucleotidesTag,
   ProductOriginsTag,
 } from '../entities/product-tags';
 import { QueryService } from './query.service';
@@ -136,6 +137,26 @@ describe('aggregate', () => {
       expect(parseInt(response['origins_tags'])).toBe(beforeCount + 1);
     });
   });
+
+  it('should cope with multiple filters', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue, neucleotideValue } =
+        await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.aggregate([
+        {
+          $match: {
+            amino_acids_tags: aminoValue,
+            neucleotides_tags: neucleotideValue,
+          },
+        },
+        { $group: { _id: '$origins_tags' } },
+      ]);
+      const myTag = response.find((r) => r._id === originValue);
+      expect(myTag).toBeTruthy();
+      expect(parseInt(myTag.count)).toBe(1);
+    });
+  });
 });
 
 async function createTestTags(app) {
@@ -147,6 +168,14 @@ async function createTestTags(app) {
   // Using origins and amino acids as they are smaller than most
   const originValue = randomCode();
   const aminoValue = randomCode();
+  const neucleotideValue = randomCode();
+
+  // Matrix for testing
+  // Product  | Origin | AminoAcid | Neucleotide
+  // Product1 |   x    |     x     |      x
+  // Product2 |   x    |     x     |
+  // Product3 |   x    |           |      x
+
   em.create(ProductOriginsTag, {
     product: product1,
     value: originValue,
@@ -159,6 +188,7 @@ async function createTestTags(app) {
     product: product3,
     value: originValue,
   });
+
   em.create(ProductAminoAcidsTag, {
     product: product1,
     value: aminoValue,
@@ -167,6 +197,16 @@ async function createTestTags(app) {
     product: product2,
     value: aminoValue,
   });
+
+  em.create(ProductNucleotidesTag, {
+    product: product1,
+    value: neucleotideValue,
+  });
+  em.create(ProductNucleotidesTag, {
+    product: product3,
+    value: neucleotideValue,
+  });
+
   await em.flush();
-  return { originValue, aminoValue };
+  return { originValue, aminoValue, neucleotideValue };
 }
