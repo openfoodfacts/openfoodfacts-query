@@ -2,7 +2,11 @@ import { HealthController } from './health.controller';
 import { createTestingModule } from '../../test/test.helper';
 import { AppModule } from '../app.module';
 import { MongodbHealthIndicator } from './mongodb-health-indicator';
-import { HealthCheckError, HealthIndicatorResult, HealthCheckService } from '@nestjs/terminus';
+import {
+  HealthCheckError,
+  HealthIndicatorResult,
+  HealthCheckService,
+} from '@nestjs/terminus';
 import { ServiceUnavailableException } from '@nestjs/common';
 
 describe('HealthController', () => {
@@ -27,7 +31,8 @@ describe('HealthController', () => {
   it('should return unhealthy if mongodb is down', async () => {
     await createTestingModule([AppModule], async (app) => {
       const controller = app.get(HealthController);
-      const errorLog = app.get(HealthCheckService)['logger'].error = jest.fn();
+      const errorLog = (app.get(HealthCheckService)['logger'].error =
+        jest.fn());
 
       const mongoIndicator = app.get(MongodbHealthIndicator);
       mongoIndicator.isHealthy = jest.fn(async () => {

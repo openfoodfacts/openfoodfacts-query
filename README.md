@@ -15,7 +15,7 @@ To get started...
 Run the following:
 
 ```
-docker-compose up -d --build
+docker-compose up -d query_postgres
 ```
 
 ### Use an existing Postgres database
@@ -93,6 +93,4 @@ The "count" and "aggregate" POST endpoints accept a MongoDB style filter and agg
 
 # TODO
 
-- Run tests on PR
-- Add branch protection
 - Configure production deployment
