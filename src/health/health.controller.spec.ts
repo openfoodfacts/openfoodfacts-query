@@ -43,7 +43,7 @@ describe('HealthController', () => {
       } catch (e) {
         expect(e).toBeInstanceOf(ServiceUnavailableException);
         expect(e.response.status).toBe('error');
-        expect(errorLog).toHaveBeenCalled();
+        expect(errorLog).toHaveBeenCalledTimes(1);
       }
     });
   });
