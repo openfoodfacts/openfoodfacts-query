@@ -2,7 +2,7 @@ services:
   query_postgres:
     # Expose port locally for testing purposes.
     ports:
-      - 5512:5432
+      - "${POSTGRES_PORT:-5512}:5432"
     volumes:
       - ./data:/mnt/data
     networks:
@@ -14,10 +14,6 @@ services:
     environment:
       # Use Product Opener's MongoDB
       - MONGO_URI=mongodb://mongodb:27017
-    # Expose port locally for testing purposes.
-    # Use a different number so does not clash with locally running instance
-    ports:
-      - 5511:5510
     volumes:
       - ./data:/data
     networks:

@@ -17,6 +17,9 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - MONGO_URI
+    # Use a different number so does not clash with locally running instance
+    ports:
+      - "${QUERY_PORT:-5511}:5510"
     depends_on:
       query_postgres:
         condition: service_started
