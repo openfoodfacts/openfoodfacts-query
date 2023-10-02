@@ -69,7 +69,7 @@ docker-compose up -d --build
 
 The main docker-compose.yml creates the openfoodfacts-query service and associated Postres database and expects MongoDB to already exist.
 
-The dev.yml Docker Compose joins the services to the po_default network to ease communication with Product Opener and MongoDB. The prod.yml uses the po_webnet network.
+The dev.yml Docker Compose joins the services to the po_default network to ease communication with Product Opener and MongoDB. In staging and production comminication with MongoDB is done with an explicity network address.
 
 # Use
 
