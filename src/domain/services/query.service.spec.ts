@@ -89,6 +89,15 @@ describe('count', () => {
       expect(response).toBe(1);
     });
   });
+  it('should cope with no filters', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue, neucleotideValue } =
+        await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count(null);
+      expect(response).toBeGreaterThan(2);
+    });
+  });
 });
 
 describe('aggregate', () => {
@@ -172,6 +181,22 @@ describe('aggregate', () => {
   });
 });
 
+describe('select', () => {
+  it('should return matching products', async () =>{
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue, neucleotideValue, product1, product2, product3 } =
+        await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.select({
+        amino_acids_tags: aminoValue,
+      });
+      expect(response).toHaveLength(2);
+      const p1 = response.find((r) => r.code === product1.code);
+      expect(p1).toBeTruthy();
+    });
+  });
+});
+
 async function createTestTags(app) {
   const em = app.get(EntityManager);
   // Create some dummy products with a specific tag
@@ -221,5 +246,5 @@ async function createTestTags(app) {
   });
 
   await em.flush();
-  return { originValue, aminoValue, neucleotideValue };
+  return { originValue, aminoValue, neucleotideValue, product1, product2, product3 };
 }
