@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, All } from '@nestjs/common';
 import { ImportService } from './domain/services/import.service';
 import { QueryService } from './domain/services/query.service';
 
@@ -27,7 +27,7 @@ export class AppController {
     return await this.queryService.aggregate(body);
   }
 
-  @Post('count')
+  @All('count')
   async count(@Body() body: any) {
     return await this.queryService.count(body);
   }

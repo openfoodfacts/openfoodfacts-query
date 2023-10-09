@@ -89,29 +89,31 @@ export class QueryService {
     const start = Date.now();
     this.logger.debug(body);
 
-    const tags = Object.keys(body);
-    const tag = tags[0];
+    const tags = Object.keys(body ?? {});
+    const tag = tags?.[0];
     const { entity, column } = this.getEntityAndColumn(tag);
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`count(*) count`);
     qb.where('not pt.obsolete');
 
-    let matchValue = body[tag];
-    const not = matchValue?.['$ne'];
-    if (not) {
-      matchValue = not;
+    let whereLog = [];
+    if (tag) {
+      let matchValue = body[tag];
+      const not = matchValue?.['$ne'];
+      whereLog.push(`${tag} ${not ? '!=' : '=='} ${matchValue}`);
+      if (not) {
+        matchValue = not;
+      }
+      qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
+      delete body[tag];
+      whereLog.push(...this.addMatches(body, qb));
     }
-    qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
-    delete body[tag];
-    const whereLog = this.addMatches(body, qb);
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
     const response = results[0].count;
     this.logger.log(
-      `Processed ${tag} ${not ? '!=' : '=='} ${matchValue}${
-        whereLog.length ? ` and ${whereLog.join(' and ')}` : ''
-      } in ${Date.now() - start} ms. Count: ${response}`,
+      `Processed ${whereLog.join(' and ')} in ${Date.now() - start} ms. Count: ${response}`,
     );
     return parseInt(response);
   }
@@ -136,7 +138,7 @@ export class QueryService {
   private getEntityAndColumn(tag: any) {
     let entity: EntityName<object>;
     let column = 'value';
-    if (MAPPED_FIELDS.includes(tag)) {
+    if (!tag || MAPPED_FIELDS.includes(tag)) {
       entity = Product;
       column = tag;
     } else {

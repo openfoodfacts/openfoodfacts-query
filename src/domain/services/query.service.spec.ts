@@ -89,6 +89,15 @@ describe('count', () => {
       expect(response).toBe(1);
     });
   });
+  it('should cope with no filters', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue, neucleotideValue } =
+        await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count(null);
+      expect(response).toBeGreaterThan(2);
+    });
+  });
 });
 
 describe('aggregate', () => {
