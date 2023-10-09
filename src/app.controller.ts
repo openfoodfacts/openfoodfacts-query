@@ -31,4 +31,9 @@ export class AppController {
   async count(@Body() body: any) {
     return await this.queryService.count(body);
   }
+
+  @Post('select')
+  async select(@Body() body: any) {
+    return await this.queryService.select(body);
+  }
 }

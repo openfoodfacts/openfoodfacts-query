@@ -63,7 +63,7 @@ export class QueryService {
     return results;
   }
 
-  private addMatches(match: any, qb: QueryBuilder<object>) {
+  private addMatches(match: any, qb: QueryBuilder<object>, parentKey = 'pt.product_id') {
     const whereLog = [];
     for (const [matchTag, matchValue] of Object.entries(match)) {
       let whereValue = matchValue;
@@ -76,7 +76,7 @@ export class QueryService {
       const qbWhere = this.em
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
-        .where(`pt2.product_id = pt.product_id and pt2.${matchColumn} = ?`, [
+        .where(`pt2.product_id = ${parentKey} and pt2.${matchColumn} = ?`, [
           whereValue,
         ]);
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
@@ -114,6 +114,23 @@ export class QueryService {
       } in ${Date.now() - start} ms. Count: ${response}`,
     );
     return parseInt(response);
+  }
+
+  async select(body: any) {
+    const start = Date.now();
+    this.logger.debug(body);
+
+    const tags = Object.keys(body);
+    let entity: EntityName<object> = Product;
+    const qb = this.em.createQueryBuilder(entity, 'p');
+    qb.select(`*`);
+    qb.where('not p.obsolete');
+
+    const whereLog = this.addMatches(body, qb, 'p.id');
+
+    this.logger.debug(qb.getFormattedQuery());
+    const results = await qb.execute();
+    return results;
   }
 
   private getEntityAndColumn(tag: any) {
