@@ -87,7 +87,7 @@ export class QueryService {
 
   obsoleteWhere(body: any) {
     const obsolete = !!body?.obsolete;
-    if (obsolete) delete body.obsolete;
+    delete body?.obsolete;
     return `${obsolete ? '' : 'not '}pt.obsolete`;
   }
 

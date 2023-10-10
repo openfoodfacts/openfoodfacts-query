@@ -111,6 +111,19 @@ describe('count', () => {
       expect(response).toBe(1);
     });
   });
+
+  it('should be able to count not obsolete products', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } =
+        await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        obsolete: 0,
+        origins_tags: originValue,
+      });
+      expect(response).toBe(3);
+    });
+  });
 });
 
 describe('aggregate', () => {
