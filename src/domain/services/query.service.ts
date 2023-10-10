@@ -129,13 +129,14 @@ export class QueryService {
     const start = Date.now();
     this.logger.debug(body);
 
+    const obseleteWhere = this.obsoleteWhere(body);
     const tags = Object.keys(body);
     let entity: EntityName<object> = Product;
-    const qb = this.em.createQueryBuilder(entity, 'p');
+    const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`*`);
-    qb.where('not p.obsolete');
+    qb.where(obseleteWhere);
 
-    const whereLog = this.addMatches(body, qb, 'p.id');
+    const whereLog = this.addMatches(body, qb, 'pt.id');
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();

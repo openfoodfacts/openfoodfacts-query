@@ -222,6 +222,21 @@ describe('select', () => {
       expect(p1).toBeTruthy();
     });
   });
+
+  it('should return obsolete matching products', async () =>{
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue, neucleotideValue, product1, product2, product3, product4 } =
+        await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.select({
+        amino_acids_tags: aminoValue,
+        obsolete: 'true',
+      });
+      expect(response).toHaveLength(1);
+      const p4 = response.find((r) => r.code === product4.code);
+      expect(p4).toBeTruthy();
+    });
+  });
 });
 
 async function createTestTags(app) {
@@ -290,5 +305,5 @@ async function createTestTags(app) {
   });
 
   await em.flush();
-  return { originValue, aminoValue, neucleotideValue, product1, product2, product3 };
+  return { originValue, aminoValue, neucleotideValue, product1, product2, product3, product4 };
 }
