@@ -98,6 +98,19 @@ describe('count', () => {
       expect(response).toBeGreaterThan(2);
     });
   });
+
+  it('should be able to count obsolete products', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } =
+        await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        obsolete: 1,
+        origins_tags: originValue,
+      });
+      expect(response).toBe(1);
+    });
+  });
 });
 
 describe('aggregate', () => {
@@ -203,16 +216,18 @@ async function createTestTags(app) {
   const product1 = em.create(Product, { code: randomCode() });
   const product2 = em.create(Product, { code: randomCode() });
   const product3 = em.create(Product, { code: randomCode() });
+  const product4 = em.create(Product, { code: randomCode(), obsolete: true });
   // Using origins and amino acids as they are smaller than most
   const originValue = randomCode();
   const aminoValue = randomCode();
   const neucleotideValue = randomCode();
 
   // Matrix for testing
-  // Product  | Origin | AminoAcid | Neucleotide
-  // Product1 |   x    |     x     |      x
-  // Product2 |   x    |     x     |
-  // Product3 |   x    |           |      x
+  // Product  | Origin | AminoAcid | Neucleotide | Obsolete
+  // Product1 |   x    |     x     |      x      |
+  // Product2 |   x    |     x     |             |     
+  // Product3 |   x    |           |      x      |
+  // Product4 |   x    |     x     |      x      |    x
 
   em.create(ProductOriginsTag, {
     product: product1,
@@ -226,6 +241,11 @@ async function createTestTags(app) {
     product: product3,
     value: originValue,
   });
+  em.create(ProductOriginsTag, {
+    product: product4,
+    value: originValue,
+    obsolete: true,
+  });
 
   em.create(ProductAminoAcidsTag, {
     product: product1,
@@ -235,6 +255,11 @@ async function createTestTags(app) {
     product: product2,
     value: aminoValue,
   });
+  em.create(ProductAminoAcidsTag, {
+    product: product4,
+    value: aminoValue,
+    obsolete: true,
+  });
 
   em.create(ProductNucleotidesTag, {
     product: product1,
@@ -243,6 +268,11 @@ async function createTestTags(app) {
   em.create(ProductNucleotidesTag, {
     product: product3,
     value: neucleotideValue,
+  });
+  em.create(ProductNucleotidesTag, {
+    product: product4,
+    value: neucleotideValue,
+    obsolete: true,
   });
 
   await em.flush();
