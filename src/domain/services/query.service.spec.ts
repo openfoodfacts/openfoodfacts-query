@@ -192,6 +192,20 @@ describe('aggregate', () => {
       expect(parseInt(myTag.count)).toBe(1);
     });
   });
+
+  it('should be able to group obsolete products', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.aggregate([
+        { $match: {obsolete: true} },
+        { $group: { _id: '$origins_tags' } },
+      ]);
+      const myTag = response.find((r) => r._id === originValue);
+      expect(myTag).toBeTruthy();
+      expect(parseInt(myTag.count)).toBe(1);
+    });
+  });
 });
 
 describe('select', () => {

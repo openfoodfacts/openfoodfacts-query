@@ -33,7 +33,7 @@ export class QueryService {
     } else {
       qb.select(`${column}`).distinct();
     }
-    qb.where('not pt.obsolete');
+    qb.where(this.obsoleteWhere(match));
 
     const whereLog = this.addMatches(match, qb);
 
@@ -85,18 +85,23 @@ export class QueryService {
     return whereLog;
   }
 
+  obsoleteWhere(body: any) {
+    const obsolete = !!body?.obsolete;
+    if (obsolete) delete body.obsolete;
+    return `${obsolete ? '' : 'not '}pt.obsolete`;
+  }
+
   async count(body: any) {
     const start = Date.now();
     this.logger.debug(body);
-    const obsolete = !!body?.obsolete;
-    if (obsolete) delete body.obsolete;
 
+    const obseleteWhere = this.obsoleteWhere(body);
     const tags = Object.keys(body ?? {});
     const tag = tags?.[0];
     const { entity, column } = this.getEntityAndColumn(tag);
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`count(*) count`);
-    qb.where(`${obsolete ? '' : 'not '}pt.obsolete`);
+    qb.where(obseleteWhere);
 
     let whereLog = [];
     if (tag) {
