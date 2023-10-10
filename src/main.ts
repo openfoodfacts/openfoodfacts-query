@@ -6,6 +6,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const migrator = app.get(MikroORM).getMigrator();
   await migrator.up();
-  await app.listen(5510);
+  await app.listen(5510, '0.0.0.0');
 }
 bootstrap();
