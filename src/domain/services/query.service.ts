@@ -88,13 +88,15 @@ export class QueryService {
   async count(body: any) {
     const start = Date.now();
     this.logger.debug(body);
+    const obsolete = !!body?.obsolete;
+    if (obsolete) delete body.obsolete;
 
     const tags = Object.keys(body ?? {});
     const tag = tags?.[0];
     const { entity, column } = this.getEntityAndColumn(tag);
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`count(*) count`);
-    qb.where('not pt.obsolete');
+    qb.where(`${obsolete ? '' : 'not '}pt.obsolete`);
 
     let whereLog = [];
     if (tag) {
