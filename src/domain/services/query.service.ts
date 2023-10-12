@@ -77,13 +77,17 @@ export class QueryService {
       const qbWhere = this.em
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
-        .where(`pt2.product_id = pt.${parentId} and pt2.${matchColumn} = ?`, [
+        .where(`pt2.${this.productId(matchEntity)} = pt.${this.productId(parentEntity)} and pt2.${matchColumn} = ?`, [
           whereValue,
         ]);
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
       whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
     }
     return whereLog;
+  }
+
+  productId(entity) {
+    return entity === Product ? 'id': 'product_id';
   }
 
   obsoleteWhere(body: any) {

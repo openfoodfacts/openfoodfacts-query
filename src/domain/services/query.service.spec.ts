@@ -166,6 +166,20 @@ describe('aggregate', () => {
     });
   });
 
+  it('should group products when filtering by a product field', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { aminoValue, creatorValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.aggregate([
+        { $match: { creator: creatorValue } },
+        { $group: { _id: '$amino_acids_tags' } },
+      ]);
+      const myTag = response.find((r) => r._id === aminoValue);
+      expect(myTag).toBeTruthy();
+      expect(parseInt(myTag.count)).toBe(1);
+    });
+  });
+
   it('should be able to do not filtering', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const { originValue, aminoValue } = await createTestTags(app);
