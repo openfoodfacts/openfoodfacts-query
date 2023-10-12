@@ -91,11 +91,34 @@ describe('count', () => {
   });
   it('should cope with no filters', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      const { originValue, aminoValue, neucleotideValue } =
-        await createTestTags(app);
+      await createTestTags(app);
       const queryService = app.get(QueryService);
       const response = await queryService.count(null);
       expect(response).toBeGreaterThan(2);
+    });
+  });
+
+  it('should be able to count obsolete products', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        obsolete: 1,
+        origins_tags: originValue,
+      });
+      expect(response).toBe(1);
+    });
+  });
+
+  it('should be able to count not obsolete products', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        obsolete: 0,
+        origins_tags: originValue,
+      });
+      expect(response).toBe(3);
     });
   });
 });
@@ -126,6 +149,20 @@ describe('aggregate', () => {
       const myTag = response.find((r) => r._id === originValue);
       expect(myTag).toBeTruthy();
       expect(parseInt(myTag.count)).toBe(2);
+    });
+  });
+
+  it('should filter products when grouping by a product field', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { aminoValue, creatorValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.aggregate([
+        { $match: { amino_acids_tags: aminoValue } },
+        { $group: { _id: '$creator' } },
+      ]);
+      const myTag = response.find((r) => r._id === creatorValue);
+      expect(myTag).toBeTruthy();
+      expect(parseInt(myTag.count)).toBe(1);
     });
   });
 
@@ -179,13 +216,26 @@ describe('aggregate', () => {
       expect(parseInt(myTag.count)).toBe(1);
     });
   });
+
+  it('should be able to group obsolete products', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.aggregate([
+        { $match: { obsolete: true } },
+        { $group: { _id: '$origins_tags' } },
+      ]);
+      const myTag = response.find((r) => r._id === originValue);
+      expect(myTag).toBeTruthy();
+      expect(parseInt(myTag.count)).toBe(1);
+    });
+  });
 });
 
 describe('select', () => {
-  it('should return matching products', async () =>{
+  it('should return matching products', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      const { originValue, aminoValue, neucleotideValue, product1, product2, product3 } =
-        await createTestTags(app);
+      const { aminoValue, product1 } = await createTestTags(app);
       const queryService = app.get(QueryService);
       const response = await queryService.select({
         amino_acids_tags: aminoValue,
@@ -195,24 +245,43 @@ describe('select', () => {
       expect(p1).toBeTruthy();
     });
   });
+
+  it('should return obsolete matching products', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { aminoValue, product4 } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.select({
+        amino_acids_tags: aminoValue,
+        obsolete: 'true',
+      });
+      expect(response).toHaveLength(1);
+      const p4 = response.find((r) => r.code === product4.code);
+      expect(p4).toBeTruthy();
+    });
+  });
 });
 
 async function createTestTags(app) {
   const em = app.get(EntityManager);
-  // Create some dummy products with a specific tag
-  const product1 = em.create(Product, { code: randomCode() });
-  const product2 = em.create(Product, { code: randomCode() });
-  const product3 = em.create(Product, { code: randomCode() });
+
   // Using origins and amino acids as they are smaller than most
   const originValue = randomCode();
   const aminoValue = randomCode();
   const neucleotideValue = randomCode();
+  const creatorValue = randomCode();
+  
+  // Create some dummy products with a specific tag
+  const product1 = em.create(Product, { code: randomCode() });
+  const product2 = em.create(Product, { code: randomCode(), creator: creatorValue });
+  const product3 = em.create(Product, { code: randomCode(), creator: creatorValue });
+  const product4 = em.create(Product, { code: randomCode(), obsolete: true });
 
   // Matrix for testing
-  // Product  | Origin | AminoAcid | Neucleotide
-  // Product1 |   x    |     x     |      x
-  // Product2 |   x    |     x     |
-  // Product3 |   x    |           |      x
+  // Product  | Origin | AminoAcid | Neucleotide | Obsolete | Creator
+  // Product1 |   x    |     x     |      x      |          |    
+  // Product2 |   x    |     x     |             |          |    x
+  // Product3 |   x    |           |      x      |          |    x
+  // Product4 |   x    |     x     |      x      |    x     |
 
   em.create(ProductOriginsTag, {
     product: product1,
@@ -226,6 +295,11 @@ async function createTestTags(app) {
     product: product3,
     value: originValue,
   });
+  em.create(ProductOriginsTag, {
+    product: product4,
+    value: originValue,
+    obsolete: true,
+  });
 
   em.create(ProductAminoAcidsTag, {
     product: product1,
@@ -235,6 +309,11 @@ async function createTestTags(app) {
     product: product2,
     value: aminoValue,
   });
+  em.create(ProductAminoAcidsTag, {
+    product: product4,
+    value: aminoValue,
+    obsolete: true,
+  });
 
   em.create(ProductNucleotidesTag, {
     product: product1,
@@ -243,8 +322,22 @@ async function createTestTags(app) {
   em.create(ProductNucleotidesTag, {
     product: product3,
     value: neucleotideValue,
+  });
+  em.create(ProductNucleotidesTag, {
+    product: product4,
+    value: neucleotideValue,
+    obsolete: true,
   });
 
   await em.flush();
-  return { originValue, aminoValue, neucleotideValue, product1, product2, product3 };
+  return {
+    originValue,
+    aminoValue,
+    neucleotideValue,
+    creatorValue,
+    product1,
+    product2,
+    product3,
+    product4,
+  };
 }
