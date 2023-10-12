@@ -96,13 +96,13 @@ export class QueryService {
     const start = Date.now();
     this.logger.debug(body);
 
-    const obseleteWhere = this.obsoleteWhere(body);
+    const obsoleteWhere = this.obsoleteWhere(body);
     const tags = Object.keys(body ?? {});
     const tag = tags?.[0];
     const { entity, column } = this.getEntityAndColumn(tag);
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`count(*) count`);
-    qb.where(obseleteWhere);
+    qb.where(obsoleteWhere);
 
     let whereLog = [];
     if (tag) {
@@ -130,11 +130,11 @@ export class QueryService {
     const start = Date.now();
     this.logger.debug(body);
 
-    const obseleteWhere = this.obsoleteWhere(body);
+    const obsoleteWhere = this.obsoleteWhere(body);
     let entity: EntityName<object> = Product;
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`*`);
-    qb.where(obseleteWhere);
+    qb.where(obsoleteWhere);
 
     const whereLog = this.addMatches(body, qb, entity);
 
