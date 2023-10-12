@@ -35,7 +35,7 @@ export class QueryService {
     }
     qb.where(this.obsoleteWhere(match));
 
-    const whereLog = this.addMatches(match, qb);
+    const whereLog = this.addMatches(match, qb, entity);
 
     if (count) {
       qb = this.em.createQueryBuilder(qb, 'temp');
@@ -63,7 +63,8 @@ export class QueryService {
     return results;
   }
 
-  private addMatches(match: any, qb: QueryBuilder<object>, parentKey = 'pt.product_id') {
+  private addMatches(match: any, qb: QueryBuilder<object>, parentEntity) {
+    const parentId = parentEntity === Product ? 'id': 'product_id';
     const whereLog = [];
     for (const [matchTag, matchValue] of Object.entries(match)) {
       let whereValue = matchValue;
@@ -76,7 +77,7 @@ export class QueryService {
       const qbWhere = this.em
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
-        .where(`pt2.product_id = ${parentKey} and pt2.${matchColumn} = ?`, [
+        .where(`pt2.product_id = pt.${parentId} and pt2.${matchColumn} = ?`, [
           whereValue,
         ]);
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
@@ -113,7 +114,7 @@ export class QueryService {
       }
       qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
       delete body[tag];
-      whereLog.push(...this.addMatches(body, qb));
+      whereLog.push(...this.addMatches(body, qb, entity));
     }
 
     this.logger.debug(qb.getFormattedQuery());
@@ -130,16 +131,18 @@ export class QueryService {
     this.logger.debug(body);
 
     const obseleteWhere = this.obsoleteWhere(body);
-    const tags = Object.keys(body);
     let entity: EntityName<object> = Product;
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`*`);
     qb.where(obseleteWhere);
 
-    const whereLog = this.addMatches(body, qb, 'pt.id');
+    const whereLog = this.addMatches(body, qb, entity);
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
+    this.logger.log(
+      `Processed ${whereLog.join(' and ')} in ${Date.now() - start} ms. Selected ${results.length} records`,
+    );
     return results;
   }
 

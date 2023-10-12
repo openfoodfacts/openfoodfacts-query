@@ -152,6 +152,20 @@ describe('aggregate', () => {
     });
   });
 
+  it('should filter products when grouping by a product field', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { aminoValue, creatorValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.aggregate([
+        { $match: { amino_acids_tags: aminoValue } },
+        { $group: { _id: '$creator' } },
+      ]);
+      const myTag = response.find((r) => r._id === creatorValue);
+      expect(myTag).toBeTruthy();
+      expect(parseInt(myTag.count)).toBe(1);
+    });
+  });
+
   it('should be able to do not filtering', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const { originValue, aminoValue } = await createTestTags(app);
@@ -249,22 +263,25 @@ describe('select', () => {
 
 async function createTestTags(app) {
   const em = app.get(EntityManager);
-  // Create some dummy products with a specific tag
-  const product1 = em.create(Product, { code: randomCode() });
-  const product2 = em.create(Product, { code: randomCode() });
-  const product3 = em.create(Product, { code: randomCode() });
-  const product4 = em.create(Product, { code: randomCode(), obsolete: true });
+
   // Using origins and amino acids as they are smaller than most
   const originValue = randomCode();
   const aminoValue = randomCode();
   const neucleotideValue = randomCode();
+  const creatorValue = randomCode();
+  
+  // Create some dummy products with a specific tag
+  const product1 = em.create(Product, { code: randomCode() });
+  const product2 = em.create(Product, { code: randomCode(), creator: creatorValue });
+  const product3 = em.create(Product, { code: randomCode(), creator: creatorValue });
+  const product4 = em.create(Product, { code: randomCode(), obsolete: true });
 
   // Matrix for testing
-  // Product  | Origin | AminoAcid | Neucleotide | Obsolete
-  // Product1 |   x    |     x     |      x      |
-  // Product2 |   x    |     x     |             |
-  // Product3 |   x    |           |      x      |
-  // Product4 |   x    |     x     |      x      |    x
+  // Product  | Origin | AminoAcid | Neucleotide | Obsolete | Creator
+  // Product1 |   x    |     x     |      x      |          |    
+  // Product2 |   x    |     x     |             |          |    x
+  // Product3 |   x    |           |      x      |          |    x
+  // Product4 |   x    |     x     |      x      |    x     |
 
   em.create(ProductOriginsTag, {
     product: product1,
@@ -317,6 +334,7 @@ async function createTestTags(app) {
     originValue,
     aminoValue,
     neucleotideValue,
+    creatorValue,
     product1,
     product2,
     product3,
