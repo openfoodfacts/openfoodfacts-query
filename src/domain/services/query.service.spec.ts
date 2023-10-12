@@ -91,8 +91,7 @@ describe('count', () => {
   });
   it('should cope with no filters', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      const { originValue, aminoValue, neucleotideValue } =
-        await createTestTags(app);
+      await createTestTags(app);
       const queryService = app.get(QueryService);
       const response = await queryService.count(null);
       expect(response).toBeGreaterThan(2);
@@ -101,8 +100,7 @@ describe('count', () => {
 
   it('should be able to count obsolete products', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      const { originValue } =
-        await createTestTags(app);
+      const { originValue } = await createTestTags(app);
       const queryService = app.get(QueryService);
       const response = await queryService.count({
         obsolete: 1,
@@ -114,8 +112,7 @@ describe('count', () => {
 
   it('should be able to count not obsolete products', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      const { originValue } =
-        await createTestTags(app);
+      const { originValue } = await createTestTags(app);
       const queryService = app.get(QueryService);
       const response = await queryService.count({
         obsolete: 0,
@@ -211,7 +208,7 @@ describe('aggregate', () => {
       const { originValue } = await createTestTags(app);
       const queryService = app.get(QueryService);
       const response = await queryService.aggregate([
-        { $match: {obsolete: true} },
+        { $match: { obsolete: true } },
         { $group: { _id: '$origins_tags' } },
       ]);
       const myTag = response.find((r) => r._id === originValue);
@@ -222,10 +219,9 @@ describe('aggregate', () => {
 });
 
 describe('select', () => {
-  it('should return matching products', async () =>{
+  it('should return matching products', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      const { originValue, aminoValue, neucleotideValue, product1, product2, product3 } =
-        await createTestTags(app);
+      const { aminoValue, product1 } = await createTestTags(app);
       const queryService = app.get(QueryService);
       const response = await queryService.select({
         amino_acids_tags: aminoValue,
@@ -236,10 +232,9 @@ describe('select', () => {
     });
   });
 
-  it('should return obsolete matching products', async () =>{
+  it('should return obsolete matching products', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      const { originValue, aminoValue, neucleotideValue, product1, product2, product3, product4 } =
-        await createTestTags(app);
+      const { aminoValue, product4 } = await createTestTags(app);
       const queryService = app.get(QueryService);
       const response = await queryService.select({
         amino_acids_tags: aminoValue,
@@ -267,7 +262,7 @@ async function createTestTags(app) {
   // Matrix for testing
   // Product  | Origin | AminoAcid | Neucleotide | Obsolete
   // Product1 |   x    |     x     |      x      |
-  // Product2 |   x    |     x     |             |     
+  // Product2 |   x    |     x     |             |
   // Product3 |   x    |           |      x      |
   // Product4 |   x    |     x     |      x      |    x
 
@@ -318,5 +313,13 @@ async function createTestTags(app) {
   });
 
   await em.flush();
-  return { originValue, aminoValue, neucleotideValue, product1, product2, product3, product4 };
+  return {
+    originValue,
+    aminoValue,
+    neucleotideValue,
+    product1,
+    product2,
+    product3,
+    product4,
+  };
 }
