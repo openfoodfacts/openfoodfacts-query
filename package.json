@@ -31,6 +31,7 @@
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/schedule": "^4.0.0",
     "@nestjs/terminus": "^10.1.1",
     "id128": "^1.6.6",
     "mongodb": "^5.8.0",
