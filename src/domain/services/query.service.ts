@@ -8,6 +8,7 @@ import {
 import { MAPPED_TAGS } from '../entities/product-tags';
 import { MAPPED_FIELDS, Product } from '../entities/product';
 import { TagService } from './tag.service';
+import { filter } from 'rxjs';
 
 @Injectable()
 export class QueryService {
@@ -39,7 +40,7 @@ export class QueryService {
     }
     qb.where(this.obsoleteWhere(match));
 
-    const whereLog = await this.addMatches(match, qb, entity);
+    const whereLog = await this.addMatches(this.parseFilter(match), qb, entity);
 
     if (count) {
       qb = this.em.createQueryBuilder(qb, 'temp');
@@ -67,9 +68,27 @@ export class QueryService {
     return results;
   }
 
-  private async addMatches(match: any, qb: QueryBuilder<object>, parentEntity) {
+  private parseFilter(matches): [string, any][] {
+    const filters = [];
+    for (const filter of Object.entries(matches)) {
+      if (filter[0] === '$and') {
+        for (const subFilter of filter[1] as []) {
+          filters.push(...this.parseFilter(subFilter));
+        }
+      } else {
+        filters.push(filter);
+      }
+    }
+    return filters;
+  }
+
+  private async addMatches(
+    filters: [string, any][],
+    qb: QueryBuilder<object>,
+    parentEntity,
+  ) {
     const whereLog = [];
-    for (const [matchTag, matchValue] of Object.entries(match)) {
+    for (const [matchTag, matchValue] of filters) {
       let whereValue = matchValue;
       const not = matchValue?.['$ne'];
       if (not) {
@@ -112,16 +131,16 @@ export class QueryService {
     this.logger.debug(body);
 
     const obsoleteWhere = this.obsoleteWhere(body);
-    const tags = Object.keys(body ?? {});
-    const tag = tags?.[0];
-    const { entity, column } = await this.getEntityAndColumn(tag);
+    const filters = this.parseFilter(body ?? {});
+    const mainFilter = filters[0];
+    const { entity, column } = await this.getEntityAndColumn(mainFilter?.[0]);
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`count(*) count`);
     qb.where(obsoleteWhere);
 
     const whereLog = [];
-    if (tag) {
-      let matchValue = body[tag];
+    if (mainFilter) {
+      let matchValue = mainFilter[1];
       const not = matchValue?.['$ne'];
       if (not) {
         matchValue = not;
@@ -132,12 +151,12 @@ export class QueryService {
         // If only one all then will want to delete it
         if (!all.length) all = false;
       }
-      whereLog.push(`${tag} ${not ? '!=' : '=='} ${matchValue}`);
+      whereLog.push(`${mainFilter[0]} ${not ? '!=' : '=='} ${matchValue}`);
       qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
       if (!all) {
-        delete body[tag];
+        filters.shift();
       }
-      whereLog.push(...(await this.addMatches(body, qb, entity)));
+      whereLog.push(...(await this.addMatches(filters, qb, entity)));
     }
 
     this.logger.debug(qb.getFormattedQuery());
@@ -161,7 +180,7 @@ export class QueryService {
     qb.select(`*`);
     qb.where(obsoleteWhere);
 
-    const whereLog = await this.addMatches(body, qb, entity);
+    const whereLog = await this.addMatches(this.parseFilter(body), qb, entity);
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();

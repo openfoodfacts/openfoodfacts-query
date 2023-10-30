@@ -150,6 +150,20 @@ describe('count', () => {
       expect(response).toBe(1);
     });
   });
+
+  it('should cope with a $and filter', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { aminoValue, aminoValue2 } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        $and: [
+          { amino_acids_tags: aminoValue },
+          { amino_acids_tags: aminoValue2 },
+        ],
+      });
+      expect(response).toBe(1);
+    });
+  });
 });
 
 describe('aggregate', () => {
