@@ -33,7 +33,6 @@ export class ImportService {
       filter['last_modified_t'] = { $gt: fromTime };
     }
     const updateId = Ulid.generate().toRaw();
-    if (!from) await this.deleteAllProducts();
 
     this.logger.log('Connecting to MongoDB');
     const client = new MongoClient(process.env.MONGO_URI);
@@ -57,7 +56,7 @@ export class ImportService {
 
         i++;
         if (skip && i < skip) continue;
-        await this.fixupProduct(!!from, updateId, data, obsolete);
+        await this.fixupProduct(true, updateId, data, obsolete);
         if (!(i % this.importBatchSize)) {
           await this.em.flush();
           this.em.clear();
@@ -66,12 +65,11 @@ export class ImportService {
           this.logger.log(`Updated ${i}`);
         }
       }
-      //await this.em.getConnection().execute('commit');
       await this.em.flush();
       this.logger.log(`${i}${obsolete ? ' Obsolete' : ''} Products imported`);
       await cursor.close();
     }
-    await this.updateTags(!!from, updateId);
+    await this.updateTags(true, updateId);
     await client.close();
     this.logger.log('Finished');
   }
