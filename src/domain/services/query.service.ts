@@ -7,11 +7,12 @@ import {
 } from '@nestjs/common';
 import { MAPPED_TAGS } from '../entities/product-tags';
 import { MAPPED_FIELDS, Product } from '../entities/product';
+import { TagService } from './tag.service';
 
 @Injectable()
 export class QueryService {
   private logger = new Logger(QueryService.name);
-  constructor(private readonly em: EntityManager) {}
+  constructor(private readonly em: EntityManager, private readonly tagService: TagService) {}
 
   async aggregate(body: any[]) {
     const start = Date.now();
@@ -26,7 +27,7 @@ export class QueryService {
     let tag = group['_id'].substring(1);
     if (tag === 'users_tags') tag = 'creator';
 
-    const { entity, column } = this.getEntityAndColumn(tag);
+    const { entity, column } = await this.getEntityAndColumn(tag);
     let qb = this.em.createQueryBuilder(entity, 'pt');
     if (!count) {
       qb.select(`${column} _id, count(*) count`);
@@ -35,7 +36,7 @@ export class QueryService {
     }
     qb.where(this.obsoleteWhere(match));
 
-    const whereLog = this.addMatches(match, qb, entity);
+    const whereLog = await this.addMatches(match, qb, entity);
 
     if (count) {
       qb = this.em.createQueryBuilder(qb, 'temp');
@@ -63,7 +64,7 @@ export class QueryService {
     return results;
   }
 
-  private addMatches(match: any, qb: QueryBuilder<object>, parentEntity) {
+  private async addMatches(match: any, qb: QueryBuilder<object>, parentEntity) {
     const whereLog = [];
     for (const [matchTag, matchValue] of Object.entries(match)) {
       let whereValue = matchValue;
@@ -72,7 +73,7 @@ export class QueryService {
         whereValue = not;
       }
       const { entity: matchEntity, column: matchColumn } =
-        this.getEntityAndColumn(matchTag);
+        await this.getEntityAndColumn(matchTag);
       const qbWhere = this.em
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
@@ -105,7 +106,7 @@ export class QueryService {
     const obsoleteWhere = this.obsoleteWhere(body);
     const tags = Object.keys(body ?? {});
     const tag = tags?.[0];
-    const { entity, column } = this.getEntityAndColumn(tag);
+    const { entity, column } = await this.getEntityAndColumn(tag);
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`count(*) count`);
     qb.where(obsoleteWhere);
@@ -120,7 +121,7 @@ export class QueryService {
       }
       qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
       delete body[tag];
-      whereLog.push(...this.addMatches(body, qb, entity));
+      whereLog.push(...(await this.addMatches(body, qb, entity)));
     }
 
     this.logger.debug(qb.getFormattedQuery());
@@ -144,7 +145,7 @@ export class QueryService {
     qb.select(`*`);
     qb.where(obsoleteWhere);
 
-    const whereLog = this.addMatches(body, qb, entity);
+    const whereLog = await this.addMatches(body, qb, entity);
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
@@ -156,7 +157,7 @@ export class QueryService {
     return results;
   }
 
-  private getEntityAndColumn(tag: any) {
+  private async getEntityAndColumn(tag: any) {
     let entity: EntityName<object>;
     let column = 'value';
     if (!tag || MAPPED_FIELDS.includes(tag)) {
@@ -164,6 +165,13 @@ export class QueryService {
       column = tag;
     } else {
       entity = MAPPED_TAGS[tag];
+      if (entity) {
+        if (!(await this.tagService.getLoadedTags()).includes(tag)) {
+          const message = `Tag '${tag}' is not loaded`;
+          this.logger.warn(message);
+          throw new UnprocessableEntityException(message);
+        }
+      }
     }
     if (entity == null) {
       const message = `Tag '${tag}' is not supported`;

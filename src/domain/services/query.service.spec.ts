@@ -11,6 +11,7 @@ import {
 import { QueryService } from './query.service';
 import { createTestingModule, randomCode } from '../../../test/test.helper';
 import { UnprocessableEntityException } from '@nestjs/common';
+import { LoadedTag } from '../entities/loaded-tag';
 
 describe('count', () => {
   it('should count the number of products with a tag', async () => {
@@ -76,6 +77,21 @@ describe('count', () => {
       }
     });
   });
+
+  it('should throw and unprocessable exception for a tag that hasnt been loaded', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      try {
+        const em = app.get(EntityManager);
+        await em.nativeDelete(LoadedTag, { id: 'ingredients_tags' });
+        await em.flush();
+        await app.get(QueryService).count({ ingredients_tags: 'x' });
+        fail('should not get here');
+      } catch (e) {
+        expect(e).toBeInstanceOf(UnprocessableEntityException);
+      }
+    });
+  });
+
   it('should cope with more than two filters', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const { originValue, aminoValue, neucleotideValue } =
