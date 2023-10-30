@@ -103,22 +103,17 @@ export class QueryService {
       }
       const { entity: matchEntity, column: matchColumn } =
         await this.getEntityAndColumn(matchTag);
-
-      const all = whereValue?.['$all'];
-      const matchValues = all ?? [whereValue];
-      for (const value of matchValues) {
-        const qbWhere = this.em
-          .createQueryBuilder(matchEntity, 'pt2')
-          .select('*')
-          .where(
-            `pt2.${this.productId(matchEntity)} = pt.${this.productId(
-              parentEntity,
-            )} and pt2.${matchColumn} = ?`,
-            [value],
-          );
-        qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
-        whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${value}`);
-      }
+      const qbWhere = this.em
+        .createQueryBuilder(matchEntity, 'pt2')
+        .select('*')
+        .where(
+          `pt2.${this.productId(matchEntity)} = pt.${this.productId(
+            parentEntity,
+          )} and pt2.${matchColumn} = ?`,
+          [whereValue],
+        );
+      qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
+      whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
     }
     return whereLog;
   }
@@ -139,7 +134,7 @@ export class QueryService {
 
     const obsoleteWhere = this.obsoleteWhere(body);
     const filters = this.parseFilter(body ?? {});
-    const mainFilter = filters[0];
+    const mainFilter = filters.shift();
     const { entity, column } = await this.getEntityAndColumn(mainFilter?.[0]);
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`count(*) count`);
@@ -152,17 +147,8 @@ export class QueryService {
       if (not) {
         matchValue = not;
       }
-      let all = matchValue?.['$all'];
-      if (all) {
-        matchValue = all.shift();
-        // If only one all then will want to delete it
-        if (!all.length) all = false;
-      }
       whereLog.push(`${mainFilter[0]} ${not ? '!=' : '=='} ${matchValue}`);
       qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
-      if (!all) {
-        filters.shift();
-      }
       whereLog.push(...(await this.addMatches(filters, qb, entity)));
     }
 
