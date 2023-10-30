@@ -12,7 +12,10 @@ import { TagService } from './tag.service';
 @Injectable()
 export class QueryService {
   private logger = new Logger(QueryService.name);
-  constructor(private readonly em: EntityManager, private readonly tagService: TagService) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly tagService: TagService,
+  ) {}
 
   async aggregate(body: any[]) {
     const start = Date.now();
@@ -74,17 +77,22 @@ export class QueryService {
       }
       const { entity: matchEntity, column: matchColumn } =
         await this.getEntityAndColumn(matchTag);
-      const qbWhere = this.em
-        .createQueryBuilder(matchEntity, 'pt2')
-        .select('*')
-        .where(
-          `pt2.${this.productId(matchEntity)} = pt.${this.productId(
-            parentEntity,
-          )} and pt2.${matchColumn} = ?`,
-          [whereValue],
-        );
-      qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
-      whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
+
+      const all = whereValue?.['$all'];
+      const matchValues = all ?? [whereValue];
+      for (const value of matchValues) {
+        const qbWhere = this.em
+          .createQueryBuilder(matchEntity, 'pt2')
+          .select('*')
+          .where(
+            `pt2.${this.productId(matchEntity)} = pt.${this.productId(
+              parentEntity,
+            )} and pt2.${matchColumn} = ?`,
+            [value],
+          );
+        qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
+        whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${value}`);
+      }
     }
     return whereLog;
   }
@@ -115,12 +123,20 @@ export class QueryService {
     if (tag) {
       let matchValue = body[tag];
       const not = matchValue?.['$ne'];
-      whereLog.push(`${tag} ${not ? '!=' : '=='} ${matchValue}`);
       if (not) {
         matchValue = not;
       }
+      let all = matchValue?.['$all'];
+      if (all) {
+        matchValue = all.shift();
+        // If only one all then will want to delete it
+        if (!all.length) all = false;
+      }
+      whereLog.push(`${tag} ${not ? '!=' : '=='} ${matchValue}`);
       qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
-      delete body[tag];
+      if (!all) {
+        delete body[tag];
+      }
       whereLog.push(...(await this.addMatches(body, qb, entity)));
     }
 

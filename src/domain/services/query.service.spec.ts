@@ -4,6 +4,7 @@ import { Product } from '../entities/product';
 import {
   ProductAdditivesTag,
   ProductAminoAcidsTag,
+  ProductBrandsTag,
   ProductIngredientsTag,
   ProductNucleotidesTag,
   ProductOriginsTag,
@@ -43,7 +44,7 @@ describe('count', () => {
       const tagValue = randomCode();
       const notTagValue = randomCode();
       const productWithNotTag = em.create(Product, { code: randomCode() });
-      em.create(ProductIngredientsTag, {
+      em.create(ProductBrandsTag, {
         product: productWithNotTag,
         value: tagValue,
       });
@@ -52,7 +53,7 @@ describe('count', () => {
         value: notTagValue,
       });
 
-      em.create(ProductIngredientsTag, {
+      em.create(ProductBrandsTag, {
         product: em.create(Product, { code: randomCode() }),
         value: tagValue,
       });
@@ -60,7 +61,7 @@ describe('count', () => {
 
       const queryService = app.get(QueryService);
       const response = await queryService.count({
-        ingredients_tags: tagValue,
+        brands_tags: tagValue,
         additives_tags: { $ne: notTagValue },
       });
       expect(response).toBe(1);
@@ -105,6 +106,7 @@ describe('count', () => {
       expect(response).toBe(1);
     });
   });
+
   it('should cope with no filters', async () => {
     await createTestingModule([DomainModule], async (app) => {
       await createTestTags(app);
@@ -135,6 +137,17 @@ describe('count', () => {
         origins_tags: originValue,
       });
       expect(response).toBe(3);
+    });
+  });
+
+  it('should cope with a $all filter', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { aminoValue, aminoValue2 } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        amino_acids_tags: { $all: [aminoValue, aminoValue2] },
+      });
+      expect(response).toBe(1);
     });
   });
 });
@@ -297,6 +310,7 @@ async function createTestTags(app) {
   // Using origins and amino acids as they are smaller than most
   const originValue = randomCode();
   const aminoValue = randomCode();
+  const aminoValue2 = randomCode();
   const neucleotideValue = randomCode();
   const creatorValue = randomCode();
 
@@ -313,11 +327,11 @@ async function createTestTags(app) {
   const product4 = em.create(Product, { code: randomCode(), obsolete: true });
 
   // Matrix for testing
-  // Product  | Origin | AminoAcid | Neucleotide | Obsolete | Creator
-  // Product1 |   x    |     x     |      x      |          |
-  // Product2 |   x    |     x     |             |          |    x
-  // Product3 |   x    |           |      x      |          |    x
-  // Product4 |   x    |     x     |      x      |    x     |
+  // Product  | Origin | AminoAcid | AminoAcid2 | Neucleotide | Obsolete | Creator
+  // Product1 |   x    |     x     |            |      x      |          |
+  // Product2 |   x    |     x     |     x      |             |          |    x
+  // Product3 |   x    |           |     x      |      x      |          |    x
+  // Product4 |   x    |     x     |            |      x      |    x     |
 
   em.create(ProductOriginsTag, {
     product: product1,
@@ -349,6 +363,15 @@ async function createTestTags(app) {
     product: product4,
     value: aminoValue,
     obsolete: true,
+  });
+
+  em.create(ProductAminoAcidsTag, {
+    product: product2,
+    value: aminoValue2,
+  });
+  em.create(ProductAminoAcidsTag, {
+    product: product3,
+    value: aminoValue2,
   });
 
   em.create(ProductNucleotidesTag, {
@@ -369,6 +392,7 @@ async function createTestTags(app) {
   return {
     originValue,
     aminoValue,
+    aminoValue2,
     neucleotideValue,
     creatorValue,
     product1,
