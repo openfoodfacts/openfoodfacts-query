@@ -76,7 +76,14 @@ export class QueryService {
           filters.push(...this.parseFilter(subFilter));
         }
       } else {
-        filters.push(filter);
+        const all = filter[1]['$all'];
+        if (all) {
+          for (const value of all) {
+            filters.push([filter[0], value]);
+          }
+        } else {
+          filters.push(filter);
+        }
       }
     }
     return filters;
