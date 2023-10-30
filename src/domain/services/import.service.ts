@@ -6,12 +6,16 @@ import { EntityManager } from '@mikro-orm/postgresql';
 import { MAPPED_TAGS } from '../entities/product-tags';
 import * as fs from 'fs';
 import * as readline from 'readline';
+import { TagService } from './tag.service';
 
 @Injectable()
 export class ImportService {
   private logger = new Logger(ImportService.name);
 
-  constructor(private em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly tagService: TagService,
+  ) {}
 
   // Lowish batch size seems to work best, probably due to the size of the product document
   importBatchSize = 100;
@@ -69,7 +73,7 @@ export class ImportService {
       this.logger.log(`${i}${obsolete ? ' Obsolete' : ''} Products imported`);
       await cursor.close();
     }
-    await this.updateTags(true, updateId);
+    await this.updateTags(!!from, updateId);
     await client.close();
     this.logger.log('Finished');
   }
@@ -118,16 +122,14 @@ export class ImportService {
     for (const [tag, entity] of Object.entries(MAPPED_TAGS)) {
       let logText = `Updated ${tag}`;
       const tableName = this.em.getMetadata(entity).tableName;
-      if (update) {
-        const results = await connection.execute(
-          `delete from ${tableName} 
-        where product_id in (select id from product 
-        where last_update_id = ?)`,
-          [updateId],
-          'run',
-        );
-        logText += ` deleted ${results['affectedRows']},`;
-      }
+      const deleted = await connection.execute(
+        `delete from ${tableName} 
+      where product_id in (select id from product 
+      where last_update_id = ?)`,
+        [updateId],
+        'run',
+      );
+      logText += ` deleted ${deleted['affectedRows']},`;
       const results = await connection.execute(
         `insert into ${tableName} (product_id, value, obsolete)
         select DISTINCT id, tag.value, obsolete from product 
@@ -137,7 +139,13 @@ export class ImportService {
         'run',
       );
       await connection.execute('commit');
+      if (!update) {
+        await this.tagService.tagLoaded(tag);
+        this.em.flush();
+      }
+
       logText += ` inserted ${results['affectedRows']} rows`;
+
       this.logger.log(logText);
     }
   }

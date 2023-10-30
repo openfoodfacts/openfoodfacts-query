@@ -8,6 +8,34 @@
       "columns": {
         "id": {
           "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        }
+      },
+      "name": "loaded_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "keyName": "loaded_tag_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
           "type": "uuid",
           "unsigned": false,
           "autoincrement": false,

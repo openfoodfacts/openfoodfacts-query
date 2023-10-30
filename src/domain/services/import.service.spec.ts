@@ -2,8 +2,10 @@ import { DomainModule } from '../domain.module';
 import { ImportService } from './import.service';
 import { EntityManager } from '@mikro-orm/core';
 import { Product } from '../entities/product';
-import { ProductIngredientsTag } from '../entities/product-tags';
+import { MAPPED_TAGS, ProductIngredientsTag } from '../entities/product-tags';
 import { createTestingModule, randomCode } from '../../../test/test.helper';
+import { TagService } from './tag.service';
+import { LoadedTag } from '../entities/loaded-tag';
 
 let index = 0;
 const productIdNew = randomCode();
@@ -64,6 +66,7 @@ describe('importFromMongo', () => {
       });
 
       // WHEN:Doing a full import from MongoDB
+      index = 0;
       await importService.importFromMongo();
 
       // THEN: New product is addeded, updated product is updated and other product is unchanged
@@ -92,6 +95,27 @@ describe('importFromMongo', () => {
       });
       expect(ingredientsUnchanged).toHaveLength(1);
       expect(ingredientsUnchanged[0].value).toBe('unchanged_ingredient');
+
+      const loadedTags = await app.get(TagService).getLoadedTags();
+      expect(loadedTags).toHaveLength(Object.keys(MAPPED_TAGS).length);
+    });
+  });
+
+  it('incremental import should not update loaded tags', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      // GIVEN: No loaded ingredients tag
+      const em = app.get(EntityManager);
+      await em.nativeDelete(LoadedTag, { id: 'ingredients_tags' });
+      await em.flush();
+      const importService = app.get(ImportService);
+
+      // WHEN:Doing an incremental import from MongoDB
+      index = 0;
+      await importService.importFromMongo('');
+
+      // THEN: Loaded tags is not updated
+      const loadedTags = await app.get(TagService).getLoadedTags();
+      expect(loadedTags).not.toContain('ingredients_tags');
     });
   });
 });
