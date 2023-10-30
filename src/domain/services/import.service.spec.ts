@@ -66,6 +66,7 @@ describe('importFromMongo', () => {
       // WHEN:Doing a full import from MongoDB
       await importService.importFromMongo();
 
+      // THEN: New product is addeded, updated product is updated and other product is unchanged
       expect(importService.deleteAllProducts).not.toHaveBeenCalled();
       const productNew = await em.findOne(Product, { code: productIdNew });
       expect(productNew).toBeTruthy();

@@ -283,16 +283,22 @@ async function createTestTags(app) {
   const aminoValue = randomCode();
   const neucleotideValue = randomCode();
   const creatorValue = randomCode();
-  
+
   // Create some dummy products with a specific tag
   const product1 = em.create(Product, { code: randomCode() });
-  const product2 = em.create(Product, { code: randomCode(), creator: creatorValue });
-  const product3 = em.create(Product, { code: randomCode(), creator: creatorValue });
+  const product2 = em.create(Product, {
+    code: randomCode(),
+    creator: creatorValue,
+  });
+  const product3 = em.create(Product, {
+    code: randomCode(),
+    creator: creatorValue,
+  });
   const product4 = em.create(Product, { code: randomCode(), obsolete: true });
 
   // Matrix for testing
   // Product  | Origin | AminoAcid | Neucleotide | Obsolete | Creator
-  // Product1 |   x    |     x     |      x      |          |    
+  // Product1 |   x    |     x     |      x      |          |
   // Product2 |   x    |     x     |             |          |    x
   // Product3 |   x    |           |      x      |          |    x
   // Product4 |   x    |     x     |      x      |    x     |

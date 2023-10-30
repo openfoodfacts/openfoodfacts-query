@@ -64,7 +64,6 @@ export class QueryService {
   }
 
   private addMatches(match: any, qb: QueryBuilder<object>, parentEntity) {
-    const parentId = parentEntity === Product ? 'id': 'product_id';
     const whereLog = [];
     for (const [matchTag, matchValue] of Object.entries(match)) {
       let whereValue = matchValue;
@@ -77,9 +76,12 @@ export class QueryService {
       const qbWhere = this.em
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
-        .where(`pt2.${this.productId(matchEntity)} = pt.${this.productId(parentEntity)} and pt2.${matchColumn} = ?`, [
-          whereValue,
-        ]);
+        .where(
+          `pt2.${this.productId(matchEntity)} = pt.${this.productId(
+            parentEntity,
+          )} and pt2.${matchColumn} = ?`,
+          [whereValue],
+        );
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
       whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
     }
@@ -87,7 +89,7 @@ export class QueryService {
   }
 
   productId(entity) {
-    return entity === Product ? 'id': 'product_id';
+    return entity === Product ? 'id' : 'product_id';
   }
 
   obsoleteWhere(body: any) {
@@ -108,7 +110,7 @@ export class QueryService {
     qb.select(`count(*) count`);
     qb.where(obsoleteWhere);
 
-    let whereLog = [];
+    const whereLog = [];
     if (tag) {
       let matchValue = body[tag];
       const not = matchValue?.['$ne'];
@@ -125,7 +127,9 @@ export class QueryService {
     const results = await qb.execute();
     const response = results[0].count;
     this.logger.log(
-      `Processed ${whereLog.join(' and ')} in ${Date.now() - start} ms. Count: ${response}`,
+      `Processed ${whereLog.join(' and ')} in ${
+        Date.now() - start
+      } ms. Count: ${response}`,
     );
     return parseInt(response);
   }
@@ -135,7 +139,7 @@ export class QueryService {
     this.logger.debug(body);
 
     const obsoleteWhere = this.obsoleteWhere(body);
-    let entity: EntityName<object> = Product;
+    const entity: EntityName<object> = Product;
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`*`);
     qb.where(obsoleteWhere);
@@ -145,7 +149,9 @@ export class QueryService {
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
     this.logger.log(
-      `Processed ${whereLog.join(' and ')} in ${Date.now() - start} ms. Selected ${results.length} records`,
+      `Processed ${whereLog.join(' and ')} in ${
+        Date.now() - start
+      } ms. Selected ${results.length} records`,
     );
     return results;
   }
