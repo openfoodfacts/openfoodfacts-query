@@ -9,12 +9,12 @@ export class AppController {
     private readonly queryService: QueryService,
   ) {}
 
-  @Get('importfromfile?')
+  @Get('importfromfile')
   async importFromFile(@Query('from') from = null) {
     await this.importService.importFromFile(from);
   }
 
-  @Get('importfrommongo?')
+  @Get('importfrommongo')
   async importFromMongo(
     @Query('from') from = null,
     @Query('skip') skip = null,
@@ -22,18 +22,22 @@ export class AppController {
     await this.importService.importFromMongo(from, skip);
   }
 
+  parseBoolean(value) {
+    return value == true || value?.toLowerCase() == 'true';
+  }
+
   @Post('aggregate')
-  async aggregate(@Body() body: any[]) {
-    return await this.queryService.aggregate(body);
+  async aggregate(@Body() body: any[], @Query('obsolete') obsolete) {
+    return await this.queryService.aggregate(body, this.parseBoolean(obsolete));
   }
 
   @All('count')
-  async count(@Body() body: any) {
-    return await this.queryService.count(body);
+  async count(@Body() body: any, @Query('obsolete') obsolete) {
+    return await this.queryService.count(body, this.parseBoolean(obsolete));
   }
 
   @Post('select')
-  async select(@Body() body: any) {
-    return await this.queryService.select(body);
+  async select(@Body() body: any, @Query('obsolete') obsolete) {
+    return await this.queryService.select(body, this.parseBoolean(obsolete));
   }
 }

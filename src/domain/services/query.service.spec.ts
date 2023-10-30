@@ -120,10 +120,12 @@ describe('count', () => {
     await createTestingModule([DomainModule], async (app) => {
       const { originValue } = await createTestTags(app);
       const queryService = app.get(QueryService);
-      const response = await queryService.count({
-        obsolete: 1,
-        origins_tags: originValue,
-      });
+      const response = await queryService.count(
+        {
+          origins_tags: originValue,
+        },
+        true,
+      );
       expect(response).toBe(1);
     });
   });
@@ -132,10 +134,12 @@ describe('count', () => {
     await createTestingModule([DomainModule], async (app) => {
       const { originValue } = await createTestTags(app);
       const queryService = app.get(QueryService);
-      const response = await queryService.count({
-        obsolete: 0,
-        origins_tags: originValue,
-      });
+      const response = await queryService.count(
+        {
+          origins_tags: originValue,
+        },
+        false,
+      );
       expect(response).toBe(3);
     });
   });
@@ -278,10 +282,10 @@ describe('aggregate', () => {
     await createTestingModule([DomainModule], async (app) => {
       const { originValue } = await createTestTags(app);
       const queryService = app.get(QueryService);
-      const response = await queryService.aggregate([
-        { $match: { obsolete: true } },
-        { $group: { _id: '$origins_tags' } },
-      ]);
+      const response = await queryService.aggregate(
+        [{ $match: {} }, { $group: { _id: '$origins_tags' } }],
+        true,
+      );
       const myTag = response.find((r) => r._id === originValue);
       expect(myTag).toBeTruthy();
       expect(parseInt(myTag.count)).toBe(1);
@@ -307,10 +311,12 @@ describe('select', () => {
     await createTestingModule([DomainModule], async (app) => {
       const { aminoValue, product4 } = await createTestTags(app);
       const queryService = app.get(QueryService);
-      const response = await queryService.select({
-        amino_acids_tags: aminoValue,
-        obsolete: 'true',
-      });
+      const response = await queryService.select(
+        {
+          amino_acids_tags: aminoValue,
+        },
+        true,
+      );
       expect(response).toHaveLength(1);
       const p4 = response.find((r) => r.code === product4.code);
       expect(p4).toBeTruthy();

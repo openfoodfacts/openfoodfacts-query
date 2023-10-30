@@ -8,7 +8,6 @@ import {
 import { MAPPED_TAGS } from '../entities/product-tags';
 import { MAPPED_FIELDS, Product } from '../entities/product';
 import { TagService } from './tag.service';
-import { filter } from 'rxjs';
 
 @Injectable()
 export class QueryService {
@@ -18,7 +17,7 @@ export class QueryService {
     private readonly tagService: TagService,
   ) {}
 
-  async aggregate(body: any[]) {
+  async aggregate(body: any[], obsolete = false) {
     const start = Date.now();
     this.logger.debug(body);
 
@@ -38,7 +37,7 @@ export class QueryService {
     } else {
       qb.select(`${column}`).distinct();
     }
-    qb.where(this.obsoleteWhere(match));
+    qb.where(this.obsoleteWhere(obsolete));
 
     const whereLog = await this.addMatches(this.parseFilter(match), qb, entity);
 
@@ -122,17 +121,15 @@ export class QueryService {
     return entity === Product ? 'id' : 'product_id';
   }
 
-  obsoleteWhere(body: any) {
-    const obsolete = !!body?.obsolete;
-    delete body?.obsolete;
+  obsoleteWhere(obsolete: boolean) {
     return `${obsolete ? '' : 'not '}pt.obsolete`;
   }
 
-  async count(body: any) {
+  async count(body: any, obsolete = false) {
     const start = Date.now();
     this.logger.debug(body);
 
-    const obsoleteWhere = this.obsoleteWhere(body);
+    const obsoleteWhere = this.obsoleteWhere(obsolete);
     const filters = this.parseFilter(body ?? {});
     const mainFilter = filters.shift();
     const { entity, column } = await this.getEntityAndColumn(mainFilter?.[0]);
@@ -163,11 +160,11 @@ export class QueryService {
     return parseInt(response);
   }
 
-  async select(body: any) {
+  async select(body: any, obsolete = false) {
     const start = Date.now();
     this.logger.debug(body);
 
-    const obsoleteWhere = this.obsoleteWhere(body);
+    const obsoleteWhere = this.obsoleteWhere(obsolete);
     const entity: EntityName<object> = Product;
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`*`);
