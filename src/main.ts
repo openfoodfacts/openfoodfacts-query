@@ -4,8 +4,12 @@ import { MikroORM } from '@mikro-orm/core';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Run migrations if needed. Note may need to change this if multiple containers are used for scaling
   const migrator = app.get(MikroORM).getMigrator();
   await migrator.up();
+
+  // Start the service. IP 0.0.0.0 ensure it is available to Docker
   await app.listen(5510, '0.0.0.0');
 }
 bootstrap();
