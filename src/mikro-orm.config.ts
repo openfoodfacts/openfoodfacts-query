@@ -47,4 +47,6 @@ export default defineConfig({
     path: 'dist/migrations',
     pathTs: 'src/migrations',
   },
+  // Uncomment the below and 'app.useLogger(new Logger());' to the test to see Mikro-ORM logs
+  // debug: ['query', 'query-params'],
 });

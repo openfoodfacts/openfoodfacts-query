@@ -88,9 +88,18 @@ export class ImportService {
       this.logger.log(`${i}${obsolete ? ' Obsolete' : ''} Products imported`);
       await cursor.close();
     }
+    await client.close();
+
     // Tags are popualted using raw SQL from the data field
     await this.updateTags(!!from, updateId);
-    await client.close();
+
+    // If doing a full import delete all products that weren't updated
+    if (!from) {
+      const deleted = await this.em.nativeDelete(Product, {
+        $or: [{ lastUpdateId: { $ne: updateId } }, { lastUpdateId: null }],
+      });
+      this.logger.log(`${deleted} Products deleted`);
+    }
     this.logger.log('Finished');
   }
 
@@ -173,7 +182,6 @@ export class ImportService {
       // If this is a full load we can flag the tag as now available for query
       if (!update) {
         await this.tagService.tagLoaded(tag);
-        this.em.flush();
       }
 
       logText += ` inserted ${results['affectedRows']} rows`;

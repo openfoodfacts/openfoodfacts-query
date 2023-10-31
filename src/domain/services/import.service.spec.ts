@@ -45,8 +45,12 @@ jest.mock('mongodb', () => {
 });
 
 describe('importFromMongo', () => {
-  it('should import a new product update existing products and not delete existing products', async () => {
+  it('should import a new product update existing products and delete missing products', async () => {
     await createTestingModule([DomainModule], async (app) => {
+      // To see Mikro-ORM log output you need to make sure NestJS isn't using it's TestLogger
+      // And also uncomment the debug setting in mikro-orm.config.ts
+      // app.useLogger(new Logger());
+
       const importService = app.get(ImportService);
       importService.deleteAllProducts = jest.fn();
 
@@ -64,6 +68,7 @@ describe('importFromMongo', () => {
         product: productUnchanged,
         value: 'unchanged_ingredient',
       });
+      await em.flush();
 
       // WHEN:Doing a full import from MongoDB
       index = 0;
@@ -90,11 +95,10 @@ describe('importFromMongo', () => {
         ingredientsExisting.find((i) => i.value === 'new_ingredient'),
       ).toBeTruthy();
 
-      const ingredientsUnchanged = await em.find(ProductIngredientsTag, {
-        product: productUnchanged,
+      const foundOldProduct = await em.findOne(Product, {
+        code: productIdUnchanged,
       });
-      expect(ingredientsUnchanged).toHaveLength(1);
-      expect(ingredientsUnchanged[0].value).toBe('unchanged_ingredient');
+      expect(foundOldProduct).toBeFalsy();
 
       const loadedTags = await app.get(TagService).getLoadedTags();
       expect(loadedTags).toHaveLength(Object.keys(MAPPED_TAGS).length);

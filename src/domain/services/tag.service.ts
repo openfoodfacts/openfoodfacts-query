@@ -21,5 +21,6 @@ export class TagService {
     if ((await this.getLoadedTags()).includes(tag)) return;
     this.loadedTags.push(tag);
     this.em.create(LoadedTag, { id: tag });
+    await this.em.flush();
   }
 }
