@@ -57,6 +57,20 @@ export class ProductLastEditDatesTag extends BaseProductTag {}
 export class ProductLastCheckDatesTag extends BaseProductTag {}
 @Entity()
 export class ProductTeamsTag extends BaseProductTag {}
+@Entity()
+export class ProductKeywordsTag extends BaseProductTag {}
+@Entity()
+export class ProductCodesTag extends BaseProductTag {}
+@Entity()
+export class ProductDataQualityErrorsTag extends BaseProductTag {}
+@Entity()
+export class ProductDataQualityTag extends BaseProductTag {}
+@Entity()
+export class ProductEditorsTag extends BaseProductTag {}
+@Entity()
+export class ProductStoresTag extends BaseProductTag {}
+@Entity()
+export class ProductIngredientsOriginalTag extends BaseProductTag {}
 
 /* From Config_off.pm
 # fields for drilldown facet navigation
@@ -122,4 +136,12 @@ export const MAPPED_TAGS = {
   last_edit_dates_tags: ProductLastEditDatesTag,
   last_check_dates_tags: ProductLastCheckDatesTag,
   teams_tags: ProductTeamsTag,
+  // Added later
+  _keywords: ProductKeywordsTag,
+  codes_tags: ProductCodesTag,
+  data_quality_tags: ProductDataQualityTag,
+  data_quality_errors_tags: ProductDataQualityErrorsTag,
+  editors_tags: ProductEditorsTag,
+  stores_tags: ProductStoresTag,
+  ingredients_original_tags: ProductIngredientsOriginalTag,
 };

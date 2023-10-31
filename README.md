@@ -39,6 +39,16 @@ npm run start:dev
 
 The service is exposed on port 5510, to avoid clashing with Robotoff.
 
+## Project Structure
+
+The project uses the [NestJS](https://docs.nestjs.com/) framework with [Mikro-ORM](https://mikro-orm.io/docs/installation).
+
+The entrypoint is main.js which runs database migrations and starts the service.
+
+The main business logic is in the domain/services folder and the controllers route through to here. Extensive use is made of the Mikro-ORM [EntityManager](https://mikro-orm.io/docs/entity-manager) here to interact with the database, although in some cases more raw SQL is used to optimise performance.
+
+The domain/entities folder defines the main entities and is used to automatically generate migrations using the [migration:create](https://mikro-orm.io/docs/migrations#initial-migration) npm task.
+
 ## Testing
 
 The unit tests use testcontainers to create a temporary Postgres database in Docker, which lasts for the duration of the test run. The tests share the same database while running, so ensure that tests are independant from one another by using randmoised product codes / tags.
@@ -69,7 +79,7 @@ docker-compose up -d --build
 
 The main docker-compose.yml creates the openfoodfacts-query service and associated Postres database and expects MongoDB to already exist.
 
-The dev.yml Docker Compose joins the services to the po_default network to ease communication with Product Opener and MongoDB. In staging and production comminication with MongoDB is done with an explicity network address.
+The dev.yml Docker Compose joins the services to the po_default network to ease communication with Product Opener and MongoDB. In staging and production comminication with MongoDB is done with an explicit network address.
 
 # Use
 

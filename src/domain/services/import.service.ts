@@ -6,12 +6,16 @@ import { EntityManager } from '@mikro-orm/postgresql';
 import { MAPPED_TAGS } from '../entities/product-tags';
 import * as fs from 'fs';
 import * as readline from 'readline';
+import { TagService } from './tag.service';
 
 @Injectable()
 export class ImportService {
   private logger = new Logger(ImportService.name);
 
-  constructor(private em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly tagService: TagService,
+  ) {}
 
   // Lowish batch size seems to work best, probably due to the size of the product document
   importBatchSize = 100;
@@ -19,7 +23,11 @@ export class ImportService {
 
   private tags = Object.keys(MAPPED_TAGS);
 
+  /** Import Products from MongoDB */
   async importFromMongo(from?: string, skip?: number) {
+    // If the from parameter is supplied but it is empty then obtain the most
+    // recent modified time from the database and query MongoDB for products
+    // modified since then
     if (!from && from != null) {
       const result = await this.em
         .createQueryBuilder(Product, 'p')
@@ -32,13 +40,17 @@ export class ImportService {
       const fromTime = Math.floor(new Date(from).getTime() / 1000);
       filter['last_modified_t'] = { $gt: fromTime };
     }
+
+    // The update id is unique to this run and is used later to run other
+    // queries that should only affect products loaded in this import
     const updateId = Ulid.generate().toRaw();
-    if (!from) await this.deleteAllProducts();
 
     this.logger.log('Connecting to MongoDB');
     const client = new MongoClient(process.env.MONGO_URI);
     await client.connect();
     const db = client.db('off');
+
+    // Only fetch the tags that we store to limit the payload from MongoDB
     const projection = {};
     for (const key of MAPPED_FIELDS) {
       projection[key] = 1;
@@ -46,7 +58,10 @@ export class ImportService {
     for (const key of this.tags) {
       projection[key] = 1;
     }
+
     this.logger.log('Starting import' + (from ? ' from ' + from : ''));
+    // Repeat the below for normal and then obsolete products
+    // Both are stored in the same table in PostgreSQL
     for (const obsolete of [false, true]) {
       const products = db.collection(`products${obsolete ? '_obsolete' : ''}`);
       const cursor = products.find(filter, { projection });
@@ -57,8 +72,11 @@ export class ImportService {
 
         i++;
         if (skip && i < skip) continue;
-        await this.fixupProduct(!!from, updateId, data, obsolete);
+        // Find the product if it exists and populate the standard fields
+        await this.fixupProduct(true, updateId, data, obsolete);
         if (!(i % this.importBatchSize)) {
+          // This will cause a commit and then clear the Mikro-ORM cache
+          // to minimise memory consumption for large imports
           await this.em.flush();
           this.em.clear();
         }
@@ -66,16 +84,26 @@ export class ImportService {
           this.logger.log(`Updated ${i}`);
         }
       }
-      //await this.em.getConnection().execute('commit');
       await this.em.flush();
       this.logger.log(`${i}${obsolete ? ' Obsolete' : ''} Products imported`);
       await cursor.close();
     }
-    await this.updateTags(!!from, updateId);
     await client.close();
+
+    // Tags are popualted using raw SQL from the data field
+    await this.updateTags(!!from, updateId);
+
+    // If doing a full import delete all products that weren't updated
+    if (!from) {
+      const deleted = await this.em.nativeDelete(Product, {
+        $or: [{ lastUpdateId: { $ne: updateId } }, { lastUpdateId: null }],
+      });
+      this.logger.log(`${deleted} Products deleted`);
+    }
     this.logger.log('Finished');
   }
 
+  /** Populate a Product record from MongoDB document */
   async fixupProduct(
     update: boolean,
     updateId: string,
@@ -102,6 +130,7 @@ export class ImportService {
     product.lastUpdateId = updateId;
   }
 
+  /** Find an existing document by product code, or create a new one */
   private async findOrNewProduct(update: boolean, data: any) {
     let product: Product;
     if (update) {
@@ -115,21 +144,29 @@ export class ImportService {
     return product;
   }
 
+  /**
+   * Products are first loaded with the tags in the data JSONB property.
+   * SQL is then run to insert this into the individual tag tables.
+   * This was found to be quicker than using ORM functionality
+   */
   private async updateTags(update: boolean, updateId: string) {
     const connection = this.em.getConnection();
     for (const [tag, entity] of Object.entries(MAPPED_TAGS)) {
       let logText = `Updated ${tag}`;
+      // Get the underlying table name for the entity
       const tableName = this.em.getMetadata(entity).tableName;
-      if (update) {
-        const results = await connection.execute(
-          `delete from ${tableName} 
-        where product_id in (select id from product 
-        where last_update_id = ?)`,
-          [updateId],
-          'run',
-        );
-        logText += ` deleted ${results['affectedRows']},`;
-      }
+
+      // Delete existing tags for products that were imorted on this run
+      const deleted = await connection.execute(
+        `delete from ${tableName} 
+      where product_id in (select id from product 
+      where last_update_id = ?)`,
+        [updateId],
+        'run',
+      );
+      logText += ` deleted ${deleted['affectedRows']},`;
+
+      // Add tags back in with the updated information
       const results = await connection.execute(
         `insert into ${tableName} (product_id, value, obsolete)
         select DISTINCT id, tag.value, obsolete from product 
@@ -138,8 +175,17 @@ export class ImportService {
         [updateId],
         'run',
       );
+
+      // Commit after each tag to minimise server snapshot size
       await connection.execute('commit');
+
+      // If this is a full load we can flag the tag as now available for query
+      if (!update) {
+        await this.tagService.tagLoaded(tag);
+      }
+
       logText += ` inserted ${results['affectedRows']} rows`;
+
       this.logger.log(logText);
     }
   }
@@ -148,6 +194,10 @@ export class ImportService {
     await this.em.execute('truncate table product cascade');
   }
 
+  /**
+   * Imports from a openfoodfacts-products.jsonl uploaded to the data folder
+   * Mainly used for testing and may be removed.
+   */
   async importFromFile(from = null) {
     const updateId = Ulid.generate().toRaw();
     const fromTime = from ? Math.floor(new Date(from).getTime() / 1000) : null;

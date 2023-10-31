@@ -4,6 +4,7 @@ import { Product } from '../entities/product';
 import {
   ProductAdditivesTag,
   ProductAminoAcidsTag,
+  ProductBrandsTag,
   ProductIngredientsTag,
   ProductNucleotidesTag,
   ProductOriginsTag,
@@ -11,6 +12,7 @@ import {
 import { QueryService } from './query.service';
 import { createTestingModule, randomCode } from '../../../test/test.helper';
 import { UnprocessableEntityException } from '@nestjs/common';
+import { LoadedTag } from '../entities/loaded-tag';
 
 describe('count', () => {
   it('should count the number of products with a tag', async () => {
@@ -42,7 +44,7 @@ describe('count', () => {
       const tagValue = randomCode();
       const notTagValue = randomCode();
       const productWithNotTag = em.create(Product, { code: randomCode() });
-      em.create(ProductIngredientsTag, {
+      em.create(ProductBrandsTag, {
         product: productWithNotTag,
         value: tagValue,
       });
@@ -51,7 +53,7 @@ describe('count', () => {
         value: notTagValue,
       });
 
-      em.create(ProductIngredientsTag, {
+      em.create(ProductBrandsTag, {
         product: em.create(Product, { code: randomCode() }),
         value: tagValue,
       });
@@ -59,7 +61,7 @@ describe('count', () => {
 
       const queryService = app.get(QueryService);
       const response = await queryService.count({
-        ingredients_tags: tagValue,
+        brands_tags: tagValue,
         additives_tags: { $ne: notTagValue },
       });
       expect(response).toBe(1);
@@ -76,6 +78,21 @@ describe('count', () => {
       }
     });
   });
+
+  it('should throw and unprocessable exception for a tag that hasnt been loaded', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      try {
+        const em = app.get(EntityManager);
+        await em.nativeDelete(LoadedTag, { id: 'ingredients_tags' });
+        await em.flush();
+        await app.get(QueryService).count({ ingredients_tags: 'x' });
+        fail('should not get here');
+      } catch (e) {
+        expect(e).toBeInstanceOf(UnprocessableEntityException);
+      }
+    });
+  });
+
   it('should cope with more than two filters', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const { originValue, aminoValue, neucleotideValue } =
@@ -89,6 +106,7 @@ describe('count', () => {
       expect(response).toBe(1);
     });
   });
+
   it('should cope with no filters', async () => {
     await createTestingModule([DomainModule], async (app) => {
       await createTestTags(app);
@@ -102,10 +120,12 @@ describe('count', () => {
     await createTestingModule([DomainModule], async (app) => {
       const { originValue } = await createTestTags(app);
       const queryService = app.get(QueryService);
-      const response = await queryService.count({
-        obsolete: 1,
-        origins_tags: originValue,
-      });
+      const response = await queryService.count(
+        {
+          origins_tags: originValue,
+        },
+        true,
+      );
       expect(response).toBe(1);
     });
   });
@@ -114,11 +134,38 @@ describe('count', () => {
     await createTestingModule([DomainModule], async (app) => {
       const { originValue } = await createTestTags(app);
       const queryService = app.get(QueryService);
-      const response = await queryService.count({
-        obsolete: 0,
-        origins_tags: originValue,
-      });
+      const response = await queryService.count(
+        {
+          origins_tags: originValue,
+        },
+        false,
+      );
       expect(response).toBe(3);
+    });
+  });
+
+  it('should cope with a $all filter', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { aminoValue, aminoValue2 } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        amino_acids_tags: { $all: [aminoValue, aminoValue2] },
+      });
+      expect(response).toBe(1);
+    });
+  });
+
+  it('should cope with a $and filter', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { aminoValue, aminoValue2 } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        $and: [
+          { amino_acids_tags: aminoValue },
+          { amino_acids_tags: aminoValue2 },
+        ],
+      });
+      expect(response).toBe(1);
     });
   });
 });
@@ -235,10 +282,10 @@ describe('aggregate', () => {
     await createTestingModule([DomainModule], async (app) => {
       const { originValue } = await createTestTags(app);
       const queryService = app.get(QueryService);
-      const response = await queryService.aggregate([
-        { $match: { obsolete: true } },
-        { $group: { _id: '$origins_tags' } },
-      ]);
+      const response = await queryService.aggregate(
+        [{ $match: {} }, { $group: { _id: '$origins_tags' } }],
+        true,
+      );
       const myTag = response.find((r) => r._id === originValue);
       expect(myTag).toBeTruthy();
       expect(parseInt(myTag.count)).toBe(1);
@@ -264,10 +311,12 @@ describe('select', () => {
     await createTestingModule([DomainModule], async (app) => {
       const { aminoValue, product4 } = await createTestTags(app);
       const queryService = app.get(QueryService);
-      const response = await queryService.select({
-        amino_acids_tags: aminoValue,
-        obsolete: 'true',
-      });
+      const response = await queryService.select(
+        {
+          amino_acids_tags: aminoValue,
+        },
+        true,
+      );
       expect(response).toHaveLength(1);
       const p4 = response.find((r) => r.code === product4.code);
       expect(p4).toBeTruthy();
@@ -281,21 +330,28 @@ async function createTestTags(app) {
   // Using origins and amino acids as they are smaller than most
   const originValue = randomCode();
   const aminoValue = randomCode();
+  const aminoValue2 = randomCode();
   const neucleotideValue = randomCode();
   const creatorValue = randomCode();
-  
+
   // Create some dummy products with a specific tag
   const product1 = em.create(Product, { code: randomCode() });
-  const product2 = em.create(Product, { code: randomCode(), creator: creatorValue });
-  const product3 = em.create(Product, { code: randomCode(), creator: creatorValue });
+  const product2 = em.create(Product, {
+    code: randomCode(),
+    creator: creatorValue,
+  });
+  const product3 = em.create(Product, {
+    code: randomCode(),
+    creator: creatorValue,
+  });
   const product4 = em.create(Product, { code: randomCode(), obsolete: true });
 
   // Matrix for testing
-  // Product  | Origin | AminoAcid | Neucleotide | Obsolete | Creator
-  // Product1 |   x    |     x     |      x      |          |    
-  // Product2 |   x    |     x     |             |          |    x
-  // Product3 |   x    |           |      x      |          |    x
-  // Product4 |   x    |     x     |      x      |    x     |
+  // Product  | Origin | AminoAcid | AminoAcid2 | Neucleotide | Obsolete | Creator
+  // Product1 |   x    |     x     |            |      x      |          |
+  // Product2 |   x    |     x     |     x      |             |          |    x
+  // Product3 |   x    |           |     x      |      x      |          |    x
+  // Product4 |   x    |     x     |            |      x      |    x     |
 
   em.create(ProductOriginsTag, {
     product: product1,
@@ -327,6 +383,15 @@ async function createTestTags(app) {
     product: product4,
     value: aminoValue,
     obsolete: true,
+  });
+
+  em.create(ProductAminoAcidsTag, {
+    product: product2,
+    value: aminoValue2,
+  });
+  em.create(ProductAminoAcidsTag, {
+    product: product3,
+    value: aminoValue2,
   });
 
   em.create(ProductNucleotidesTag, {
@@ -347,6 +412,7 @@ async function createTestTags(app) {
   return {
     originValue,
     aminoValue,
+    aminoValue2,
     neucleotideValue,
     creatorValue,
     product1,

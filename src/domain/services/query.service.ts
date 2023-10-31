@@ -7,35 +7,50 @@ import {
 } from '@nestjs/common';
 import { MAPPED_TAGS } from '../entities/product-tags';
 import { MAPPED_FIELDS, Product } from '../entities/product';
+import { TagService } from './tag.service';
 
 @Injectable()
 export class QueryService {
   private logger = new Logger(QueryService.name);
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly tagService: TagService,
+  ) {}
 
-  async aggregate(body: any[]) {
+  /** Uses the MongoDB aggregate pipeline style query to return counts grouped by a specified facet */
+  async aggregate(body: any[], obsolete = false) {
     const start = Date.now();
     this.logger.debug(body);
 
+    // Match includes any filter criteria
     const match = body.find((o: any) => o['$match'])?.['$match'];
+
+    // Group indicates what field to group results by
     const group = body.find((o: any) => o['$group'])?.['$group'];
+
+    // If count is specified then this just counts the number of distinct facet values
     const count = body.some((o: any) => o['$count']);
+
+    // Limit and skip support paging of large results (like ingredients)
     const limit = body.find((o: any) => o['$limit'])?.['$limit'];
     const skip = body.find((o: any) => o['$skip'])?.['$skip'];
 
     let tag = group['_id'].substring(1);
     if (tag === 'users_tags') tag = 'creator';
 
-    const { entity, column } = this.getEntityAndColumn(tag);
+    // Determine which entity to query (Product or a specific Tag table)
+    const { entity, column } = await this.getEntityAndColumn(tag);
     let qb = this.em.createQueryBuilder(entity, 'pt');
     if (!count) {
       qb.select(`${column} _id, count(*) count`);
     } else {
       qb.select(`${column}`).distinct();
     }
-    qb.where(this.obsoleteWhere(match));
+    // Add the where clause that determines whether to fetch obsolete products or not
+    qb.where(this.obsoleteWhere(obsolete));
 
-    const whereLog = this.addMatches(match, qb, entity);
+    // Add filter criteria to the where clause
+    const whereLog = await this.addMatches(this.parseFilter(match), qb, entity);
 
     if (count) {
       qb = this.em.createQueryBuilder(qb, 'temp');
@@ -48,7 +63,6 @@ export class QueryService {
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
-    //this.logger.log(results);
     this.logger.debug(
       `Processed ${tag}${
         whereLog.length ? ` where ${whereLog.join(' and ')}` : ''
@@ -63,101 +77,170 @@ export class QueryService {
     return results;
   }
 
-  private addMatches(match: any, qb: QueryBuilder<object>, parentEntity) {
-    const parentId = parentEntity === Product ? 'id': 'product_id';
+  /**
+   * Turns the filter into a simple list of tags and values that can be "anded" together
+   * note this doesn't currently support "or" operations
+   */
+  private parseFilter(matches): [string, any][] {
+    const filters = [];
+    for (const filter of Object.entries(matches)) {
+      if (filter[0] === '$and') {
+        // If the key is $and then the value will be an array of objects, e.g.
+        // $and: [
+        //   { amino_acids_tags: "value1" },
+        //   { amino_acids_tags: "value2" },
+        // ]
+        // Expand these to just appear as additional filter entries
+        for (const subFilter of filter[1] as []) {
+          filters.push(...this.parseFilter(subFilter));
+        }
+      } else {
+        const all = filter[1]['$all'];
+        if (all) {
+          // All is very similar to $and except that it is specified for the values, e.g.
+          // amino_acids_tags: { $all: ["value1", "value1"] }
+          // Simply append these as multiple tag / value pairs for the same tag
+          for (const value of all) {
+            filters.push([filter[0], value]);
+          }
+        } else {
+          filters.push(filter);
+        }
+      }
+    }
+    return filters;
+  }
+
+  /**
+   * Iterates over the list of tag / value pairs and adds them as where clauses to the supplied QueryBuilder.
+   * @param filters The list of tag / value pairs
+   * @param qb The QueryBuilder to add the where clause to
+   * @param parentEntity Determines the column in which the product id is found in the perant
+   * @returns A human-readable summary of the clauses added
+   */
+  private async addMatches(
+    filters: [string, any][],
+    qb: QueryBuilder<object>,
+    parentEntity,
+  ) {
     const whereLog = [];
-    for (const [matchTag, matchValue] of Object.entries(match)) {
+    for (const [matchTag, matchValue] of filters) {
       let whereValue = matchValue;
+      // If $ne is specified then a not equal query is needed, e.g.
+      // additives_tags: { $ne: "value1" }
       const not = matchValue?.['$ne'];
       if (not) {
         whereValue = not;
       }
       const { entity: matchEntity, column: matchColumn } =
-        this.getEntityAndColumn(matchTag);
+        await this.getEntityAndColumn(matchTag);
+      // The following creates an EXISTS / NOT EXISTS sub-query for the specified tag
       const qbWhere = this.em
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
-        .where(`pt2.${this.productId(matchEntity)} = pt.${this.productId(parentEntity)} and pt2.${matchColumn} = ?`, [
-          whereValue,
-        ]);
+        .where(
+          `pt2.${this.productId(matchEntity)} = pt.${this.productId(
+            parentEntity,
+          )} and pt2.${matchColumn} = ?`,
+          [whereValue],
+        );
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
       whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
     }
     return whereLog;
   }
 
+  /** Determins the name of the product id field */
   productId(entity) {
-    return entity === Product ? 'id': 'product_id';
+    return entity === Product ? 'id' : 'product_id';
   }
 
-  obsoleteWhere(body: any) {
-    const obsolete = !!body?.obsolete;
-    delete body?.obsolete;
+  /** Returns a where expression for the onsolete flag */
+  obsoleteWhere(obsolete: boolean) {
     return `${obsolete ? '' : 'not '}pt.obsolete`;
   }
 
-  async count(body: any) {
+  /** Counts the number of document meeting the specified criteria */
+  async count(body: any, obsolete = false) {
     const start = Date.now();
     this.logger.debug(body);
 
-    const obsoleteWhere = this.obsoleteWhere(body);
-    const tags = Object.keys(body ?? {});
-    const tag = tags?.[0];
-    const { entity, column } = this.getEntityAndColumn(tag);
+    const filters = this.parseFilter(body ?? {});
+
+    // The main table for the query is determined from the first filter
+    const mainFilter = filters.shift();
+    const { entity, column } = await this.getEntityAndColumn(mainFilter?.[0]);
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`count(*) count`);
-    qb.where(obsoleteWhere);
+    qb.where(this.obsoleteWhere(obsolete));
 
-    let whereLog = [];
-    if (tag) {
-      let matchValue = body[tag];
+    const whereLog = [];
+    if (mainFilter) {
+      let matchValue = mainFilter[1];
       const not = matchValue?.['$ne'];
-      whereLog.push(`${tag} ${not ? '!=' : '=='} ${matchValue}`);
       if (not) {
         matchValue = not;
       }
+      whereLog.push(`${mainFilter[0]} ${not ? '!=' : '=='} ${matchValue}`);
       qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
-      delete body[tag];
-      whereLog.push(...this.addMatches(body, qb, entity));
+
+      // Add any further where clauses
+      whereLog.push(...(await this.addMatches(filters, qb, entity)));
     }
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
     const response = results[0].count;
     this.logger.log(
-      `Processed ${whereLog.join(' and ')} in ${Date.now() - start} ms. Count: ${response}`,
+      `Processed ${whereLog.join(' and ')} in ${
+        Date.now() - start
+      } ms. Count: ${response}`,
     );
     return parseInt(response);
   }
 
-  async select(body: any) {
+  /** Fetches the entire document record for the filter. Not used by Product Opener */
+  async select(body: any, obsolete = false) {
     const start = Date.now();
     this.logger.debug(body);
 
-    const obsoleteWhere = this.obsoleteWhere(body);
-    let entity: EntityName<object> = Product;
+    const entity: EntityName<object> = Product;
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`*`);
-    qb.where(obsoleteWhere);
+    qb.where(this.obsoleteWhere(obsolete));
 
-    const whereLog = this.addMatches(body, qb, entity);
+    const whereLog = await this.addMatches(this.parseFilter(body), qb, entity);
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
     this.logger.log(
-      `Processed ${whereLog.join(' and ')} in ${Date.now() - start} ms. Selected ${results.length} records`,
+      `Processed ${whereLog.join(' and ')} in ${
+        Date.now() - start
+      } ms. Selected ${results.length} records`,
     );
     return results;
   }
 
-  private getEntityAndColumn(tag: any) {
+  /** Determines the entity to use for the query. */
+  private async getEntityAndColumn(tag: any) {
     let entity: EntityName<object>;
     let column = 'value';
     if (!tag || MAPPED_FIELDS.includes(tag)) {
+      // The field is a signle value stored on the Product itself
       entity = Product;
       column = tag;
     } else {
       entity = MAPPED_TAGS[tag];
+      if (entity) {
+        // Check to see if the tag has been loaded. This allows us to introduce
+        // new tags but they will initially not be supported until a full import
+        // is performed
+        if (!(await this.tagService.getLoadedTags()).includes(tag)) {
+          const message = `Tag '${tag}' is not loaded`;
+          this.logger.warn(message);
+          throw new UnprocessableEntityException(message);
+        }
+      }
     }
     if (entity == null) {
       const message = `Tag '${tag}' is not supported`;
