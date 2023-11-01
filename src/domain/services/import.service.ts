@@ -119,6 +119,7 @@ export class ImportService {
         // Strip out any nul characters
         for (const [index, value] of tagData.entries()) {
           if (value.includes('\u0000')) {
+            this.logger.warn(`Product: ${data.code}. Nuls stripped from ${key} value: ${value}`);
             tagData[index] = value.replace(this.nulRegex, '');
           }
         }
@@ -133,7 +134,7 @@ export class ImportService {
     product.obsolete = obsolete;
     const lastModified = new Date(data.last_modified_t * 1000);
     if (isNaN(+lastModified)) {
-      this.logger.log(`Invalid last_modified_t: ${data.last_modified_t}.`);
+      this.logger.warn(`Product: ${data.code}. Invalid last_modified_t: ${data.last_modified_t}.`);
     } else {
       product.lastModified = lastModified;
     }
