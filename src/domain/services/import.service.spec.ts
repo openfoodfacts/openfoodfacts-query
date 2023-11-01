@@ -33,7 +33,7 @@ jest.mock('mongodb', () => {
         collection: () => ({
           find: () => ({
             next: async () => {
-              return index++ <= products.length ? products[index - 1] : null;
+              return index++ <= mockedProducts.length ? mockedProducts[index - 1] : null;
             },
             close: jest.fn(),
           }),
@@ -43,6 +43,12 @@ jest.mock('mongodb', () => {
     })),
   };
 });
+
+let mockedProducts = [];
+function mockMongoDB(productList) {
+  index = 0;
+  mockedProducts = productList;
+}
 
 describe('importFromMongo', () => {
   it('should import a new product update existing products and delete missing products', async () => {
@@ -71,7 +77,7 @@ describe('importFromMongo', () => {
       await em.flush();
 
       // WHEN:Doing a full import from MongoDB
-      index = 0;
+      mockMongoDB(products);
       await importService.importFromMongo();
 
       // THEN: New product is addeded, updated product is updated and other product is unchanged
@@ -113,13 +119,34 @@ describe('importFromMongo', () => {
       await em.flush();
       const importService = app.get(ImportService);
 
-      // WHEN:Doing an incremental import from MongoDB
-      index = 0;
+      // WHEN: Doing an incremental import from MongoDB
+      mockMongoDB(products);
       await importService.importFromMongo('');
 
       // THEN: Loaded tags is not updated
       const loadedTags = await app.get(TagService).getLoadedTags();
       expect(loadedTags).not.toContain('ingredients_tags');
+    });
+  });
+
+  it('should cope with nul charactes', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      // WHEN: Impoting data containing nul characters
+      mockMongoDB([{
+        // This one will be new
+        code: productIdNew,
+        last_modified_t: 1692032161,
+        ingredients_tags: ["test \u0000 test2 \u0000 end"],
+      }]);
+      await app.get(ImportService).importFromMongo();
+
+      // THEN: Product should be loaded with nuls stripped
+      const ingredientsNew = await app.get(EntityManager).find(ProductIngredientsTag, {
+        product: { code: productIdNew},
+      });
+
+      expect(ingredientsNew).toHaveLength(1);
+      expect(ingredientsNew[0].value).toBe("test  test2  end");
     });
   });
 });

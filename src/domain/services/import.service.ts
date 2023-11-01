@@ -104,6 +104,7 @@ export class ImportService {
   }
 
   /** Populate a Product record from MongoDB document */
+  nulRegex = /\0/g;
   async fixupProduct(
     update: boolean,
     updateId: string,
@@ -113,7 +114,17 @@ export class ImportService {
     const product = await this.findOrNewProduct(update, data);
     const dataToStore = {};
     for (const key of this.tags) {
-      dataToStore[key] = data[key];
+      const tagData = data[key] as string[];
+      if (tagData) {
+        // Strip out any nul characters
+        for (const [index, value] of tagData.entries()) {
+          if (value.includes('\u0000')) {
+            this.logger.warn(`Product: ${data.code}. Nuls stripped from ${key} value: ${value}`);
+            tagData[index] = value.replace(this.nulRegex, '');
+          }
+        }
+        dataToStore[key] = tagData;
+      }
     }
     product.data = dataToStore;
     product.name = data.product_name;
@@ -123,7 +134,7 @@ export class ImportService {
     product.obsolete = obsolete;
     const lastModified = new Date(data.last_modified_t * 1000);
     if (isNaN(+lastModified)) {
-      this.logger.log(`Invalid last_modified_t: ${data.last_modified_t}.`);
+      this.logger.warn(`Product: ${data.code}. Invalid last_modified_t: ${data.last_modified_t}.`);
     } else {
       product.lastModified = lastModified;
     }
