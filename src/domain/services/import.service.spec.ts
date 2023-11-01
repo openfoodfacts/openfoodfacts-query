@@ -142,7 +142,7 @@ describe('importFromMongo', () => {
 
       // THEN: Product should be loaded with nuls stripped
       const ingredientsNew = await app.get(EntityManager).find(ProductIngredientsTag, {
-        product: { id: productIdNew},
+        product: { code: productIdNew},
       });
 
       expect(ingredientsNew).toHaveLength(1);

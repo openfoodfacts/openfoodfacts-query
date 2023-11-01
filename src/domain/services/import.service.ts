@@ -104,6 +104,7 @@ export class ImportService {
   }
 
   /** Populate a Product record from MongoDB document */
+  nulRegex = /\0/g;
   async fixupProduct(
     update: boolean,
     updateId: string,
@@ -113,7 +114,16 @@ export class ImportService {
     const product = await this.findOrNewProduct(update, data);
     const dataToStore = {};
     for (const key of this.tags) {
-      dataToStore[key] = data[key];
+      const tagData = data[key] as string[];
+      if (tagData) {
+        // Strip out any nul characters
+        for (const [index, value] of tagData.entries()) {
+          if (value.includes('\u0000')) {
+            tagData[index] = value.replace(this.nulRegex, '');
+          }
+        }
+        dataToStore[key] = tagData;
+      }
     }
     product.data = dataToStore;
     product.name = data.product_name;
