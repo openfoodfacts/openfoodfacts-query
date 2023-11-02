@@ -167,6 +167,8 @@ export class ImportService {
       // Get the underlying table name for the entity
       const tableName = this.em.getMetadata(entity).tableName;
 
+      await connection.execute('begin');
+
       // Delete existing tags for products that were imorted on this run
       const deleted = await connection.execute(
         `delete from ${tableName} 
