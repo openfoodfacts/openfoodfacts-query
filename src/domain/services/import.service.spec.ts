@@ -50,6 +50,9 @@ function mockMongoDB(productList) {
   mockedProducts = productList;
 }
 
+// Import tests can sometimes take a little time in GitHub
+jest.setTimeout(10000);
+
 describe('importFromMongo', () => {
   it('should import a new product update existing products and delete missing products', async () => {
     await createTestingModule([DomainModule], async (app) => {
