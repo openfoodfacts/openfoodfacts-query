@@ -14,6 +14,9 @@ import { createTestingModule, randomCode } from '../../../test/test.helper';
 import { UnprocessableEntityException } from '@nestjs/common';
 import { LoadedTag } from '../entities/loaded-tag';
 
+// Tests can sometimes take a little time in GitHub
+jest.setTimeout(10000);
+
 describe('count', () => {
   it('should count the number of products with a tag', async () => {
     await createTestingModule([DomainModule], async (app) => {
