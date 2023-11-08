@@ -132,6 +132,12 @@ export class QueryService {
       if (not) {
         whereValue = not;
       }
+      // If the value is still an object then we can't handle it
+      if (whereValue === Object(whereValue))
+        this.throwUnprocessableException(
+          `Unable to process ${JSON.stringify(whereValue)}`,
+        );
+
       const { entity: matchEntity, column: matchColumn } =
         await this.getEntityAndColumn(matchTag);
       // The following creates an EXISTS / NOT EXISTS sub-query for the specified tag
@@ -223,18 +229,18 @@ export class QueryService {
         // Check to see if the tag has been loaded. This allows us to introduce
         // new tags but they will initially not be supported until a full import
         // is performed
-        if (!(await this.tagService.getLoadedTags()).includes(tag)) {
-          const message = `Tag '${tag}' is not loaded`;
-          this.logger.warn(message);
-          throw new UnprocessableEntityException(message);
-        }
+        if (!(await this.tagService.getLoadedTags()).includes(tag)) 
+          this.throwUnprocessableException(`Tag '${tag}' is not loaded`);
       }
     }
-    if (entity == null) {
-      const message = `Tag '${tag}' is not supported`;
-      this.logger.warn(message);
-      throw new UnprocessableEntityException(message);
-    }
+    if (entity == null)
+      this.throwUnprocessableException(`Tag '${tag}' is not supported`);
+
     return { entity, column };
+  }
+
+  private throwUnprocessableException(message: string) {
+    this.logger.warn(message);
+    throw new UnprocessableEntityException(message);
   }
 }
