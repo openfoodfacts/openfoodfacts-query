@@ -141,15 +141,16 @@ export class QueryService {
       const { entity: matchEntity, column: matchColumn } =
         await this.getEntityAndColumn(matchTag);
       // The following creates an EXISTS / NOT EXISTS sub-query for the specified tag
+      const knex = this.em.getKnex();
       const qbWhere = this.em
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
-        .where(
-          `pt2.${this.productId(matchEntity)} = pt.${this.productId(
-            parentEntity,
-          )} and pt2.${matchColumn} = ?`,
-          [whereValue],
-        );
+        .where({
+          [`pt2.${this.productId(matchEntity)}`]: knex.ref(
+            `pt.${this.productId(parentEntity)}`,
+          ),
+          [`pt2.${matchColumn}`]: whereValue,
+        });
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
       whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
     }
@@ -229,7 +230,7 @@ export class QueryService {
         // Check to see if the tag has been loaded. This allows us to introduce
         // new tags but they will initially not be supported until a full import
         // is performed
-        if (!(await this.tagService.getLoadedTags()).includes(tag)) 
+        if (!(await this.tagService.getLoadedTags()).includes(tag))
           this.throwUnprocessableException(`Tag '${tag}' is not loaded`);
       }
     }
