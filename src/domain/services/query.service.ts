@@ -133,10 +133,14 @@ export class QueryService {
         whereValue = not;
       }
       // If the value is still an object then we can't handle it
-      if (whereValue === Object(whereValue))
-        this.throwUnprocessableException(
-          `Unable to process ${JSON.stringify(whereValue)}`,
-        );
+      if (whereValue === Object(whereValue)) {
+        // Unless it is an $in
+        const keys = Object.keys(whereValue);
+        if (keys.length != 1 || keys[0] !== '$in')
+          this.throwUnprocessableException(
+            `Unable to process ${JSON.stringify(whereValue)}`,
+          );
+      }
 
       const { entity: matchEntity, column: matchColumn } =
         await this.getEntityAndColumn(matchTag);
