@@ -167,26 +167,14 @@ export class QueryService {
 
     const filters = this.parseFilter(body ?? {});
 
-    // The main table for the query is determined from the first filter
-    const mainFilter = filters.shift();
-    const { entity, column } = await this.getEntityAndColumn(mainFilter?.[0]);
+    // Always use product as the main table  otherwise "nots" are not handled correctly
+    const entity: EntityName<object> = Product;
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`count(*) count`);
     qb.where(this.obsoleteWhere(obsolete));
 
-    const whereLog = [];
-    if (mainFilter) {
-      let matchValue = mainFilter[1];
-      const not = matchValue?.['$ne'];
-      if (not) {
-        matchValue = not;
-      }
-      whereLog.push(`${mainFilter[0]} ${not ? '!=' : '=='} ${matchValue}`);
-      qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
-
-      // Add any further where clauses
-      whereLog.push(...(await this.addMatches(filters, qb, entity)));
-    }
+    // Add where clauses
+    const whereLog = await this.addMatches(filters, qb, entity);
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
