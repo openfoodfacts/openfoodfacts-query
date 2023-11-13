@@ -95,10 +95,7 @@ export class ImportService {
 
     // If doing a full import delete all products that weren't updated
     if (!from) {
-      const deleted = await this.em.nativeDelete(Product, {
-        $or: [{ lastUpdateId: { $ne: updateId } }, { lastUpdateId: null }],
-      });
-      this.logger.log(`${deleted} Products deleted`);
+      await this.deleteOtherProducts(updateId);
     }
     this.logger.log('Finished');
   }
@@ -119,7 +116,9 @@ export class ImportService {
         // Strip out any nul characters
         for (const [index, value] of tagData.entries()) {
           if (value.includes('\u0000')) {
-            this.logger.warn(`Product: ${data.code}. Nuls stripped from ${key} value: ${value}`);
+            this.logger.warn(
+              `Product: ${data.code}. Nuls stripped from ${key} value: ${value}`,
+            );
             tagData[index] = value.replace(this.nulRegex, '');
           }
         }
@@ -134,7 +133,9 @@ export class ImportService {
     product.obsolete = obsolete;
     const lastModified = new Date(data.last_modified_t * 1000);
     if (isNaN(+lastModified)) {
-      this.logger.warn(`Product: ${data.code}. Invalid last_modified_t: ${data.last_modified_t}.`);
+      this.logger.warn(
+        `Product: ${data.code}. Invalid last_modified_t: ${data.last_modified_t}.`,
+      );
     } else {
       product.lastModified = lastModified;
     }
@@ -203,8 +204,11 @@ export class ImportService {
     }
   }
 
-  async deleteAllProducts() {
-    await this.em.execute('truncate table product cascade');
+  async deleteOtherProducts(updateId: string) {
+    const deleted = await this.em.nativeDelete(Product, {
+      $or: [{ lastUpdateId: { $ne: updateId } }, { lastUpdateId: null }],
+    });
+    this.logger.log(`${deleted} Products deleted`);
   }
 
   /**
@@ -218,8 +222,6 @@ export class ImportService {
       input: fs.createReadStream('data/openfoodfacts-products.jsonl'),
     });
 
-    if (!from) await this.deleteAllProducts();
-    //await this.cacheTags();
     let i = 0;
     let skip = 0;
     for await (const line of rl) {
@@ -242,7 +244,7 @@ export class ImportService {
 
         const data = JSON.parse(line.replace(/\\u0000/g, ''));
         i++;
-        await this.fixupProduct(!!from, updateId, data);
+        await this.fixupProduct(true, updateId, data);
         if (!(i % this.importBatchSize)) {
           await this.em.flush();
           this.em.clear();
@@ -257,5 +259,9 @@ export class ImportService {
     await this.em.flush();
     this.logger.log(`${i} Products imported`);
     await this.updateTags(!!from, updateId);
+    if (!from) {
+      await this.deleteOtherProducts(updateId);
+    }
+    this.logger.log('Finished');
   }
 }
