@@ -63,7 +63,7 @@ describe('importFromMongo', () => {
       // app.useLogger(new Logger());
 
       const importService = app.get(ImportService);
-      importService.deleteAllProducts = jest.fn();
+      const deleteMock = (importService.deleteOtherProducts = jest.fn());
 
       // GIVEN: Two existing products, one of which is in Mongo plus one new one in Mongo
       const em = app.get(EntityManager);
@@ -88,9 +88,19 @@ describe('importFromMongo', () => {
       await importService.importFromMongo();
 
       // THEN: New product is addeded, updated product is updated and other product is unchanged
-      expect(importService.deleteAllProducts).not.toHaveBeenCalled();
+      expect(deleteMock).toHaveBeenCalledTimes(1);
+      let updateId = deleteMock.mock.calls[0][0];
+      // Re-format updateId the way Postgres provides it
+      updateId = `${updateId.substring(0, 8)}-${updateId.substring(
+        8,
+        12,
+      )}-${updateId.substring(12, 16)}-${updateId.substring(
+        16,
+        20,
+      )}-${updateId.substring(20)}`.toLowerCase();
       const productNew = await em.findOne(Product, { code: productIdNew });
       expect(productNew).toBeTruthy();
+      expect(productNew.lastUpdateId).toBe(updateId);
       const ingredientsNew = await em.find(ProductIngredientsTag, {
         product: productNew,
       });
@@ -108,10 +118,12 @@ describe('importFromMongo', () => {
         ingredientsExisting.find((i) => i.value === 'new_ingredient'),
       ).toBeTruthy();
 
+      // We have mocked the delete of other products so just check the other product
+      // does not have the same update id as those imported
       const foundOldProduct = await em.findOne(Product, {
         code: productIdUnchanged,
       });
-      expect(foundOldProduct).toBeFalsy();
+      expect(foundOldProduct.lastUpdateId).not.toBe(updateId);
 
       const loadedTags = await app.get(TagService).getLoadedTags();
       expect(loadedTags).toHaveLength(Object.keys(MAPPED_TAGS).length);
