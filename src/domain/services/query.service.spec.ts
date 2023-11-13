@@ -71,6 +71,18 @@ describe('count', () => {
     });
   });
 
+  it('should count the number of products without a specified tag', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { aminoValue, originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        amino_acids_tags: { $ne: aminoValue },
+        origins_tags: originValue, // Need at least one other criteria to avoid products from other tests
+      });
+      expect(response).toBe(1);
+    });
+  });
+
   it('should throw and unprocessable exception for an unknwon tag', async () => {
     await createTestingModule([DomainModule], async (app) => {
       try {
@@ -89,6 +101,17 @@ describe('count', () => {
         await em.nativeDelete(LoadedTag, { id: 'ingredients_tags' });
         await em.flush();
         await app.get(QueryService).count({ ingredients_tags: 'x' });
+        fail('should not get here');
+      } catch (e) {
+        expect(e).toBeInstanceOf(UnprocessableEntityException);
+      }
+    });
+  });
+
+  it('should throw and unprocessable exception for an unrecognised value object', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      try {
+        await app.get(QueryService).count({ origins_tags: { $unknown: 'x' } });
         fail('should not get here');
       } catch (e) {
         expect(e).toBeInstanceOf(UnprocessableEntityException);
@@ -169,6 +192,17 @@ describe('count', () => {
         ],
       });
       expect(response).toBe(1);
+    });
+  });
+
+  it('should cope with an $in value', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { aminoValue, aminoValue2 } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        amino_acids_tags: { $in: [aminoValue, aminoValue2] },
+      });
+      expect(response).toBe(3);
     });
   });
 });

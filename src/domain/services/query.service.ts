@@ -132,18 +132,29 @@ export class QueryService {
       if (not) {
         whereValue = not;
       }
+      // If the value is still an object then we can't handle it
+      if (whereValue === Object(whereValue)) {
+        // Unless it is an $in
+        const keys = Object.keys(whereValue);
+        if (keys.length != 1 || keys[0] !== '$in')
+          this.throwUnprocessableException(
+            `Unable to process ${JSON.stringify(whereValue)}`,
+          );
+      }
+
       const { entity: matchEntity, column: matchColumn } =
         await this.getEntityAndColumn(matchTag);
       // The following creates an EXISTS / NOT EXISTS sub-query for the specified tag
+      const knex = this.em.getKnex();
       const qbWhere = this.em
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
-        .where(
-          `pt2.${this.productId(matchEntity)} = pt.${this.productId(
-            parentEntity,
-          )} and pt2.${matchColumn} = ?`,
-          [whereValue],
-        );
+        .where({
+          [`pt2.${this.productId(matchEntity)}`]: knex.ref(
+            `pt.${this.productId(parentEntity)}`,
+          ),
+          [`pt2.${matchColumn}`]: whereValue,
+        });
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
       whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
     }
@@ -167,26 +178,14 @@ export class QueryService {
 
     const filters = this.parseFilter(body ?? {});
 
-    // The main table for the query is determined from the first filter
-    const mainFilter = filters.shift();
-    const { entity, column } = await this.getEntityAndColumn(mainFilter?.[0]);
+    // Always use product as the main table  otherwise "nots" are not handled correctly
+    const entity: EntityName<object> = Product;
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`count(*) count`);
     qb.where(this.obsoleteWhere(obsolete));
 
-    const whereLog = [];
-    if (mainFilter) {
-      let matchValue = mainFilter[1];
-      const not = matchValue?.['$ne'];
-      if (not) {
-        matchValue = not;
-      }
-      whereLog.push(`${mainFilter[0]} ${not ? '!=' : '=='} ${matchValue}`);
-      qb.andWhere(`${not ? 'NOT ' : ''}pt.${column} = ?`, [matchValue]);
-
-      // Add any further where clauses
-      whereLog.push(...(await this.addMatches(filters, qb, entity)));
-    }
+    // Add where clauses
+    const whereLog = await this.addMatches(filters, qb, entity);
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
@@ -235,18 +234,18 @@ export class QueryService {
         // Check to see if the tag has been loaded. This allows us to introduce
         // new tags but they will initially not be supported until a full import
         // is performed
-        if (!(await this.tagService.getLoadedTags()).includes(tag)) {
-          const message = `Tag '${tag}' is not loaded`;
-          this.logger.warn(message);
-          throw new UnprocessableEntityException(message);
-        }
+        if (!(await this.tagService.getLoadedTags()).includes(tag))
+          this.throwUnprocessableException(`Tag '${tag}' is not loaded`);
       }
     }
-    if (entity == null) {
-      const message = `Tag '${tag}' is not supported`;
-      this.logger.warn(message);
-      throw new UnprocessableEntityException(message);
-    }
+    if (entity == null)
+      this.throwUnprocessableException(`Tag '${tag}' is not supported`);
+
     return { entity, column };
+  }
+
+  private throwUnprocessableException(message: string) {
+    this.logger.warn(message);
+    throw new UnprocessableEntityException(message);
   }
 }
