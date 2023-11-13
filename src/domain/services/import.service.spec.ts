@@ -33,7 +33,9 @@ jest.mock('mongodb', () => {
         collection: () => ({
           find: () => ({
             next: async () => {
-              return index++ <= mockedProducts.length ? mockedProducts[index - 1] : null;
+              return index++ <= mockedProducts.length
+                ? mockedProducts[index - 1]
+                : null;
             },
             close: jest.fn(),
           }),
@@ -77,6 +79,8 @@ describe('importFromMongo', () => {
         product: productUnchanged,
         value: 'unchanged_ingredient',
       });
+      // Delete a tag to prove it is re-created
+      await em.nativeDelete(LoadedTag, { id: 'teams_tags' });
       await em.flush();
 
       // WHEN:Doing a full import from MongoDB
@@ -116,9 +120,9 @@ describe('importFromMongo', () => {
 
   it('incremental import should not update loaded tags', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      // GIVEN: No loaded ingredients tag
+      // GIVEN: No loaded teams tag
       const em = app.get(EntityManager);
-      await em.nativeDelete(LoadedTag, { id: 'ingredients_tags' });
+      await em.nativeDelete(LoadedTag, { id: 'teams_tags' });
       await em.flush();
       const importService = app.get(ImportService);
 
@@ -128,28 +132,32 @@ describe('importFromMongo', () => {
 
       // THEN: Loaded tags is not updated
       const loadedTags = await app.get(TagService).getLoadedTags();
-      expect(loadedTags).not.toContain('ingredients_tags');
+      expect(loadedTags).not.toContain('teams_tags');
     });
   });
 
   it('should cope with nul charactes', async () => {
     await createTestingModule([DomainModule], async (app) => {
       // WHEN: Impoting data containing nul characters
-      mockMongoDB([{
-        // This one will be new
-        code: productIdNew,
-        last_modified_t: 1692032161,
-        ingredients_tags: ["test \u0000 test2 \u0000 end"],
-      }]);
+      mockMongoDB([
+        {
+          // This one will be new
+          code: productIdNew,
+          last_modified_t: 1692032161,
+          ingredients_tags: ['test \u0000 test2 \u0000 end'],
+        },
+      ]);
       await app.get(ImportService).importFromMongo();
 
       // THEN: Product should be loaded with nuls stripped
-      const ingredientsNew = await app.get(EntityManager).find(ProductIngredientsTag, {
-        product: { code: productIdNew},
-      });
+      const ingredientsNew = await app
+        .get(EntityManager)
+        .find(ProductIngredientsTag, {
+          product: { code: productIdNew },
+        });
 
       expect(ingredientsNew).toHaveLength(1);
-      expect(ingredientsNew[0].value).toBe("test  test2  end");
+      expect(ingredientsNew[0].value).toBe('test  test2  end');
     });
   });
 });

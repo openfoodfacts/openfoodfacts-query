@@ -135,6 +135,7 @@ export const MAPPED_TAGS = {
   entry_dates_tags: ProductEntryDatesTag,
   last_edit_dates_tags: ProductLastEditDatesTag,
   last_check_dates_tags: ProductLastCheckDatesTag,
+  // Note do not use the teams_tags in test data as it is deleted in on eof the tests
   teams_tags: ProductTeamsTag,
   // Added later
   _keywords: ProductKeywordsTag,
