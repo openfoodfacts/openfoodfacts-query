@@ -136,10 +136,21 @@ export class QueryService {
       if (whereValue === Object(whereValue)) {
         // Unless it is an $in
         const keys = Object.keys(whereValue);
-        if (keys.length != 1 || keys[0] !== '$in')
+        if (
+          keys.length != 1 ||
+          keys[0] !== '$in' ||
+          !whereValue[keys[0]].length
+        )
           this.throwUnprocessableException(
             `Unable to process ${JSON.stringify(whereValue)}`,
           );
+        // $in contents must all be scalars
+        for (const value of whereValue[keys[0]]) {
+          if (value === Object(value))
+            this.throwUnprocessableException(
+              `Unable to process ${JSON.stringify(whereValue)}`,
+            );
+        }
       }
 
       const { entity: matchEntity, column: matchColumn } =

@@ -205,6 +205,19 @@ describe('count', () => {
       expect(response).toBe(3);
     });
   });
+
+  it('should throw an unprocessable exception if an $in contains an array', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      try {
+        await app
+          .get(QueryService)
+          .count({ origins_tags: { $in: ['a', ['b', 'c']] } });
+        fail('should not get here');
+      } catch (e) {
+        expect(e).toBeInstanceOf(UnprocessableEntityException);
+      }
+    });
+  });
 });
 
 describe('aggregate', () => {
