@@ -153,7 +153,7 @@ export class QueryService {
         if (operator === '$nin') {
           whereValue = { $in: whereValue['$nin'] };
           operator = '$in';
-          not = true;
+          not = !not;
         }
 
         // $in contents must all be scalars
@@ -164,7 +164,7 @@ export class QueryService {
             if (matchEntity === Product) {
               whereValue = null;
             } else {
-              not = true;
+              not = !not;
               whereValue = undefined;
             }
             break;

@@ -256,6 +256,18 @@ describe('count', () => {
       expect(response).toBe(0);
     });
   });
+
+  it('should cope with $nin unknown', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        nucleotides_tags: { $nin: [null, []] },
+      });
+      expect(response).toBe(2);
+    });
+  });
 });
 
 describe('aggregate', () => {
