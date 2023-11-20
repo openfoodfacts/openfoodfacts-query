@@ -2,10 +2,11 @@ import { DomainModule } from '../domain.module';
 import { ImportService } from './import.service';
 import { EntityManager } from '@mikro-orm/core';
 import { Product } from '../entities/product';
-import { MAPPED_TAGS, ProductIngredientsTag } from '../entities/product-tags';
+import { ProductIngredientsTag } from '../entities/product-tags';
 import { createTestingModule, randomCode } from '../../../test/test.helper';
 import { TagService } from './tag.service';
 import { LoadedTag } from '../entities/loaded-tag';
+import { ProductTagMap } from '../entities/product-tag-map';
 
 let index = 0;
 const productIdNew = randomCode();
@@ -126,7 +127,7 @@ describe('importFromMongo', () => {
       expect(foundOldProduct.lastUpdateId).not.toBe(updateId);
 
       const loadedTags = await app.get(TagService).getLoadedTags();
-      expect(loadedTags).toHaveLength(Object.keys(MAPPED_TAGS).length);
+      expect(loadedTags).toHaveLength(Object.keys(ProductTagMap.MAPPED_TAGS).length);
     });
   });
 
@@ -172,4 +173,12 @@ describe('importFromMongo', () => {
       expect(ingredientsNew[0].value).toBe('test  test2  end');
     });
   });
+});
+
+describe('ProductTag', () => {
+    it('should add class to tag array', async () => {
+        await createTestingModule([DomainModule], async (app) => {
+            expect(ProductTagMap.MAPPED_TAGS['categories_tags']).toBeTruthy();
+        });
+    });
 });

@@ -434,6 +434,21 @@ describe('select', () => {
       expect(p4).toBeTruthy();
     });
   });
+
+  it('should cope with $nin', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue, product3 } = await createTestTags(
+        app,
+      );
+      const queryService = app.get(QueryService);
+      const response = await queryService.select({
+        origins_tags: originValue,
+        amino_acids_tags: { $nin: [aminoValue] },
+      });
+      expect(response).toHaveLength(1);
+      expect(response[0].code).toBe(product3.code);
+    });
+  });
 });
 
 async function createTestTags(app) {

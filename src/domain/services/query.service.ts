@@ -5,9 +5,9 @@ import {
   Logger,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { MAPPED_TAGS } from '../entities/product-tags';
 import { MAPPED_FIELDS, Product } from '../entities/product';
 import { TagService } from './tag.service';
+import { ProductTagMap } from '../entities/product-tag-map';
 
 @Injectable()
 export class QueryService {
@@ -167,6 +167,7 @@ export class QueryService {
               not = !not;
               whereValue = undefined;
             }
+            // only use case for having null or [] is this one, exit
             break;
           }
           if (value === Object(value))
@@ -266,7 +267,7 @@ export class QueryService {
       entity = Product;
       column = tag;
     } else {
-      entity = MAPPED_TAGS[tag];
+      entity = ProductTagMap.MAPPED_TAGS[tag];
       if (entity) {
         // Check to see if the tag has been loaded. This allows us to introduce
         // new tags but they will initially not be supported until a full import
