@@ -268,6 +268,18 @@ describe('count', () => {
       expect(response).toBe(2);
     });
   });
+
+  it('should cope with $nin unknown value on a product field', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        creator: { $nin: [null, []] },
+      });
+      expect(response).toBe(2);
+    });
+  });
 });
 
 describe('aggregate', () => {
