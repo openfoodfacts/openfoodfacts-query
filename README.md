@@ -75,6 +75,12 @@ Use docker compose to start:
 docker-compose up -d --build
 ```
 
+## Adding new tags
+
+Support for new tags can be done by simply adding a further entity definition in the product-tags.ts file.
+
+The tag won't be picked up for queries until a full import is done (when it will be added to the loaded_tag table).
+
 # Deployment vs Development
 
 The main docker-compose.yml creates the openfoodfacts-query service and associated Postres database and expects MongoDB to already exist.
@@ -101,6 +107,4 @@ There is also an importfromfile endpoint which will import from a file called op
 
 The "count" and "aggregate" POST endpoints accept a MongoDB style filter and aggregate pipeline respectively. Syntax support is only basic and is limted to what Product Opener currently uses. See the tests for some examples of what is supported.
 
-# TODO
 
-- Configure production deployment
