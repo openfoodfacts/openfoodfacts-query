@@ -139,16 +139,25 @@ export class QueryService {
       if (whereValue === Object(whereValue)) {
         // Unless it is an $in
         const keys = Object.keys(whereValue);
+        let operator = keys[0];
         if (
           keys.length != 1 ||
-          keys[0] !== '$in' ||
-          !whereValue[keys[0]].length
+          !['$in', '$nin'].includes(operator) ||
+          !whereValue[operator].length
         )
           this.throwUnprocessableException(
             `Unable to process ${JSON.stringify(whereValue)}`,
           );
+
+        // Do a NOT EXISTS WHERE IN () for $nin. Should work for Product as well as tags
+        if (operator === '$nin') {
+          whereValue = { $in: whereValue['$nin'] };
+          operator = '$in';
+          not = true;
+        }
+
         // $in contents must all be scalars
-        for (const value of whereValue[keys[0]]) {
+        for (const value of whereValue[operator]) {
           if (value == null || value.length === 0) {
             // For MongoDB $in: [null, []] is used as an "IS NULL" / "NOT EXISTS"
             // If the query is on the product table we want an is null where, otherwise we want a not exists
@@ -176,7 +185,7 @@ export class QueryService {
           `pt.${this.productId(parentEntity)}`,
         ),
       };
-      // Add the specific criteria. whereValue will be null for a full exists / not exists
+      // Add the specific criteria. whereValue will be undefined for a full exists / not exists
       if (whereValue !== undefined) where[`pt2.${matchColumn}`] = whereValue;
 
       const qbWhere = this.em

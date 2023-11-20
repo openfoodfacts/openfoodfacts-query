@@ -242,6 +242,20 @@ describe('count', () => {
       expect(response).toBe(1);
     });
   });
+
+  it('should cope with $nin', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue, aminoValue2 } = await createTestTags(
+        app,
+      );
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        amino_acids_tags: { $nin: [aminoValue, aminoValue2] },
+      });
+      expect(response).toBe(0);
+    });
+  });
 });
 
 describe('aggregate', () => {
