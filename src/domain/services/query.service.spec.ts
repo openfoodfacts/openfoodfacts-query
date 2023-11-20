@@ -218,6 +218,30 @@ describe('count', () => {
       }
     });
   });
+
+  it('should cope with an $in unknown value', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        nucleotides_tags: { $in: [null, []] },
+      });
+      expect(response).toBe(1);
+    });
+  });
+
+  it('should cope with an $in unknown value on a product field', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        creator: { $in: [null, []] },
+      });
+      expect(response).toBe(1);
+    });
+  });
 });
 
 describe('aggregate', () => {

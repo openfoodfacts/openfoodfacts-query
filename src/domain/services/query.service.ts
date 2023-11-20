@@ -125,10 +125,13 @@ export class QueryService {
   ) {
     const whereLog = [];
     for (const [matchTag, matchValue] of filters) {
+      const { entity: matchEntity, column: matchColumn } =
+        await this.getEntityAndColumn(matchTag);
+
       let whereValue = matchValue;
       // If $ne is specified then a not equal query is needed, e.g.
       // additives_tags: { $ne: "value1" }
-      const not = matchValue?.['$ne'];
+      let not = matchValue?.['$ne'];
       if (not) {
         whereValue = not;
       }
@@ -146,6 +149,17 @@ export class QueryService {
           );
         // $in contents must all be scalars
         for (const value of whereValue[keys[0]]) {
+          if (value == null || value.length === 0) {
+            // For MongoDB $in: [null, []] is used as an "IS NULL" / "NOT EXISTS"
+            // If the query is on the product table we want an is null where, otherwise we want a not exists
+            if (matchEntity === Product) {
+              whereValue = null;
+            } else {
+              not = true;
+              whereValue = undefined;
+            }
+            break;
+          }
           if (value === Object(value))
             this.throwUnprocessableException(
               `Unable to process ${JSON.stringify(whereValue)}`,
@@ -153,19 +167,22 @@ export class QueryService {
         }
       }
 
-      const { entity: matchEntity, column: matchColumn } =
-        await this.getEntityAndColumn(matchTag);
       // The following creates an EXISTS / NOT EXISTS sub-query for the specified tag
       const knex = this.em.getKnex();
+
+      // Join to the parent table
+      const where = {
+        [`pt2.${this.productId(matchEntity)}`]: knex.ref(
+          `pt.${this.productId(parentEntity)}`,
+        ),
+      };
+      // Add the specific criteria. whereValue will be null for a full exists / not exists
+      if (whereValue !== undefined) where[`pt2.${matchColumn}`] = whereValue;
+
       const qbWhere = this.em
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
-        .where({
-          [`pt2.${this.productId(matchEntity)}`]: knex.ref(
-            `pt.${this.productId(parentEntity)}`,
-          ),
-          [`pt2.${matchColumn}`]: whereValue,
-        });
+        .where(where);
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
       whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
     }
