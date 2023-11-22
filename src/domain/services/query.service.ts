@@ -5,9 +5,9 @@ import {
   Logger,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { MAPPED_TAGS } from '../entities/product-tags';
 import { MAPPED_FIELDS, Product } from '../entities/product';
 import { TagService } from './tag.service';
+import { ProductTagMap } from '../entities/product-tag-map';
 
 @Injectable()
 export class QueryService {
@@ -125,10 +125,13 @@ export class QueryService {
   ) {
     const whereLog = [];
     for (const [matchTag, matchValue] of filters) {
+      const { entity: matchEntity, column: matchColumn } =
+        await this.getEntityAndColumn(matchTag);
+
       let whereValue = matchValue;
       // If $ne is specified then a not equal query is needed, e.g.
       // additives_tags: { $ne: "value1" }
-      const not = matchValue?.['$ne'];
+      let not = matchValue?.['$ne'];
       if (not) {
         whereValue = not;
       }
@@ -136,25 +139,60 @@ export class QueryService {
       if (whereValue === Object(whereValue)) {
         // Unless it is an $in
         const keys = Object.keys(whereValue);
-        if (keys.length != 1 || keys[0] !== '$in')
+        let operator = keys[0];
+        if (
+          keys.length != 1 ||
+          !['$in', '$nin'].includes(operator) ||
+          !whereValue[operator].length
+        )
           this.throwUnprocessableException(
             `Unable to process ${JSON.stringify(whereValue)}`,
           );
+
+        // Do a NOT EXISTS WHERE IN () for $nin. Should work for Product as well as tags
+        if (operator === '$nin') {
+          whereValue = { $in: whereValue['$nin'] };
+          operator = '$in';
+          not = !not;
+        }
+
+        // $in contents must all be scalars
+        for (const value of whereValue[operator]) {
+          if (value == null || value.length === 0) {
+            // For MongoDB $in: [null, []] is used as an "IS NULL" / "NOT EXISTS"
+            // If the query is on the product table we want an is null where, otherwise we want a not exists
+            if (matchEntity === Product) {
+              whereValue = null;
+            } else {
+              not = !not;
+              whereValue = undefined;
+            }
+            // only use case for having null or [] is this one, exit
+            break;
+          }
+          if (value === Object(value))
+            this.throwUnprocessableException(
+              `Unable to process ${JSON.stringify(whereValue)}`,
+            );
+        }
       }
 
-      const { entity: matchEntity, column: matchColumn } =
-        await this.getEntityAndColumn(matchTag);
       // The following creates an EXISTS / NOT EXISTS sub-query for the specified tag
       const knex = this.em.getKnex();
+
+      // Join to the parent table
+      const where = {
+        [`pt2.${this.productId(matchEntity)}`]: knex.ref(
+          `pt.${this.productId(parentEntity)}`,
+        ),
+      };
+      // Add the specific criteria. whereValue will be undefined for a full exists / not exists
+      if (whereValue !== undefined) where[`pt2.${matchColumn}`] = whereValue;
+
       const qbWhere = this.em
         .createQueryBuilder(matchEntity, 'pt2')
         .select('*')
-        .where({
-          [`pt2.${this.productId(matchEntity)}`]: knex.ref(
-            `pt.${this.productId(parentEntity)}`,
-          ),
-          [`pt2.${matchColumn}`]: whereValue,
-        });
+        .where(where);
       qb.andWhere(`${not ? 'NOT ' : ''}EXISTS (${qbWhere.getKnexQuery()})`);
       whereLog.push(`${matchTag} ${not ? '!=' : '=='} ${whereValue}`);
     }
@@ -229,7 +267,7 @@ export class QueryService {
       entity = Product;
       column = tag;
     } else {
-      entity = MAPPED_TAGS[tag];
+      entity = ProductTagMap.MAPPED_TAGS[tag];
       if (entity) {
         // Check to see if the tag has been loaded. This allows us to introduce
         // new tags but they will initially not be supported until a full import

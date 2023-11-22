@@ -1,75 +1,76 @@
-import { Entity } from '@mikro-orm/core';
 import { BaseProductTag } from './base-product-tag';
+import { ProductTag } from './product-tag';
 
-@Entity()
+@ProductTag('countries_tags')
 export class ProductCountriesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('nutrition_grades_tags')
 export class ProductNutritionGradesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('nova_groups_tags')
 export class ProductNovaGroupsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('ecoscore_tags')
 export class ProductEcoscoreTag extends BaseProductTag {}
-@Entity()
+@ProductTag('brands_tags')
 export class ProductBrandsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('categories_tags')
 export class ProductCategoriesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('labels_tags')
 export class ProductLabelsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('packaging_tags')
 export class ProductPackagingTag extends BaseProductTag {}
-@Entity()
+@ProductTag('origins_tags')
 export class ProductOriginsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('manufacturing_places_tags')
 export class ProductManufacturingPlacesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('emb_codes_tags')
 export class ProductEmbCodesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('ingredients_tags')
 export class ProductIngredientsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('additives_tags')
 export class ProductAdditivesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('vitamins_tags')
 export class ProductVitaminsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('minerals_tags')
 export class ProductMineralsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('amino_acids_tags')
 export class ProductAminoAcidsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('nucleotides_tags')
 export class ProductNucleotidesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('other_nutritional_substances_tags')
 export class ProductOtherNutritionalSubstancesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('allergens_tags')
 export class ProductAllergensTag extends BaseProductTag {}
-@Entity()
+@ProductTag('traces_tags')
 export class ProductTracesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('misc_tags')
 export class ProductMiscTag extends BaseProductTag {}
-@Entity()
+@ProductTag('languages_tags')
 export class ProductLanguagesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('states_tags')
 export class ProductStatesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('data_sources_tags')
 export class ProductDataSourcesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('entry_dates_tags')
 export class ProductEntryDatesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('last_edit_dates_tags')
 export class ProductLastEditDatesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('last_check_dates_tags')
 export class ProductLastCheckDatesTag extends BaseProductTag {}
-@Entity()
+// Don't use Teams for query tests as we delete the loaded tag in the Import tests
+@ProductTag('teams_tags')
 export class ProductTeamsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('_keywords')
 export class ProductKeywordsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('codes_tags')
 export class ProductCodesTag extends BaseProductTag {}
-@Entity()
+@ProductTag('data_quality_tags')
 export class ProductDataQualityErrorsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('data_quality_errors_tags')
 export class ProductDataQualityTag extends BaseProductTag {}
-@Entity()
+@ProductTag('editors_tags')
 export class ProductEditorsTag extends BaseProductTag {}
-@Entity()
+@ProductTag('stores_tags')
 export class ProductStoresTag extends BaseProductTag {}
-@Entity()
+@ProductTag('ingredients_original_tags')
 export class ProductIngredientsOriginalTag extends BaseProductTag {}
 
 /* From Config_off.pm
@@ -106,43 +107,3 @@ export class ProductIngredientsOriginalTag extends BaseProductTag {}
   teams
 );
 */
-
-export const MAPPED_TAGS = {
-  countries_tags: ProductCountriesTag,
-  nutrition_grades_tags: ProductNutritionGradesTag,
-  nova_groups_tags: ProductNovaGroupsTag,
-  ecoscore_tags: ProductEcoscoreTag,
-  brands_tags: ProductBrandsTag,
-  categories_tags: ProductCategoriesTag,
-  labels_tags: ProductLabelsTag,
-  packaging_tags: ProductPackagingTag,
-  origins_tags: ProductOriginsTag,
-  manufacturing_places_tags: ProductManufacturingPlacesTag,
-  emb_codes_tags: ProductEmbCodesTag,
-  ingredients_tags: ProductIngredientsTag,
-  additives_tags: ProductAdditivesTag,
-  vitamins_tags: ProductVitaminsTag,
-  minerals_tags: ProductMineralsTag,
-  amino_acids_tags: ProductAminoAcidsTag,
-  nucleotides_tags: ProductNucleotidesTag,
-  other_nutritional_substances_tags: ProductOtherNutritionalSubstancesTag,
-  allergens_tags: ProductAllergensTag,
-  traces_tags: ProductTracesTag,
-  misc_tags: ProductMiscTag,
-  languages_tags: ProductLanguagesTag,
-  states_tags: ProductStatesTag,
-  data_sources_tags: ProductDataSourcesTag,
-  entry_dates_tags: ProductEntryDatesTag,
-  last_edit_dates_tags: ProductLastEditDatesTag,
-  last_check_dates_tags: ProductLastCheckDatesTag,
-  // Note do not use the teams_tags in test data as it is deleted in on eof the tests
-  teams_tags: ProductTeamsTag,
-  // Added later
-  _keywords: ProductKeywordsTag,
-  codes_tags: ProductCodesTag,
-  data_quality_tags: ProductDataQualityTag,
-  data_quality_errors_tags: ProductDataQualityErrorsTag,
-  editors_tags: ProductEditorsTag,
-  stores_tags: ProductStoresTag,
-  ingredients_original_tags: ProductIngredientsOriginalTag,
-};

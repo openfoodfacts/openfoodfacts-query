@@ -205,6 +205,81 @@ describe('count', () => {
       expect(response).toBe(3);
     });
   });
+
+  it('should throw an unprocessable exception if an $in contains an array', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      try {
+        await app
+          .get(QueryService)
+          .count({ origins_tags: { $in: ['a', ['b', 'c']] } });
+        fail('should not get here');
+      } catch (e) {
+        expect(e).toBeInstanceOf(UnprocessableEntityException);
+      }
+    });
+  });
+
+  it('should cope with an $in unknown value', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        nucleotides_tags: { $in: [null, []] },
+      });
+      expect(response).toBe(1);
+    });
+  });
+
+  it('should cope with an $in unknown value on a product field', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        creator: { $in: [null, []] },
+      });
+      expect(response).toBe(1);
+    });
+  });
+
+  it('should cope with $nin', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue, aminoValue2 } = await createTestTags(
+        app,
+      );
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        amino_acids_tags: { $nin: [aminoValue, aminoValue2] },
+      });
+      expect(response).toBe(0);
+    });
+  });
+
+  it('should cope with $nin unknown', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        nucleotides_tags: { $nin: [null, []] },
+      });
+      expect(response).toBe(2);
+    });
+  });
+
+  it('should cope with $nin unknown value on a product field', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue } = await createTestTags(app);
+      const queryService = app.get(QueryService);
+      const response = await queryService.count({
+        origins_tags: originValue,
+        creator: { $nin: [null, []] },
+      });
+      expect(response).toBe(2);
+    });
+  });
 });
 
 describe('aggregate', () => {
@@ -357,6 +432,21 @@ describe('select', () => {
       expect(response).toHaveLength(1);
       const p4 = response.find((r) => r.code === product4.code);
       expect(p4).toBeTruthy();
+    });
+  });
+
+  it('should cope with $nin', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const { originValue, aminoValue, product3 } = await createTestTags(
+        app,
+      );
+      const queryService = app.get(QueryService);
+      const response = await queryService.select({
+        origins_tags: originValue,
+        amino_acids_tags: { $nin: [aminoValue] },
+      });
+      expect(response).toHaveLength(1);
+      expect(response[0].code).toBe(product3.code);
     });
   });
 });

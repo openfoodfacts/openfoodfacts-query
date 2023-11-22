@@ -3,10 +3,10 @@ import { MAPPED_FIELDS, Product } from '../entities/product';
 import { Ulid } from 'id128';
 import { MongoClient } from 'mongodb';
 import { EntityManager } from '@mikro-orm/postgresql';
-import { MAPPED_TAGS } from '../entities/product-tags';
 import * as fs from 'fs';
 import * as readline from 'readline';
 import { TagService } from './tag.service';
+import { ProductTagMap } from '../entities/product-tag-map';
 
 @Injectable()
 export class ImportService {
@@ -21,7 +21,7 @@ export class ImportService {
   importBatchSize = 100;
   importLogInterval = 1000;
 
-  private tags = Object.keys(MAPPED_TAGS);
+  private tags = Object.keys(ProductTagMap.MAPPED_TAGS);
 
   /** Import Products from MongoDB */
   async importFromMongo(from?: string, skip?: number) {
@@ -163,7 +163,7 @@ export class ImportService {
    */
   private async updateTags(update: boolean, updateId: string) {
     const connection = this.em.getConnection();
-    for (const [tag, entity] of Object.entries(MAPPED_TAGS)) {
+    for (const [tag, entity] of Object.entries(ProductTagMap.MAPPED_TAGS)) {
       let logText = `Updated ${tag}`;
       // Get the underlying table name for the entity
       const tableName = this.em.getMetadata(entity).tableName;
