@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "import": "nest build && node dist/import",
     "migration:create": "nest build && mikro-orm migration:create",
-    "migration:up": "nest build && mikro-orm migration:up"
+    "migration:up": "nest build && mikro-orm migration:up",
+    "migration:down": "nest build && mikro-orm migration:down"
   },
   "dependencies": {
     "@mikro-orm/core": "^5.7.13",
