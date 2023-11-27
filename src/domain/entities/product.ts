@@ -6,7 +6,7 @@ export class Product {
   @PrimaryKey({ type: 'uuid' })
   id = Ulid.generate().toRaw();
 
-  @Property({ type: 'jsonb' })
+  @Property({ type: 'json', columnType: 'json' })
   data?: any;
 
   @Property()
@@ -36,6 +36,12 @@ export class Product {
 
   @Property()
   obsolete = false;
+
+  @Property()
+  ingredientsWithoutCiqualCodesCount?: number;
+
+  @Property()
+  ingredientsCount?: number;
 }
 
 export const MAPPED_FIELDS = [
@@ -44,4 +50,7 @@ export const MAPPED_FIELDS = [
   'creator',
   'owners_tags',
   'last_modified_t',
+  'ingredients_n',
+  'ingredients_without_ciqual_codes_n',
+  'ingredients',
 ];
