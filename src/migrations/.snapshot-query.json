@@ -45,7 +45,7 @@
         },
         "data": {
           "name": "data",
-          "type": "jsonb",
+          "type": "json",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
@@ -116,6 +116,24 @@
           "nullable": false,
           "default": "false",
           "mappedType": "boolean"
+        },
+        "ingredients_without_ciqual_codes_count": {
+          "name": "ingredients_without_ciqual_codes_count",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "integer"
+        },
+        "ingredients_count": {
+          "name": "ingredients_count",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "integer"
         }
       },
       "name": "product",
@@ -1142,6 +1160,183 @@
           ],
           "referencedTableName": "query.product",
           "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "parent_product_id": {
+          "name": "parent_product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "uuid"
+        },
+        "parent_sequence": {
+          "name": "parent_sequence",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "ingredient_text": {
+          "name": "ingredient_text",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "ciqual_food_code": {
+          "name": "ciqual_food_code",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "percent_min": {
+          "name": "percent_min",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
+        "percent": {
+          "name": "percent",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
+        "percent_max": {
+          "name": "percent_max",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
+        "percent_estimate": {
+          "name": "percent_estimate",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
+        "data": {
+          "name": "data",
+          "type": "json",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_ingredient",
+      "schema": "query",
+      "indexes": [
+        {
+          "keyName": "product_ingredient_parent_product_id_parent_sequence_index",
+          "columnNames": [
+            "parent_product_id",
+            "parent_sequence"
+          ],
+          "composite": true,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_ingredient_pkey",
+          "columnNames": [
+            "product_id",
+            "sequence"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_ingredient_product_id_foreign": {
+          "constraintName": "product_ingredient_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_ingredient",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        },
+        "product_ingredient_parent_product_id_parent_sequence_foreign": {
+          "constraintName": "product_ingredient_parent_product_id_parent_sequence_foreign",
+          "columnNames": [
+            "parent_product_id",
+            "parent_sequence"
+          ],
+          "localTableName": "query.product_ingredient",
+          "referencedColumnNames": [
+            "product_id",
+            "sequence"
+          ],
+          "referencedTableName": "query.product_ingredient",
+          "deleteRule": "set null",
           "updateRule": "cascade"
         }
       }

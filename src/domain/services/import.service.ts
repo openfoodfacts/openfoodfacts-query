@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as readline from 'readline';
 import { TagService } from './tag.service';
 import { ProductTagMap } from '../entities/product-tag-map';
+import { ProductIngredient } from '../entities/product-ingredient';
 
 @Injectable()
 export class ImportService {
@@ -125,12 +126,16 @@ export class ImportService {
         dataToStore[key] = tagData;
       }
     }
+    dataToStore['ingredients'] = data.ingredients;
     product.data = dataToStore;
     product.name = data.product_name;
     product.code = data.code;
     product.creator = data.creator;
     product.ownersTags = data.owners_tags;
     product.obsolete = obsolete;
+    product.ingredientsCount = data.ingredients_n;
+    product.ingredientsWithoutCiqualCodesCount =
+      data.ingredients_without_ciqual_codes_n;
     const lastModified = new Date(data.last_modified_t * 1000);
     if (isNaN(+lastModified)) {
       this.logger.warn(
@@ -140,6 +145,8 @@ export class ImportService {
       product.lastModified = lastModified;
     }
     product.lastUpdateId = updateId;
+    //await this.em.nativeDelete(ProductIngredient, { product: product });
+    //this.importIngredients(product, 0, data.ingredients);
   }
 
   /** Find an existing document by product code, or create a new one */
@@ -157,12 +164,104 @@ export class ImportService {
   }
 
   /**
-   * Products are first loaded with the tags in the data JSONB property.
+   * Products are first loaded with the tags in the data JSON property.
    * SQL is then run to insert this into the individual tag tables.
    * This was found to be quicker than using ORM functionality
    */
   private async updateTags(update: boolean, updateId: string) {
     const connection = this.em.getConnection();
+
+    // Fix ingredients
+    let logText = `Updated ingredients`;
+    await connection.execute('begin');
+    const deleted = await connection.execute(
+      `delete from product_ingredient 
+    where product_id in (select id from product 
+    where last_update_id = ?)`,
+      [updateId],
+      'run',
+    );
+    logText += ` deleted ${deleted['affectedRows']},`;
+    const results = await connection.execute(
+      `insert into product_ingredient (
+        product_id,
+        sequence,
+        id,
+        ciqual_food_code,
+        ingredient_text,
+        percent,
+        percent_min,
+        percent_max,
+        percent_estimate,
+        data,
+        obsolete
+      )
+      select 
+        product.id,
+        ordinality,
+        tag.value->>'id',
+        tag.value->>'ciqual_food_code',
+        tag.value->>'ingredient_text',
+        (tag.value->>'percent')::numeric ,
+        (tag.value->>'percent_min')::numeric,
+        (tag.value->>'percent_max')::numeric,
+        (tag.value->>'percent_estimate')::numeric,
+        tag.value->'ingredients',
+        product.obsolete
+      from product 
+      cross join json_array_elements(data->'ingredients') with ordinality tag
+      ${updateId ? `WHERE last_update_id = ?` : ''}`,
+      [updateId],
+      'run',
+    );
+    let affectedRows = results['affectedRows'];
+    logText += ` inserted ${affectedRows}`;
+    while (affectedRows > 0) {
+      const results = await connection.execute(
+        `insert into product_ingredient (
+          product_id,
+          parent_product_id,
+          parent_sequence,
+          sequence,
+          id,
+          ciqual_food_code,
+          ingredient_text,
+          percent,
+          percent_min,
+          percent_max,
+          percent_estimate,
+          data,
+          obsolete
+        )
+        select 
+          pi.product_id,
+          pi.product_id,
+          pi.sequence,
+          pi.sequence || '.' || ordinality,
+          tag.value->>'id',
+          tag.value->>'ciqual_food_code',
+          tag.value->>'ingredient_text',
+          (tag.value->>'percent')::numeric ,
+          (tag.value->>'percent_min')::numeric,
+          (tag.value->>'percent_max')::numeric,
+          (tag.value->>'percent_estimate')::numeric,
+          tag.value->'ingredients',
+          pi.obsolete
+        from product_ingredient pi 
+        join product on product.id = pi.product_id
+        cross join json_array_elements(pi.data) with ordinality tag
+        WHERE pi.data IS NOT NULL
+        AND NOT EXISTS (SELECT * FROM product_ingredient pi2 WHERE pi2.parent_product_id = pi.product_id AND pi2.parent_sequence = pi.sequence)
+        ${updateId ? `AND product.last_update_id = ?` : ''}`,
+        [updateId],
+        'run',
+      );
+      affectedRows = results['affectedRows'];
+      logText += ` > ${affectedRows}`;
+    }
+    await connection.execute('commit');
+    this.logger.log(logText + ' rows');
+
     for (const [tag, entity] of Object.entries(ProductTagMap.MAPPED_TAGS)) {
       let logText = `Updated ${tag}`;
       // Get the underlying table name for the entity
@@ -184,7 +283,7 @@ export class ImportService {
       const results = await connection.execute(
         `insert into ${tableName} (product_id, value, obsolete)
         select DISTINCT id, tag.value, obsolete from product 
-        cross join jsonb_array_elements_text(data->'${tag}') tag
+        cross join json_array_elements_text(data->'${tag}') tag
         ${updateId ? `WHERE last_update_id = ?` : ''}`,
         [updateId],
         'run',
