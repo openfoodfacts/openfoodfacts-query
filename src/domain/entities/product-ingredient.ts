@@ -31,8 +31,8 @@ export class ProductIngredient {
   @Property({ type: 'double' })
   percentMin?: number;
 
-  @Property({ type: 'double' })
-  percent?: number;
+  @Property()
+  percent?: string;
 
   @Property({ type: 'double' })
   percentMax?: number;

@@ -93,12 +93,6 @@ export class ImportService {
 
     // Tags are popualted using raw SQL from the data field
     await this.updateTags(!!from, updateId);
-
-    // If doing a full import delete all products that weren't updated
-    if (!from) {
-      await this.deleteOtherProducts(updateId);
-    }
-    this.logger.log('Finished');
   }
 
   /** Populate a Product record from MongoDB document */
@@ -168,7 +162,9 @@ export class ImportService {
    * SQL is then run to insert this into the individual tag tables.
    * This was found to be quicker than using ORM functionality
    */
-  private async updateTags(update: boolean, updateId: string) {
+  async updateTags(update: boolean, updateId: string) {
+    this.logger.log(`Updating tags for updateId: ${updateId}`);
+
     const connection = this.em.getConnection();
 
     // Fix ingredients
@@ -202,7 +198,7 @@ export class ImportService {
         tag.value->>'id',
         tag.value->>'ciqual_food_code',
         tag.value->>'ingredient_text',
-        (tag.value->>'percent')::numeric ,
+        tag.value->>'percent',
         (tag.value->>'percent_min')::numeric,
         (tag.value->>'percent_max')::numeric,
         (tag.value->>'percent_estimate')::numeric,
@@ -210,7 +206,7 @@ export class ImportService {
         product.obsolete
       from product 
       cross join json_array_elements(data->'ingredients') with ordinality tag
-      ${updateId ? `WHERE last_update_id = ?` : ''}`,
+      WHERE last_update_id = ?`,
       [updateId],
       'run',
     );
@@ -241,7 +237,7 @@ export class ImportService {
           tag.value->>'id',
           tag.value->>'ciqual_food_code',
           tag.value->>'ingredient_text',
-          (tag.value->>'percent')::numeric ,
+          tag.value->>'percent',
           (tag.value->>'percent_min')::numeric,
           (tag.value->>'percent_max')::numeric,
           (tag.value->>'percent_estimate')::numeric,
@@ -252,7 +248,7 @@ export class ImportService {
         cross join json_array_elements(pi.data) with ordinality tag
         WHERE pi.data IS NOT NULL
         AND NOT EXISTS (SELECT * FROM product_ingredient pi2 WHERE pi2.parent_product_id = pi.product_id AND pi2.parent_sequence = pi.sequence)
-        ${updateId ? `AND product.last_update_id = ?` : ''}`,
+        AND product.last_update_id = ?`,
         [updateId],
         'run',
       );
@@ -284,7 +280,7 @@ export class ImportService {
         `insert into ${tableName} (product_id, value, obsolete)
         select DISTINCT id, tag.value, obsolete from product 
         cross join json_array_elements_text(data->'${tag}') tag
-        ${updateId ? `WHERE last_update_id = ?` : ''}`,
+        WHERE last_update_id = ?`,
         [updateId],
         'run',
       );
@@ -301,6 +297,12 @@ export class ImportService {
 
       this.logger.log(logText);
     }
+
+    // If doing a full import delete all products that weren't updated
+    if (!update) {
+      await this.deleteOtherProducts(updateId);
+    }
+    this.logger.log('Finished');
   }
 
   async deleteOtherProducts(updateId: string) {

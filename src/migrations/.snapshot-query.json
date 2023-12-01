@@ -1240,12 +1240,12 @@
         },
         "percent": {
           "name": "percent",
-          "type": "double precision",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "mappedType": "double"
+          "mappedType": "text"
         },
         "percent_max": {
           "name": "percent_max",
