@@ -15,7 +15,11 @@ export class AppModule {
   constructor(
     private readonly em: EntityManager,
     private readonly importService: ImportService,
-  ) {}
+  ) {
+    RequestContext.create(this.em, () => {
+      importService.startRedisConsumer();
+    });
+  }
 
   // Refresh the PostgreSQL database from MongoDB at 2am every night
   @Cron('00 02 * * *')

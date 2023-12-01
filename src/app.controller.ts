@@ -24,7 +24,7 @@ export class AppController {
 
   @Get('updatetags')
   async updateTags(@Query('updateid') updateId) {
-    await this.importService.updateTags(false, updateId);
+    await this.importService.updateTags( updateId, true);
   }
 
   parseBoolean(value) {

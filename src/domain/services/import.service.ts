@@ -7,11 +7,13 @@ import * as fs from 'fs';
 import * as readline from 'readline';
 import { TagService } from './tag.service';
 import { ProductTagMap } from '../entities/product-tag-map';
-import { ProductIngredient } from '../entities/product-ingredient';
+import { createClient, commandOptions } from 'redis';
 
 @Injectable()
 export class ImportService {
   private logger = new Logger(ImportService.name);
+  private client: any; // Don't strongly type here is it is really verbose
+  private lastMessageId: string;
 
   constructor(
     private readonly em: EntityManager,
@@ -40,7 +42,14 @@ export class ImportService {
     if (from) {
       const fromTime = Math.floor(new Date(from).getTime() / 1000);
       filter['last_modified_t'] = { $gt: fromTime };
+      this.logger.log(`Starting import from $[from}`);
     }
+
+    await this.importWithFilter(filter, skip);
+  }
+
+  async importWithFilter(filter: any, skip?: number) {
+    const fullImport = (!Object.keys(filter));
 
     // The update id is unique to this run and is used later to run other
     // queries that should only affect products loaded in this import
@@ -60,7 +69,6 @@ export class ImportService {
       projection[key] = 1;
     }
 
-    this.logger.log('Starting import' + (from ? ' from ' + from : ''));
     // Repeat the below for normal and then obsolete products
     // Both are stored in the same table in PostgreSQL
     for (const obsolete of [false, true]) {
@@ -92,7 +100,7 @@ export class ImportService {
     await client.close();
 
     // Tags are popualted using raw SQL from the data field
-    await this.updateTags(!!from, updateId);
+    await this.updateTags(updateId, fullImport);
   }
 
   /** Populate a Product record from MongoDB document */
@@ -162,7 +170,7 @@ export class ImportService {
    * SQL is then run to insert this into the individual tag tables.
    * This was found to be quicker than using ORM functionality
    */
-  async updateTags(update: boolean, updateId: string) {
+  async updateTags(updateId: string, fullImport = false) {
     this.logger.log(`Updating tags for updateId: ${updateId}`);
 
     const connection = this.em.getConnection();
@@ -289,7 +297,7 @@ export class ImportService {
       await connection.execute('commit');
 
       // If this is a full load we can flag the tag as now available for query
-      if (!update) {
+      if (fullImport) {
         await this.tagService.tagLoaded(tag);
       }
 
@@ -299,7 +307,7 @@ export class ImportService {
     }
 
     // If doing a full import delete all products that weren't updated
-    if (!update) {
+    if (fullImport) {
       await this.deleteOtherProducts(updateId);
     }
     this.logger.log('Finished');
@@ -310,6 +318,47 @@ export class ImportService {
       $or: [{ lastUpdateId: { $ne: updateId } }, { lastUpdateId: null }],
     });
     this.logger.log(`${deleted} Products deleted`);
+  }
+
+  async startRedisConsumer() {
+    const redisUrl = process.env['REDIS_URL'];
+    if (!redisUrl) return;
+    this.lastMessageId = '$';
+    this.client = createClient({ url: redisUrl });
+    this.client.on('error', err => this.logger.error(err));
+    await this.client.connect();
+    this.receiveMessages();
+  }
+
+  receiveMessages() {
+    const self = this;
+    this.client.xRead(
+      commandOptions({
+        isolated: true
+      }), [
+        // XREAD can read from multiple streams, starting at a
+        // different ID for each...
+        {
+          key: 'product_update',
+          id: self.lastMessageId
+        }
+      ], {
+        // Read 1000 entry at a time, block for 5 seconds if there are none.
+        COUNT: 1000,
+        BLOCK: 5000
+      }
+    ).then(async (keys) => {
+      if (keys?.length) {
+        const messages = keys[0].messages;
+        if (messages?.length) {
+          const productCodes = messages.map((m) => m.message.code);
+          const filter = {code: {$in: productCodes}};
+          await this.importWithFilter(filter);
+          this.lastMessageId = messages[messages.length - 1].id;
+        }
+      }
+      setTimeout(() => { this.receiveMessages() }, 0);
+    });
   }
 
   /**
@@ -359,7 +408,7 @@ export class ImportService {
     }
     await this.em.flush();
     this.logger.log(`${i} Products imported`);
-    await this.updateTags(!!from, updateId);
+    await this.updateTags(updateId, !from);
     if (!from) {
       await this.deleteOtherProducts(updateId);
     }
