@@ -42,7 +42,7 @@ export class ImportService {
     if (from) {
       const fromTime = Math.floor(new Date(from).getTime() / 1000);
       filter['last_modified_t'] = { $gt: fromTime };
-      this.logger.log(`Starting import from $[from}`);
+      this.logger.log(`Starting import from ${from}`);
     }
 
     await this.importWithFilter(filter, skip);
