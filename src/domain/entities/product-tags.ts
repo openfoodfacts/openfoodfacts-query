@@ -62,9 +62,9 @@ export class ProductTeamsTag extends BaseProductTag {}
 export class ProductKeywordsTag extends BaseProductTag {}
 @ProductTag('codes_tags')
 export class ProductCodesTag extends BaseProductTag {}
-@ProductTag('data_quality_tags')
-export class ProductDataQualityErrorsTag extends BaseProductTag {}
 @ProductTag('data_quality_errors_tags')
+export class ProductDataQualityErrorsTag extends BaseProductTag {}
+@ProductTag('data_quality_tags')
 export class ProductDataQualityTag extends BaseProductTag {}
 @ProductTag('editors_tags')
 export class ProductEditorsTag extends BaseProductTag {}
