@@ -35,9 +35,8 @@ export class ImportService {
     // If the from parameter is supplied but it is empty then obtain the most
     // recent modified time from the database and query MongoDB for products
     // modified since then
-    const settings = await this.settings.get();
     if (!from && from != null) {
-      from = settings.lastModified?.toISOString();
+      from = (await this.settings.get()).lastModified?.toISOString();
     }
     const filter = {};
     if (from) {
@@ -52,7 +51,10 @@ export class ImportService {
       skip,
     );
     if (latestModified) {
+      // Need to re-find settings as product import will have cleared the unit of work
+      const settings = await this.settings.get();
       settings.lastModified = new Date(latestModified);
+      await this.em.flush();
     }
   }
 
@@ -157,16 +159,18 @@ export class ImportService {
       );
       lastModified = null;
     }
-    if (product.data && product.data.last_modified_t === data.last_modified_t) {
+    if (
+      !fullImport && // Don't do comparison for full import as otherwise products not updated will be removed
+      product.data &&
+      product.data.last_modified_t === data.last_modified_t
+    ) {
       // If last modified data is not changed the product probably hasn't changed
       // But compare data anyway just in case
       if (equal(product.data, data)) return lastModified?.getTime();
 
-      if (!fullImport) {
-        this.logger.warn(
-          `Product: ${data.code} has data changes with no updated last_modified_t`,
-        );
-      }
+      this.logger.warn(
+        `Product: ${data.code} has data changes with no updated last_modified_t`,
+      );
     }
 
     product.data = data;
