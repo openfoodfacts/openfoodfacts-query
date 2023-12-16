@@ -98,25 +98,6 @@
           "nullable": true,
           "mappedType": "text"
         },
-        "last_update_id": {
-          "name": "last_update_id",
-          "type": "uuid",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "mappedType": "uuid"
-        },
-        "obsolete": {
-          "name": "obsolete",
-          "type": "boolean",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "default": "false",
-          "mappedType": "boolean"
-        },
         "ingredients_without_ciqual_codes_count": {
           "name": "ingredients_without_ciqual_codes_count",
           "type": "int",
@@ -134,6 +115,44 @@
           "primary": false,
           "nullable": true,
           "mappedType": "integer"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        },
+        "last_update_id": {
+          "name": "last_update_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "uuid"
+        },
+        "last_updated": {
+          "name": "last_updated",
+          "type": "timestamp",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "source": {
+          "name": "source",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "string"
         }
       },
       "name": "product",

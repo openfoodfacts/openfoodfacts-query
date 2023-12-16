@@ -8,6 +8,8 @@ import * as readline from 'readline';
 import { TagService } from './tag.service';
 import { ProductTagMap } from '../entities/product-tag-map';
 import { createClient, commandOptions } from 'redis';
+import { ProductSource } from '../enums/product-source';
+import equal from 'fast-deep-equal';
 
 @Injectable()
 export class ImportService {
@@ -45,11 +47,15 @@ export class ImportService {
       this.logger.log(`Starting import from ${from}`);
     }
 
-    await this.importWithFilter(filter, skip);
+    await this.importWithFilter(
+      filter,
+      from ? ProductSource.INCREMENTAL_LOAD : ProductSource.FULL_LOAD,
+      skip,
+    );
   }
 
-  async importWithFilter(filter: any, skip?: number) {
-    const fullImport = (!Object.keys(filter));
+  async importWithFilter(filter: any, source: ProductSource, skip?: number) {
+    const fullImport = !Object.keys(filter).length;
 
     // The update id is unique to this run and is used later to run other
     // queries that should only affect products loaded in this import
@@ -82,7 +88,7 @@ export class ImportService {
         i++;
         if (skip && i < skip) continue;
         // Find the product if it exists and populate the standard fields
-        await this.fixupProduct(true, updateId, data, obsolete);
+        await this.fixupProduct(updateId, data, obsolete, source);
         if (!(i % this.importBatchSize)) {
           // This will cause a commit and then clear the Mikro-ORM cache
           // to minimise memory consumption for large imports
@@ -101,18 +107,26 @@ export class ImportService {
 
     // Tags are popualted using raw SQL from the data field
     await this.updateTags(updateId, fullImport);
+
+    // If doing a full import delete all products that weren't updated
+    if (fullImport) {
+      await this.deleteOtherProducts(updateId);
+    }
+    this.logger.log('Finished');
   }
 
   /** Populate a Product record from MongoDB document */
   nulRegex = /\0/g;
   async fixupProduct(
-    update: boolean,
     updateId: string,
     data: any,
     obsolete = false,
+    source: ProductSource,
   ): Promise<void> {
-    const product = await this.findOrNewProduct(update, data);
-    const dataToStore = {};
+    const product = await this.findOrNewProduct(data);
+    // Skip products that don't have a code
+    if (!product) return;
+
     for (const key of this.tags) {
       const tagData = data[key] as string[];
       if (tagData) {
@@ -125,11 +139,15 @@ export class ImportService {
             tagData[index] = value.replace(this.nulRegex, '');
           }
         }
-        dataToStore[key] = tagData;
       }
     }
-    dataToStore['ingredients'] = data.ingredients;
-    product.data = dataToStore;
+    if (product.data && product.data.last_modified_t === data.last_modified_t) {
+      // If last modified data is not changed the product probably hasn't changed
+      // But compare data anyway just in case
+      if (equal(product.data, data)) return;
+    }
+
+    product.data = data;
     product.name = data.product_name;
     product.code = data.code;
     product.creator = data.creator;
@@ -147,17 +165,18 @@ export class ImportService {
       product.lastModified = lastModified;
     }
     product.lastUpdateId = updateId;
+    product.lastUpdated = new Date();
+    product.source = source;
     //await this.em.nativeDelete(ProductIngredient, { product: product });
     //this.importIngredients(product, 0, data.ingredients);
   }
 
   /** Find an existing document by product code, or create a new one */
-  private async findOrNewProduct(update: boolean, data: any) {
+  private async findOrNewProduct(data: any) {
     let product: Product;
-    if (update) {
-      const code = data.code;
-      if (code) product = await this.em.findOne(Product, { code: code });
-    }
+    const code = data.code;
+    if (code == null) return null;
+    product = await this.em.findOne(Product, { code: code });
     if (!product) {
       product = new Product();
       this.em.persist(product);
@@ -305,12 +324,6 @@ export class ImportService {
 
       this.logger.log(logText);
     }
-
-    // If doing a full import delete all products that weren't updated
-    if (fullImport) {
-      await this.deleteOtherProducts(updateId);
-    }
-    this.logger.log('Finished');
   }
 
   async deleteOtherProducts(updateId: string) {
@@ -325,40 +338,46 @@ export class ImportService {
     if (!redisUrl) return;
     this.lastMessageId = '$';
     this.client = createClient({ url: redisUrl });
-    this.client.on('error', err => this.logger.error(err));
+    this.client.on('error', (err) => this.logger.error(err));
     await this.client.connect();
     this.receiveMessages();
   }
 
   receiveMessages() {
     const self = this;
-    this.client.xRead(
-      commandOptions({
-        isolated: true
-      }), [
-        // XREAD can read from multiple streams, starting at a
-        // different ID for each...
+    this.client
+      .xRead(
+        commandOptions({
+          isolated: true,
+        }),
+        [
+          // XREAD can read from multiple streams, starting at a
+          // different ID for each...
+          {
+            key: 'product_update',
+            id: self.lastMessageId,
+          },
+        ],
         {
-          key: 'product_update',
-          id: self.lastMessageId
+          // Read 1000 entry at a time, block for 5 seconds if there are none.
+          COUNT: 1000,
+          BLOCK: 5000,
+        },
+      )
+      .then(async (keys) => {
+        if (keys?.length) {
+          const messages = keys[0].messages;
+          if (messages?.length) {
+            const productCodes = messages.map((m) => m.message.code);
+            const filter = { code: { $in: productCodes } };
+            await this.importWithFilter(filter, ProductSource.EVENT);
+            this.lastMessageId = messages[messages.length - 1].id;
+          }
         }
-      ], {
-        // Read 1000 entry at a time, block for 5 seconds if there are none.
-        COUNT: 1000,
-        BLOCK: 5000
-      }
-    ).then(async (keys) => {
-      if (keys?.length) {
-        const messages = keys[0].messages;
-        if (messages?.length) {
-          const productCodes = messages.map((m) => m.message.code);
-          const filter = {code: {$in: productCodes}};
-          await this.importWithFilter(filter);
-          this.lastMessageId = messages[messages.length - 1].id;
-        }
-      }
-      setTimeout(() => { this.receiveMessages() }, 0);
-    });
+        setTimeout(() => {
+          this.receiveMessages();
+        }, 0);
+      });
   }
 
   /**
@@ -394,7 +413,12 @@ export class ImportService {
 
         const data = JSON.parse(line.replace(/\\u0000/g, ''));
         i++;
-        await this.fixupProduct(true, updateId, data);
+        await this.fixupProduct(
+          updateId,
+          data,
+          false,
+          from ? ProductSource.INCREMENTAL_LOAD : ProductSource.FULL_LOAD,
+        );
         if (!(i % this.importBatchSize)) {
           await this.em.flush();
           this.em.clear();
