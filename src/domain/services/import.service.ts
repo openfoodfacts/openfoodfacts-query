@@ -10,6 +10,7 @@ import { ProductTagMap } from '../entities/product-tag-map';
 import { createClient, commandOptions } from 'redis';
 import { ProductSource } from '../enums/product-source';
 import equal from 'fast-deep-equal';
+import { SettingsService } from './settings.service';
 
 @Injectable()
 export class ImportService {
@@ -20,6 +21,7 @@ export class ImportService {
   constructor(
     private readonly em: EntityManager,
     private readonly tagService: TagService,
+    private readonly settings: SettingsService,
   ) {}
 
   // Lowish batch size seems to work best, probably due to the size of the product document
@@ -33,12 +35,9 @@ export class ImportService {
     // If the from parameter is supplied but it is empty then obtain the most
     // recent modified time from the database and query MongoDB for products
     // modified since then
+    const settings = await this.settings.get();
     if (!from && from != null) {
-      const result = await this.em
-        .createQueryBuilder(Product, 'p')
-        .select(['max(p.last_modified) modified'])
-        .execute();
-      from = result?.[0]?.['modified'];
+      from = settings.lastModified?.toISOString();
     }
     const filter = {};
     if (from) {
@@ -47,14 +46,18 @@ export class ImportService {
       this.logger.log(`Starting import from ${from}`);
     }
 
-    await this.importWithFilter(
+    const latestModified = await this.importWithFilter(
       filter,
       from ? ProductSource.INCREMENTAL_LOAD : ProductSource.FULL_LOAD,
       skip,
     );
+    if (latestModified) {
+      settings.lastModified = new Date(latestModified);
+    }
   }
 
   async importWithFilter(filter: any, source: ProductSource, skip?: number) {
+    let latestModified = 0;
     const fullImport = !Object.keys(filter).length;
 
     // The update id is unique to this run and is used later to run other
@@ -88,7 +91,10 @@ export class ImportService {
         i++;
         if (skip && i < skip) continue;
         // Find the product if it exists and populate the standard fields
-        await this.fixupProduct(updateId, data, obsolete, source);
+        latestModified = Math.max(
+          latestModified,
+          await this.fixupProduct(fullImport, updateId, data, obsolete, source),
+        );
         if (!(i % this.importBatchSize)) {
           // This will cause a commit and then clear the Mikro-ORM cache
           // to minimise memory consumption for large imports
@@ -113,16 +119,19 @@ export class ImportService {
       await this.deleteOtherProducts(updateId);
     }
     this.logger.log('Finished');
+
+    return latestModified;
   }
 
   /** Populate a Product record from MongoDB document */
   nulRegex = /\0/g;
   async fixupProduct(
+    fullImport: boolean,
     updateId: string,
     data: any,
     obsolete = false,
     source: ProductSource,
-  ): Promise<void> {
+  ): Promise<number> {
     const product = await this.findOrNewProduct(data);
     // Skip products that don't have a code
     if (!product) return;
@@ -141,10 +150,23 @@ export class ImportService {
         }
       }
     }
+    let lastModified = new Date(data.last_modified_t * 1000);
+    if (isNaN(+lastModified)) {
+      this.logger.warn(
+        `Product: ${data.code}. Invalid last_modified_t: ${data.last_modified_t}.`,
+      );
+      lastModified = null;
+    }
     if (product.data && product.data.last_modified_t === data.last_modified_t) {
       // If last modified data is not changed the product probably hasn't changed
       // But compare data anyway just in case
-      if (equal(product.data, data)) return;
+      if (equal(product.data, data)) return lastModified?.getTime();
+
+      if (!fullImport) {
+        this.logger.warn(
+          `Product: ${data.code} has data changes with no updated last_modified_t`,
+        );
+      }
     }
 
     product.data = data;
@@ -156,12 +178,7 @@ export class ImportService {
     product.ingredientsCount = data.ingredients_n;
     product.ingredientsWithoutCiqualCodesCount =
       data.ingredients_without_ciqual_codes_n;
-    const lastModified = new Date(data.last_modified_t * 1000);
-    if (isNaN(+lastModified)) {
-      this.logger.warn(
-        `Product: ${data.code}. Invalid last_modified_t: ${data.last_modified_t}.`,
-      );
-    } else {
+    if (lastModified) {
       product.lastModified = lastModified;
     }
     product.lastUpdateId = updateId;
@@ -169,6 +186,8 @@ export class ImportService {
     product.source = source;
     //await this.em.nativeDelete(ProductIngredient, { product: product });
     //this.importIngredients(product, 0, data.ingredients);
+
+    return lastModified?.getTime();
   }
 
   /** Find an existing document by product code, or create a new one */
@@ -428,6 +447,7 @@ export class ImportService {
         const data = JSON.parse(line.replace(/\\u0000/g, ''));
         i++;
         await this.fixupProduct(
+          !from,
           updateId,
           data,
           false,

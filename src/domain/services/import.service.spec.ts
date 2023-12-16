@@ -8,8 +8,10 @@ import { TagService } from './tag.service';
 import { LoadedTag } from '../entities/loaded-tag';
 import { ProductTagMap } from '../entities/product-tag-map';
 import { ProductSource } from '../enums/product-source';
+import { SettingsService } from './settings.service';
 
 let index = 0;
+const lastModified = 1692032161;
 
 function testProducts() {
   const productIdNew = randomCode();
@@ -18,18 +20,25 @@ function testProducts() {
     {
       // This one will be new
       code: productIdNew,
-      last_modified_t: 1692032161,
+      last_modified_t: lastModified,
       ingredients_tags: ['test'],
     },
     {
       // This one will already exist
       code: productIdExisting,
-      last_modified_t: 1692032161,
+      last_modified_t: lastModified,
       ingredients_tags: ['new_ingredient', 'old_ingredient'],
     },
   ];
   return { products, productIdExisting, productIdNew };
 }
+
+const findMock = jest.fn((filter, projection) => ({
+  next: async () => {
+    return index++ <= mockedProducts.length ? mockedProducts[index - 1] : null;
+  },
+  close: jest.fn(),
+}));
 
 jest.mock('mongodb', () => {
   return {
@@ -37,14 +46,7 @@ jest.mock('mongodb', () => {
       connect: jest.fn(),
       db: () => ({
         collection: () => ({
-          find: () => ({
-            next: async () => {
-              return index++ <= mockedProducts.length
-                ? mockedProducts[index - 1]
-                : null;
-            },
-            close: jest.fn(),
-          }),
+          find: findMock,
         }),
       }),
       close: jest.fn(),
@@ -93,6 +95,7 @@ describe('importFromMongo', () => {
       // WHEN:Doing a full import from MongoDB
       mockMongoDB(products);
       const start = Date.now();
+
       await importService.importFromMongo();
 
       // THEN: New product is addeded, updated product is updated and other product is unchanged
@@ -153,6 +156,7 @@ describe('importFromMongo', () => {
       // WHEN: Doing an incremental import from MongoDB
       const { products, productIdNew } = testProducts();
       mockMongoDB(products);
+      (await app.get(SettingsService).get()).lastModified = new Date();
       await importService.importFromMongo('');
 
       // THEN: Loaded tags is not updated
@@ -190,6 +194,32 @@ describe('importFromMongo', () => {
       expect(productExisting).toBeTruthy();
       expect(productExisting.source).toBe(ProductSource.EVENT);
       expect(productExisting.lastUpdated).toStrictEqual(lastUpdated);
+    });
+  });
+
+  it('should start importing from the last import', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      // GIVEN: lastModified setting already set
+      const settings = await app.get(SettingsService).get();
+      const startFrom = new Date(2023, 1, 1);
+      settings.lastModified = startFrom;
+      const { products } = testProducts();
+      const importService = app.get(ImportService);
+
+      // WHEN: Doing an incremental import from MongoDB
+      mockMongoDB(products);
+      findMock.mockClear();
+      await importService.importFromMongo('');
+
+      // THEN: Mongo find is called with the setting as a parameter
+      expect(findMock).toHaveBeenCalledTimes(2); // Called for normal an obsolete prodocuts
+      expect(findMock.mock.calls[0][0].last_modified_t.$gt).toBe(
+        Math.floor(startFrom.getTime() / 1000),
+      );
+
+      expect(settings.lastModified).toStrictEqual(
+        new Date(lastModified * 1000),
+      );
     });
   });
 
