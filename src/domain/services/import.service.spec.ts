@@ -286,7 +286,7 @@ describe('scheduledImportFromMongo', () => {
 
 describe('ProductTag', () => {
   it('should add class to tag array', async () => {
-    await createTestingModule([DomainModule], async (app) => {
+    await createTestingModule([DomainModule], async () => {
       expect(ProductTagMap.MAPPED_TAGS['categories_tags']).toBeTruthy();
     });
   });

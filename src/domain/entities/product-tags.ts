@@ -88,18 +88,21 @@ export class ProductInformersTag extends BaseProductTag {}
 export class ProductIngredientsFromPalmOilTag extends BaseProductTag {}
 @ProductTag('ingredients_that_may_be_from_palm_oil_tags')
 export class ProductIngredientsThatMayBeFromPalmOilTag extends BaseProductTag {}
+// Not found in PO
 //@ProductTag('known_nutrients')
 //export class Product Tag extends BaseProductTag {}
 @ProductTag('last_image_dates_tags')
 export class ProductLatestImageDatesTag extends BaseProductTag {}
+// This is a scaler
 //@ProductTag('numbers_of_ingredients')
 //export class Product Tag extends BaseProductTag {}
 @ProductTag('nutrient_levels_tags')
 export class ProductNutrientLevelsTag extends BaseProductTag {}
+// This is a hash
 //@ProductTag('packager_codes')
 //export class Product Tag extends BaseProductTag {}
-//@ProductTag('periods_after_opening')
-//export class Product Tag extends BaseProductTag {}
+@ProductTag('periods_after_opening_tags')
+export class ProductPeriodsAfterOpeningTag extends BaseProductTag {}
 @ProductTag('photographers_tags')
 export class ProductPhotographersTag extends BaseProductTag {}
 @ProductTag('pnns_groups_1_tags')
@@ -110,9 +113,8 @@ export class ProductPnnsGroups2Tag extends BaseProductTag {}
 export class ProductPurchasePlacesTag extends BaseProductTag {}
 @ProductTag('unknown_nutrients_tags')
 export class ProductUnknownNutrientsTag extends BaseProductTag {}
+// Thing this is editors
 //@ProductTag('contributors')
-//export class Product Tag extends BaseProductTag {}
-//@ProductTag('last_check_dates')
 //export class Product Tag extends BaseProductTag {}
 @ProductTag('popularity_tags')
 export class ProductPopularityTag extends BaseProductTag {}
@@ -122,6 +124,7 @@ export class ProductIngredientsAnalysisTag extends BaseProductTag {}
 export class ProductDataQualityBugsTag extends BaseProductTag {}
 @ProductTag('data_quality_warnings_tags')
 export class ProductDataQualityWarningsTag extends BaseProductTag {}
+// Can;t see these in PO
 //@ProductTag('data_quality_warnings_producers')
 //export class Product Tag extends BaseProductTag {}
 //@ProductTag('data_quality_errors_producers')
@@ -132,6 +135,7 @@ export class ProductDataQualityWarningsTag extends BaseProductTag {}
 //export class Product Tag extends BaseProductTag {}
 @ProductTag('categories_properties_tags')
 export class ProductCategoriesProperitesTag extends BaseProductTag {}
+// This is a scalar
 //@ProductTag('owners_tags')
 //export class ProductOwnersTag extends BaseProductTag {}
 @ProductTag('food_groups_tags')
