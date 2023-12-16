@@ -333,6 +333,20 @@ export class ImportService {
     this.logger.log(`${deleted} Products deleted`);
   }
 
+  async scheduledImportFromMongo() {
+    if (
+      equal(
+        Object.keys(ProductTagMap.MAPPED_TAGS).sort(),
+        (await this.tagService.getLoadedTags()).sort(),
+      )
+    ) {
+      // Do an incremental load if all tags are already loaded
+      await this.importFromMongo('');
+    } else {
+      await this.importFromMongo();
+    }
+  }
+
   async startRedisConsumer() {
     const redisUrl = process.env['REDIS_URL'];
     if (!redisUrl) return;

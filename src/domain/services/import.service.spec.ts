@@ -220,6 +220,40 @@ describe('importFromMongo', () => {
   });
 });
 
+describe('scheduledImportFromMongo', () => {
+  it('should do a full import if loaded tags arent complete', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      jest
+        .spyOn(app.get(TagService), 'getLoadedTags')
+        .mockImplementation(async () => []);
+      const importSpy = jest
+        .spyOn(importService, 'importFromMongo')
+        .mockImplementation();
+      await importService.scheduledImportFromMongo();
+      expect(importSpy).toHaveBeenCalledTimes(1);
+      expect(importSpy.mock.calls[0][0]).toBeUndefined();
+    });
+  });
+
+  it('should do an incremental import if loaded tags are complete', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      jest
+        .spyOn(app.get(TagService), 'getLoadedTags')
+        .mockImplementation(async () =>
+          Object.keys(ProductTagMap.MAPPED_TAGS).reverse(),
+        );
+      const importSpy = jest
+        .spyOn(importService, 'importFromMongo')
+        .mockImplementation();
+      await importService.scheduledImportFromMongo();
+      expect(importSpy).toHaveBeenCalledTimes(1);
+      expect(importSpy.mock.calls[0][0]).toBe('');
+    });
+  });
+});
+
 describe('ProductTag', () => {
   it('should add class to tag array', async () => {
     await createTestingModule([DomainModule], async (app) => {

@@ -27,7 +27,7 @@ export class AppModule {
     // The request context creates a separate entity manager instance
     // which avoids clashes with other requests
     await RequestContext.createAsync(this.em, async () => {
-      await this.importService.importFromMongo('');
+      await this.importService.scheduledImportFromMongo();
     });
   }
 }
