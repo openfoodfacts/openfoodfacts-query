@@ -73,6 +73,84 @@ export class ProductStoresTag extends BaseProductTag {}
 @ProductTag('ingredients_original_tags')
 export class ProductIngredientsOriginalTag extends BaseProductTag {}
 
+// From Issue #22
+@ProductTag('checkers_tags')
+export class ProductCheckersTag extends BaseProductTag {}
+@ProductTag('cities_tags')
+export class ProductCitiesTag extends BaseProductTag {}
+@ProductTag('correctors_tags')
+export class ProductCorrectorsTag extends BaseProductTag {}
+@ProductTag('debug_tags')
+export class ProductDebugTag extends BaseProductTag {}
+@ProductTag('informers_tags')
+export class ProductInformersTag extends BaseProductTag {}
+@ProductTag('ingredients_from_palm_oil_tags')
+export class ProductIngredientsFromPalmOilTag extends BaseProductTag {}
+@ProductTag('ingredients_that_may_be_from_palm_oil_tags')
+export class ProductIngredientsThatMayBeFromPalmOilTag extends BaseProductTag {}
+//@ProductTag('known_nutrients')
+//export class Product Tag extends BaseProductTag {}
+@ProductTag('last_image_dates_tags')
+export class ProductLatestImageDatesTag extends BaseProductTag {}
+//@ProductTag('numbers_of_ingredients')
+//export class Product Tag extends BaseProductTag {}
+@ProductTag('nutrient_levels_tags')
+export class ProductNutrientLevelsTag extends BaseProductTag {}
+//@ProductTag('packager_codes')
+//export class Product Tag extends BaseProductTag {}
+//@ProductTag('periods_after_opening')
+//export class Product Tag extends BaseProductTag {}
+@ProductTag('photographers_tags')
+export class ProductPhotographersTag extends BaseProductTag {}
+@ProductTag('pnns_groups_1_tags')
+export class ProductPnnsGroups1Tag extends BaseProductTag {}
+@ProductTag('pnns_groups_2_tags')
+export class ProductPnnsGroups2Tag extends BaseProductTag {}
+@ProductTag('purchase_places_tags')
+export class ProductPurchasePlacesTag extends BaseProductTag {}
+@ProductTag('unknown_nutrients_tags')
+export class ProductUnknownNutrientsTag extends BaseProductTag {}
+//@ProductTag('contributors')
+//export class Product Tag extends BaseProductTag {}
+//@ProductTag('last_check_dates')
+//export class Product Tag extends BaseProductTag {}
+@ProductTag('popularity_tags')
+export class ProductPopularityTag extends BaseProductTag {}
+@ProductTag('ingredients_analysis_tags')
+export class ProductIngredientsAnalysisTag extends BaseProductTag {}
+@ProductTag('data_quality_bugs_tags')
+export class ProductDataQualityBugsTag extends BaseProductTag {}
+@ProductTag('data_quality_warnings_tags')
+export class ProductDataQualityWarningsTag extends BaseProductTag {}
+//@ProductTag('data_quality_warnings_producers')
+//export class Product Tag extends BaseProductTag {}
+//@ProductTag('data_quality_errors_producers')
+//export class Product Tag extends BaseProductTag {}
+//@ProductTag('possible_improvements')
+//export class Product Tag extends BaseProductTag {}
+//@ProductTag('imports')
+//export class Product Tag extends BaseProductTag {}
+@ProductTag('categories_properties_tags')
+export class ProductCategoriesProperitesTag extends BaseProductTag {}
+//@ProductTag('owners_tags')
+//export class ProductOwnersTag extends BaseProductTag {}
+@ProductTag('food_groups_tags')
+export class ProductFoodGroupsTag extends BaseProductTag {}
+@ProductTag('weighers_tags')
+export class ProductWeighersTag extends BaseProductTag {}
+@ProductTag('packaging_shapes_tags')
+export class ProductPackagingShapesTag extends BaseProductTag {}
+@ProductTag('packaging_materials_tags')
+export class ProductPackagingMaterialsTag extends BaseProductTag {}
+@ProductTag('packaging_recycling_tags')
+export class ProductPackagingRecyclingTag extends BaseProductTag {}
+@ProductTag('nutriscore_tags')
+export class ProductNutriscoreTag extends BaseProductTag {}
+@ProductTag('nutriscore_2021_tags')
+export class ProductNutriscore2021Tag extends BaseProductTag {}
+@ProductTag('nutriscore_2023_tags')
+export class ProductNutriscore2023Tag extends BaseProductTag {}
+
 /* From Config_off.pm
 # fields for drilldown facet navigation
 

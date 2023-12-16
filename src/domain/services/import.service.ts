@@ -142,13 +142,17 @@ export class ImportService {
       const tagData = data[key] as string[];
       if (tagData) {
         // Strip out any nul characters
-        for (const [index, value] of tagData.entries()) {
-          if (value.includes('\u0000')) {
-            this.logger.warn(
-              `Product: ${data.code}. Nuls stripped from ${key} value: ${value}`,
-            );
-            tagData[index] = value.replace(this.nulRegex, '');
+        try {
+          for (const [index, value] of tagData.entries()) {
+            if (value.includes('\u0000')) {
+              this.logger.warn(
+                `Product: ${data.code}. Nuls stripped from ${key} value: ${value}`,
+              );
+              tagData[index] = value.replace(this.nulRegex, '');
+            }
           }
+        } catch (e) {
+          this.logger.error(`${key}: ${e.message}`);
         }
       }
     }
