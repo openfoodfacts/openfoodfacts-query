@@ -1,3 +1,4 @@
+import { MikroORM } from '@mikro-orm/core';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 
 export default async function () {
@@ -8,8 +9,12 @@ export default async function () {
   process.env.POSTGRES_USER = container.getUsername();
   process.env.POSTGRES_PASSWORD = container.getPassword();
 
-  // Tried running migrations here but get this error: https://github.com/mikro-orm/mikro-orm/discussions/3795
-  // Removing jest.mock calls didn't help
+  // Don't import the MikroORM config at start as need the env vars to be set
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const config = require('../src/mikro-orm.config').default;
+  const orm = await MikroORM.init({ ...config, logger: () => null });
+  await orm.getMigrator().up();
+  await orm.close();
 
   globalThis.__PGCONTAINER__ = container;
 }

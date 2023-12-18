@@ -304,7 +304,6 @@ describe('ProductTag', () => {
 });
 
 describe('receiveMessages', () => {
-  jest.setTimeout(600000);
   it('should call importwithfilter when a message is received', async () => {
     await createTestingModule([DomainModule], async (app) => {
       // GIVEN: Redis is running
