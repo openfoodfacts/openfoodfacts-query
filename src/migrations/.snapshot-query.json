@@ -4860,6 +4860,15 @@
           "nullable": true,
           "length": 6,
           "mappedType": "datetime"
+        },
+        "last_message_id": {
+          "name": "last_message_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
         }
       },
       "name": "settings",

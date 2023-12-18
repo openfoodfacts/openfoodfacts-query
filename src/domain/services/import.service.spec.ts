@@ -1,6 +1,6 @@
 import { DomainModule } from '../domain.module';
 import { ImportService } from './import.service';
-import { EntityManager, JsonType } from '@mikro-orm/core';
+import { EntityManager } from '@mikro-orm/core';
 import { Product } from '../entities/product';
 import { ProductIngredientsTag } from '../entities/product-tags';
 import { createTestingModule, randomCode } from '../../../test/test.helper';
@@ -11,6 +11,7 @@ import { ProductSource } from '../enums/product-source';
 import { SettingsService } from './settings.service';
 import { createClient } from 'redis';
 import { GenericContainer } from 'testcontainers';
+import { setTimeout } from 'timers/promises';
 
 let index = 0;
 const lastModified = 1692032161;
@@ -35,7 +36,9 @@ function testProducts() {
   return { products, productIdExisting, productIdNew };
 }
 
-const findMock = jest.fn((filter, projection) => ({
+// Need to specify argumet list bellow so that calls in the assertion is typed
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const findMock = jest.fn((_filter, _projection) => ({
   next: async () => {
     return index++ <= mockedProducts.length ? mockedProducts[index - 1] : null;
   },
@@ -256,6 +259,8 @@ describe('scheduledImportFromMongo', () => {
   it('should do a full import if loaded tags arent complete', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const importService = app.get(ImportService);
+      const redisStart = jest.spyOn(importService, 'startRedisConsumer');
+      const redisStop = jest.spyOn(importService, 'stopRedisConsumer');
       jest
         .spyOn(app.get(TagService), 'getLoadedTags')
         .mockImplementation(async () => []);
@@ -265,6 +270,10 @@ describe('scheduledImportFromMongo', () => {
       await importService.scheduledImportFromMongo();
       expect(importSpy).toHaveBeenCalledTimes(1);
       expect(importSpy.mock.calls[0][0]).toBeUndefined();
+
+      // Should pause redis during import
+      expect(redisStop).toHaveBeenCalled();
+      expect(redisStart).toHaveBeenCalled();
     });
   });
 
@@ -303,35 +312,48 @@ describe('receiveMessages', () => {
         .withExposedPorts(6379)
         .start();
       const redisUrl = `redis://localhost:${redis.getMappedPort(6379)}`;
-      jest
-        .spyOn(app.get(SettingsService), 'getRedisUrl')
-        .mockImplementation(() => redisUrl);
+      const settings = app.get(SettingsService);
+      jest.spyOn(settings, 'getRedisUrl').mockImplementation(() => redisUrl);
 
+      // And lastmessageid is zero
+      await settings.setLastMessageId('0');
       const importService = app.get(ImportService);
       const importSpy = jest
         .spyOn(importService, 'importWithFilter')
         .mockImplementation();
       await importService.startRedisConsumer();
+
+      const client = createClient({ url: redisUrl });
+      await client.connect();
       try {
         // When: A message is sent
-        const client = createClient({ url: redisUrl });
-        await client.connect();
-        try {
-          await client.xAdd('product_update', '*', {
-            code: 'TEST1',
-          });
-        } finally {
-          await client.quit();
-        }
+        const messageId = await client.xAdd('product_update', '*', {
+          code: 'TEST1',
+        });
 
         // Wait for message to be delivered
-        await new Promise((resolve) => {
-          setTimeout(resolve, 10);
-        });
+        await setTimeout(10);
 
         // Then the import is called
         expect(importSpy).toHaveBeenCalledTimes(1);
+        expect(await settings.getLastMessageId()).toBe(messageId);
+
+        // If a new message is added
+        importSpy.mockClear();
+        await client.xAdd('product_update', '*', {
+          code: 'TEST2',
+        });
+
+        // Wait for message to be delivered
+        await setTimeout(10);
+
+        // Then import is called again but only with the new code
+        expect(importSpy).toHaveBeenCalledTimes(1);
+        const codes = importSpy.mock.calls[0][0].code.$in;
+        expect(codes).toHaveLength(1);
+        expect(codes[0]).toBe('TEST2');
       } finally {
+        await client.quit();
         await importService.stopRedisConsumer();
         await redis.stop();
       }

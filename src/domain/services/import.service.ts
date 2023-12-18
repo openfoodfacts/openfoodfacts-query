@@ -16,7 +16,6 @@ import { SettingsService } from './settings.service';
 export class ImportService {
   private logger = new Logger(ImportService.name);
   private client: any; // Don't strongly type here is it is really verbose
-  private lastMessageId: string;
 
   constructor(
     private readonly em: EntityManager,
@@ -358,23 +357,30 @@ export class ImportService {
   }
 
   async scheduledImportFromMongo() {
-    if (
-      equal(
-        Object.keys(ProductTagMap.MAPPED_TAGS).sort(),
-        (await this.tagService.getLoadedTags()).sort(),
-      )
-    ) {
-      // Do an incremental load if all tags are already loaded
-      await this.importFromMongo('');
-    } else {
-      await this.importFromMongo();
+    // Pause redis while doing a scheduled import
+    await this.stopRedisConsumer();
+
+    try {
+      if (
+        equal(
+          Object.keys(ProductTagMap.MAPPED_TAGS).sort(),
+          (await this.tagService.getLoadedTags()).sort(),
+        )
+      ) {
+        // Do an incremental load if all tags are already loaded
+        await this.importFromMongo('');
+      } else {
+        await this.importFromMongo();
+      }
+    } finally {
+      // Resume redis after import
+      await this.startRedisConsumer();
     }
   }
 
   async startRedisConsumer() {
     const redisUrl = this.settings.getRedisUrl();
     if (!redisUrl) return;
-    this.lastMessageId = '0';
     this.client = createClient({ url: redisUrl });
     this.client.on('error', (err) => this.logger.error(err));
     await this.client.connect();
@@ -385,9 +391,9 @@ export class ImportService {
     if (this.client && this.client.isOpen) await this.client.quit();
   }
 
-  receiveMessages() {
+  async receiveMessages() {
+    const lastMessageId = await this.settings.getLastMessageId();
     if (!this.client.isOpen) return;
-
     this.client
       .xRead(
         commandOptions({
@@ -398,7 +404,7 @@ export class ImportService {
           // different ID for each...
           {
             key: 'product_update',
-            id: this.lastMessageId,
+            id: lastMessageId,
           },
         ],
         {
@@ -414,7 +420,9 @@ export class ImportService {
             const productCodes = messages.map((m) => m.message.code);
             const filter = { code: { $in: productCodes } };
             await this.importWithFilter(filter, ProductSource.EVENT);
-            this.lastMessageId = messages[messages.length - 1].id;
+            await this.settings.setLastMessageId(
+              messages[messages.length - 1].id,
+            );
           }
         }
         setTimeout(() => {

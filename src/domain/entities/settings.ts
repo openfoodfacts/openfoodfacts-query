@@ -7,4 +7,7 @@ export class Settings {
 
   @Property()
   lastModified?: Date;
+
+  @Property()
+  lastMessageId?: string;
 }

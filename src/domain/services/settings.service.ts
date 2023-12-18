@@ -24,6 +24,15 @@ export class SettingsService {
     await this.em.flush();
   }
 
+  async getLastMessageId() {
+    return (await this.find()).lastMessageId || '$';
+  }
+
+  async setLastMessageId(messageId: string) {
+    (await this.find()).lastMessageId = messageId;
+    await this.em.flush();
+  }
+
   getRedisUrl() {
     return process.env.REDIS_URL;
   }
