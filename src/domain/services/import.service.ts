@@ -36,7 +36,7 @@ export class ImportService {
     // recent modified time from the database and query MongoDB for products
     // modified since then
     if (!from && from != null) {
-      from = (await this.settings.get()).lastModified?.toISOString();
+      from = (await this.settings.getLastModified())?.toISOString();
     }
     const filter = {};
     if (from) {
@@ -51,10 +51,7 @@ export class ImportService {
       skip,
     );
     if (latestModified) {
-      // Need to re-find settings as product import will have cleared the unit of work
-      const settings = await this.settings.get();
-      settings.lastModified = new Date(latestModified);
-      await this.em.flush();
+      await this.settings.setLastModified(new Date(latestModified));
     }
   }
 
@@ -375,17 +372,22 @@ export class ImportService {
   }
 
   async startRedisConsumer() {
-    const redisUrl = process.env['REDIS_URL'];
+    const redisUrl = this.settings.getRedisUrl();
     if (!redisUrl) return;
-    this.lastMessageId = '$';
+    this.lastMessageId = '0';
     this.client = createClient({ url: redisUrl });
     this.client.on('error', (err) => this.logger.error(err));
     await this.client.connect();
     this.receiveMessages();
   }
 
+  async stopRedisConsumer() {
+    if (this.client && this.client.isOpen) await this.client.quit();
+  }
+
   receiveMessages() {
-    const self = this;
+    if (!this.client.isOpen) return;
+
     this.client
       .xRead(
         commandOptions({
@@ -396,7 +398,7 @@ export class ImportService {
           // different ID for each...
           {
             key: 'product_update',
-            id: self.lastMessageId,
+            id: this.lastMessageId,
           },
         ],
         {

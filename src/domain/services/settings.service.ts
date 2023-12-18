@@ -6,11 +6,25 @@ import { Settings } from '../entities/settings';
 export class SettingsService {
   constructor(private readonly em: EntityManager) {}
 
-  async get() {
-    let settings = await this.em.findOne(Settings, 1);
-    if (!settings) {
-      settings = this.em.create(Settings, {});
+  settings: Settings;
+  async find() {
+    this.settings = await this.em.findOne(Settings, 1);
+    if (!this.settings) {
+      this.settings = this.em.create(Settings, {});
     }
-    return settings;
+    return this.settings;
+  }
+
+  async getLastModified() {
+    return (await this.find()).lastModified;
+  }
+
+  async setLastModified(lastModified: Date) {
+    (await this.find()).lastModified = lastModified;
+    await this.em.flush();
+  }
+
+  getRedisUrl() {
+    return process.env.REDIS_URL;
   }
 }

@@ -1,6 +1,6 @@
 import { DomainModule } from '../domain.module';
 import { ImportService } from './import.service';
-import { EntityManager } from '@mikro-orm/core';
+import { EntityManager, JsonType } from '@mikro-orm/core';
 import { Product } from '../entities/product';
 import { ProductIngredientsTag } from '../entities/product-tags';
 import { createTestingModule, randomCode } from '../../../test/test.helper';
@@ -9,6 +9,8 @@ import { LoadedTag } from '../entities/loaded-tag';
 import { ProductTagMap } from '../entities/product-tag-map';
 import { ProductSource } from '../enums/product-source';
 import { SettingsService } from './settings.service';
+import { createClient } from 'redis';
+import { GenericContainer } from 'testcontainers';
 
 let index = 0;
 const lastModified = 1692032161;
@@ -156,7 +158,7 @@ describe('importFromMongo', () => {
       // WHEN: Doing an incremental import from MongoDB
       const { products, productIdNew } = testProducts();
       mockMongoDB(products);
-      (await app.get(SettingsService).get()).lastModified = new Date();
+      await app.get(SettingsService).setLastModified(new Date());
       await importService.importFromMongo('');
 
       // THEN: Loaded tags is not updated
@@ -200,9 +202,9 @@ describe('importFromMongo', () => {
   it('should start importing from the last import', async () => {
     await createTestingModule([DomainModule], async (app) => {
       // GIVEN: lastModified setting already set
-      const settings = await app.get(SettingsService).get();
+      const settings = app.get(SettingsService);
       const startFrom = new Date(2023, 1, 1);
-      settings.lastModified = startFrom;
+      await settings.setLastModified(startFrom);
       const { products } = testProducts();
       const importService = app.get(ImportService);
 
@@ -217,7 +219,7 @@ describe('importFromMongo', () => {
         Math.floor(startFrom.getTime() / 1000),
       );
 
-      expect(settings.lastModified).toStrictEqual(
+      expect(await settings.getLastModified()).toStrictEqual(
         new Date(lastModified * 1000),
       );
     });
@@ -288,6 +290,51 @@ describe('ProductTag', () => {
   it('should add class to tag array', async () => {
     await createTestingModule([DomainModule], async () => {
       expect(ProductTagMap.MAPPED_TAGS['categories_tags']).toBeTruthy();
+    });
+  });
+});
+
+describe('receiveMessages', () => {
+  jest.setTimeout(600000);
+  it('should call importwithfilter when a message is received', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      // GIVEN: Redis is running
+      const redis = await new GenericContainer('redis')
+        .withExposedPorts(6379)
+        .start();
+      const redisUrl = `redis://localhost:${redis.getMappedPort(6379)}`;
+      jest
+        .spyOn(app.get(SettingsService), 'getRedisUrl')
+        .mockImplementation(() => redisUrl);
+
+      const importService = app.get(ImportService);
+      const importSpy = jest
+        .spyOn(importService, 'importWithFilter')
+        .mockImplementation();
+      await importService.startRedisConsumer();
+      try {
+        // When: A message is sent
+        const client = createClient({ url: redisUrl });
+        await client.connect();
+        try {
+          await client.xAdd('product_update', '*', {
+            code: 'TEST1',
+          });
+        } finally {
+          await client.quit();
+        }
+
+        // Wait for message to be delivered
+        await new Promise((resolve) => {
+          setTimeout(resolve, 10);
+        });
+
+        // Then the import is called
+        expect(importSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        await importService.stopRedisConsumer();
+        await redis.stop();
+      }
     });
   });
 });

@@ -31,6 +31,8 @@ export async function createTestingModule(
   await orm.getMigrator().up({ transaction: orm.em.getTransactionContext() });
   await connection.execute(`COMMIT`);
 
+  await app.init();
+
   try {
     await RequestContext.createAsync(orm.em, async () => {
       await callback(app);
@@ -40,5 +42,6 @@ export async function createTestingModule(
     throw e;
   } finally {
     await orm.close();
+    await app.close();
   }
 }
