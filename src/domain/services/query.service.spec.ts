@@ -437,9 +437,7 @@ describe('select', () => {
 
   it('should cope with $nin', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      const { originValue, aminoValue, product3 } = await createTestTags(
-        app,
-      );
+      const { originValue, aminoValue, product3 } = await createTestTags(app);
       const queryService = app.get(QueryService);
       const response = await queryService.select({
         origins_tags: originValue,

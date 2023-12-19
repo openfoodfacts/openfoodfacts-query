@@ -45,7 +45,7 @@
         },
         "data": {
           "name": "data",
-          "type": "jsonb",
+          "type": "json",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
@@ -98,14 +98,23 @@
           "nullable": true,
           "mappedType": "text"
         },
-        "last_update_id": {
-          "name": "last_update_id",
-          "type": "uuid",
+        "ingredients_without_ciqual_codes_count": {
+          "name": "ingredients_without_ciqual_codes_count",
+          "type": "int",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "mappedType": "uuid"
+          "mappedType": "integer"
+        },
+        "ingredients_count": {
+          "name": "ingredients_count",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "integer"
         },
         "obsolete": {
           "name": "obsolete",
@@ -116,6 +125,34 @@
           "nullable": false,
           "default": "false",
           "mappedType": "boolean"
+        },
+        "last_update_id": {
+          "name": "last_update_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "uuid"
+        },
+        "last_updated": {
+          "name": "last_updated",
+          "type": "timestamp",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "source": {
+          "name": "source",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "string"
         }
       },
       "name": "product",
@@ -467,6 +504,77 @@
           "mappedType": "boolean"
         }
       },
+      "name": "product_categories_properites_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_categories_properites_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_categories_properites_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_categories_properites_tag_product_id_foreign": {
+          "constraintName": "product_categories_properites_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_categories_properites_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
       "name": "product_categories_tag",
       "schema": "query",
       "indexes": [
@@ -498,6 +606,148 @@
             "product_id"
           ],
           "localTableName": "query.product_categories_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_checkers_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_checkers_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_checkers_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_checkers_tag_product_id_foreign": {
+          "constraintName": "product_checkers_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_checkers_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_cities_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_cities_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_cities_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_cities_tag_product_id_foreign": {
+          "constraintName": "product_cities_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_cities_tag",
           "referencedColumnNames": [
             "id"
           ],
@@ -609,6 +859,77 @@
           "mappedType": "boolean"
         }
       },
+      "name": "product_correctors_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_correctors_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_correctors_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_correctors_tag_product_id_foreign": {
+          "constraintName": "product_correctors_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_correctors_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
       "name": "product_countries_tag",
       "schema": "query",
       "indexes": [
@@ -640,6 +961,77 @@
             "product_id"
           ],
           "localTableName": "query.product_countries_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_data_quality_bugs_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_data_quality_bugs_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_data_quality_bugs_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_data_quality_bugs_tag_product_id_foreign": {
+          "constraintName": "product_data_quality_bugs_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_data_quality_bugs_tag",
           "referencedColumnNames": [
             "id"
           ],
@@ -822,6 +1214,77 @@
           "mappedType": "boolean"
         }
       },
+      "name": "product_data_quality_warnings_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_data_quality_warnings_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_data_quality_warnings_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_data_quality_warnings_tag_product_id_foreign": {
+          "constraintName": "product_data_quality_warnings_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_data_quality_warnings_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
       "name": "product_data_sources_tag",
       "schema": "query",
       "indexes": [
@@ -853,6 +1316,77 @@
             "product_id"
           ],
           "localTableName": "query.product_data_sources_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_debug_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_debug_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_debug_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_debug_tag_product_id_foreign": {
+          "constraintName": "product_debug_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_debug_tag",
           "referencedColumnNames": [
             "id"
           ],
@@ -1177,6 +1711,538 @@
           "mappedType": "boolean"
         }
       },
+      "name": "product_food_groups_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_food_groups_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_food_groups_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_food_groups_tag_product_id_foreign": {
+          "constraintName": "product_food_groups_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_food_groups_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_informers_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_informers_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_informers_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_informers_tag_product_id_foreign": {
+          "constraintName": "product_informers_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_informers_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "parent_product_id": {
+          "name": "parent_product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "uuid"
+        },
+        "parent_sequence": {
+          "name": "parent_sequence",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "ingredient_text": {
+          "name": "ingredient_text",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "ciqual_food_code": {
+          "name": "ciqual_food_code",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "percent_min": {
+          "name": "percent_min",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
+        "percent": {
+          "name": "percent",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "percent_max": {
+          "name": "percent_max",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
+        "percent_estimate": {
+          "name": "percent_estimate",
+          "type": "double precision",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "double"
+        },
+        "data": {
+          "name": "data",
+          "type": "json",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "json"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_ingredient",
+      "schema": "query",
+      "indexes": [
+        {
+          "keyName": "product_ingredient_parent_product_id_parent_sequence_index",
+          "columnNames": [
+            "parent_product_id",
+            "parent_sequence"
+          ],
+          "composite": true,
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_ingredient_pkey",
+          "columnNames": [
+            "product_id",
+            "sequence"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_ingredient_product_id_foreign": {
+          "constraintName": "product_ingredient_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_ingredient",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        },
+        "product_ingredient_parent_product_id_parent_sequence_foreign": {
+          "constraintName": "product_ingredient_parent_product_id_parent_sequence_foreign",
+          "columnNames": [
+            "parent_product_id",
+            "parent_sequence"
+          ],
+          "localTableName": "query.product_ingredient",
+          "referencedColumnNames": [
+            "product_id",
+            "sequence"
+          ],
+          "referencedTableName": "query.product_ingredient",
+          "deleteRule": "set null",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_ingredients_analysis_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ingredients_analysis_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_ingredients_analysis_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_ingredients_analysis_tag_product_id_foreign": {
+          "constraintName": "product_ingredients_analysis_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_ingredients_analysis_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_ingredients_from_palm_oil_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ingredients_from_palm_oil_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_ingredients_from_palm_oil_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_ingredients_from_palm_oil_tag_product_id_foreign": {
+          "constraintName": "product_ingredients_from_palm_oil_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_ingredients_from_palm_oil_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_ingredients_ntag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ingredients_ntag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_ingredients_ntag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_ingredients_ntag_product_id_foreign": {
+          "constraintName": "product_ingredients_ntag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_ingredients_ntag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
       "name": "product_ingredients_original_tag",
       "schema": "query",
       "indexes": [
@@ -1279,6 +2345,77 @@
             "product_id"
           ],
           "localTableName": "query.product_ingredients_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_ingredients_that_may_be_from_palm_oil_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ingredients_that_may_be_from_palm_oil_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_ingredients_that_may_be_from_palm_oil_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_ingredients_that_may_be_from_palm_oil_tag_c5e4a_foreign": {
+          "constraintName": "product_ingredients_that_may_be_from_palm_oil_tag_c5e4a_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_ingredients_that_may_be_from_palm_oil_tag",
           "referencedColumnNames": [
             "id"
           ],
@@ -1674,6 +2811,77 @@
           "mappedType": "boolean"
         }
       },
+      "name": "product_latest_image_dates_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_latest_image_dates_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_latest_image_dates_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_latest_image_dates_tag_product_id_foreign": {
+          "constraintName": "product_latest_image_dates_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_latest_image_dates_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
       "name": "product_manufacturing_places_tag",
       "schema": "query",
       "indexes": [
@@ -2029,6 +3237,290 @@
           "mappedType": "boolean"
         }
       },
+      "name": "product_nutrient_levels_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nutrient_levels_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_nutrient_levels_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_nutrient_levels_tag_product_id_foreign": {
+          "constraintName": "product_nutrient_levels_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_nutrient_levels_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_nutriscore2021tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nutriscore2021tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_nutriscore2021tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_nutriscore2021tag_product_id_foreign": {
+          "constraintName": "product_nutriscore2021tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_nutriscore2021tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_nutriscore2023tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nutriscore2023tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_nutriscore2023tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_nutriscore2023tag_product_id_foreign": {
+          "constraintName": "product_nutriscore2023tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_nutriscore2023tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_nutriscore_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nutriscore_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_nutriscore_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_nutriscore_tag_product_id_foreign": {
+          "constraintName": "product_nutriscore_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_nutriscore_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
       "name": "product_nutrition_grades_tag",
       "schema": "query",
       "indexes": [
@@ -2242,6 +3734,219 @@
           "mappedType": "boolean"
         }
       },
+      "name": "product_packaging_materials_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_packaging_materials_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_packaging_materials_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_packaging_materials_tag_product_id_foreign": {
+          "constraintName": "product_packaging_materials_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_packaging_materials_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_packaging_recycling_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_packaging_recycling_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_packaging_recycling_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_packaging_recycling_tag_product_id_foreign": {
+          "constraintName": "product_packaging_recycling_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_packaging_recycling_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_packaging_shapes_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_packaging_shapes_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_packaging_shapes_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_packaging_shapes_tag_product_id_foreign": {
+          "constraintName": "product_packaging_shapes_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_packaging_shapes_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
       "name": "product_packaging_tag",
       "schema": "query",
       "indexes": [
@@ -2273,6 +3978,432 @@
             "product_id"
           ],
           "localTableName": "query.product_packaging_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_periods_after_opening_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_periods_after_opening_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_periods_after_opening_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_periods_after_opening_tag_product_id_foreign": {
+          "constraintName": "product_periods_after_opening_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_periods_after_opening_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_photographers_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_photographers_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_photographers_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_photographers_tag_product_id_foreign": {
+          "constraintName": "product_photographers_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_photographers_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_pnns_groups1tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_pnns_groups1tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_pnns_groups1tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_pnns_groups1tag_product_id_foreign": {
+          "constraintName": "product_pnns_groups1tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_pnns_groups1tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_pnns_groups2tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_pnns_groups2tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_pnns_groups2tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_pnns_groups2tag_product_id_foreign": {
+          "constraintName": "product_pnns_groups2tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_pnns_groups2tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_popularity_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_popularity_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_popularity_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_popularity_tag_product_id_foreign": {
+          "constraintName": "product_popularity_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_popularity_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_purchase_places_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_purchase_places_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_purchase_places_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_purchase_places_tag_product_id_foreign": {
+          "constraintName": "product_purchase_places_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_purchase_places_tag",
           "referencedColumnNames": [
             "id"
           ],
@@ -2597,6 +4728,77 @@
           "mappedType": "boolean"
         }
       },
+      "name": "product_unknown_nutrients_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_unknown_nutrients_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_unknown_nutrients_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_unknown_nutrients_tag_product_id_foreign": {
+          "constraintName": "product_unknown_nutrients_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_unknown_nutrients_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
       "name": "product_vitamins_tag",
       "schema": "query",
       "indexes": [
@@ -2636,6 +4838,125 @@
           "updateRule": "cascade"
         }
       }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "uuid"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        }
+      },
+      "name": "product_weighers_tag",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_weighers_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "keyName": "product_weighers_tag_pkey",
+          "columnNames": [
+            "product_id",
+            "value"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_weighers_tag_product_id_foreign": {
+          "constraintName": "product_weighers_tag_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_weighers_tag",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "unsigned": true,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "default": "1",
+          "mappedType": "integer"
+        },
+        "last_modified": {
+          "name": "last_modified",
+          "type": "timestamp",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "last_message_id": {
+          "name": "last_message_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        }
+      },
+      "name": "settings",
+      "schema": "query",
+      "indexes": [
+        {
+          "keyName": "settings_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {}
     }
   ]
 }

@@ -1,14 +1,17 @@
 import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
 import { Ulid } from 'id128';
+import { ProductSource } from '../enums/product-source';
 
 @Entity()
 export class Product {
   @PrimaryKey({ type: 'uuid' })
   id = Ulid.generate().toRaw();
 
-  @Property({ type: 'jsonb' })
+  /** The full JSON structure retreived from Product Opener */
+  @Property({ type: 'json', columnType: 'json' })
   data?: any;
 
+  // The following fields map directly to Product fields
   @Property()
   name?: string;
 
@@ -31,11 +34,24 @@ export class Product {
   @Property()
   ownersTags?: string;
 
+  @Property()
+  ingredientsWithoutCiqualCodesCount?: number;
+
+  @Property()
+  ingredientsCount?: number;
+
+  // The followign fields are populated by the query service
+  @Property()
+  obsolete = false;
+
   @Property({ type: 'uuid', index: true })
   lastUpdateId?: string;
 
   @Property()
-  obsolete = false;
+  lastUpdated?: Date;
+
+  @Property()
+  source?: ProductSource;
 }
 
 export const MAPPED_FIELDS = [
@@ -44,4 +60,7 @@ export const MAPPED_FIELDS = [
   'creator',
   'owners_tags',
   'last_modified_t',
+  'ingredients_n',
+  'ingredients_without_ciqual_codes_n',
+  'ingredients',
 ];

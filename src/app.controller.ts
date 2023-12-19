@@ -22,6 +22,16 @@ export class AppController {
     await this.importService.importFromMongo(from, skip);
   }
 
+  @Get('scheduledimportfrommongo')
+  async scheduledImportFromMongo() {
+    await this.importService.scheduledImportFromMongo();
+  }
+
+  @Get('updatetags')
+  async updateTags(@Query('updateid') updateId) {
+    await this.importService.updateTags(updateId, true);
+  }
+
   parseBoolean(value) {
     return value == true || value?.toLowerCase() == 'true';
   }
