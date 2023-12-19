@@ -93,9 +93,8 @@ export class ProductIngredientsThatMayBeFromPalmOilTag extends BaseProductTag {}
 //export class Product Tag extends BaseProductTag {}
 @ProductTag('last_image_dates_tags')
 export class ProductLatestImageDatesTag extends BaseProductTag {}
-// This is a scaler
-//@ProductTag('numbers_of_ingredients')
-//export class Product Tag extends BaseProductTag {}
+@ProductTag('ingredients_n_tags')
+export class ProductIngredientsNTag extends BaseProductTag {}
 @ProductTag('nutrient_levels_tags')
 export class ProductNutrientLevelsTag extends BaseProductTag {}
 // This is a hash
