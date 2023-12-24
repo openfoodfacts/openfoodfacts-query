@@ -253,6 +253,49 @@ describe('importFromMongo', () => {
       expect(ingredientsNew[0].value).toBe('test  test2  end');
     });
   });
+
+  it('should set last_modified correctly if one product has an invalid date', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      // GIVEN: products with invalid date
+      const settings = app.get(SettingsService);
+      const startFrom = new Date(2023, 1, 1);
+      await settings.setLastModified(startFrom);
+      const { products } = testProducts();
+      const testData = [
+        products[0],
+        { ...products[1], last_modified_t: 'invalid' },
+      ];
+      const importService = app.get(ImportService);
+
+      // WHEN: Doing an import from MongoDB
+      mockMongoDB(testData);
+      findMock.mockClear();
+      await importService.importFromMongo('');
+
+      // THEN: The last modified date is set correctly
+      expect(await settings.getLastModified()).toStrictEqual(
+        new Date(lastModified * 1000),
+      );
+    });
+  });
+
+  it('should skip if already importing', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      // GIVEN: Import already running
+      const importService = app.get(ImportService);
+      const { products } = testProducts();
+      mockMongoDB(products);
+      const firstImport = importService.importFromMongo();
+      const warnSpy = jest.spyOn(importService['logger'], 'warn');
+
+      // WHEN: Doing a second import
+      await importService.importFromMongo();
+      await firstImport;
+
+      // THEN: Second import just logs a warning
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe('scheduledImportFromMongo', () => {
