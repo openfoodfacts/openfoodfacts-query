@@ -37,7 +37,8 @@ jobs:
           # deploy target
           echo "SSH_HOST=10.1.0.201" >> $GITHUB_ENV
           # configurations
-          echo "MONGO_URI=mongodb://213.36.253.195:27017" >> $GITHUB_ENV
+          # mongodb (through stunnel)
+          echo "MONGO_URI=mongodb://10.1.0.101:27017" >> $GITHUB_ENV
 
       - name: Wait for container build workflow
         uses: tomchv/wait-my-workflow@v1.1.0
