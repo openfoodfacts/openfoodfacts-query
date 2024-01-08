@@ -26,31 +26,41 @@ export class ImportService {
   // Lowish batch size seems to work best, probably due to the size of the product document
   importBatchSize = 100;
   importLogInterval = 1000;
+  importRunning = false;
 
   private tags = Object.keys(ProductTagMap.MAPPED_TAGS);
 
   /** Import Products from MongoDB */
   async importFromMongo(from?: string, skip?: number) {
-    // If the from parameter is supplied but it is empty then obtain the most
-    // recent modified time from the database and query MongoDB for products
-    // modified since then
-    if (!from && from != null) {
-      from = (await this.settings.getLastModified())?.toISOString();
+    if (this.importRunning) {
+      this.logger.warn('Skipping as import already running');
+      return;
     }
-    const filter = {};
-    if (from) {
-      const fromTime = Math.floor(new Date(from).getTime() / 1000);
-      filter['last_modified_t'] = { $gt: fromTime };
-      this.logger.log(`Starting import from ${from}`);
-    }
+    this.importRunning = true;
+    try {
+      // If the from parameter is supplied but it is empty then obtain the most
+      // recent modified time from the database and query MongoDB for products
+      // modified since then
+      if (!from && from != null) {
+        from = (await this.settings.getLastModified())?.toISOString();
+      }
+      const filter = {};
+      if (from) {
+        const fromTime = Math.floor(new Date(from).getTime() / 1000);
+        filter['last_modified_t'] = { $gt: fromTime };
+        this.logger.log(`Starting import from ${from}`);
+      }
 
-    const latestModified = await this.importWithFilter(
-      filter,
-      from ? ProductSource.INCREMENTAL_LOAD : ProductSource.FULL_LOAD,
-      skip,
-    );
-    if (latestModified) {
-      await this.settings.setLastModified(new Date(latestModified));
+      const latestModified = await this.importWithFilter(
+        filter,
+        from ? ProductSource.INCREMENTAL_LOAD : ProductSource.FULL_LOAD,
+        skip,
+      );
+      if (latestModified) {
+        await this.settings.setLastModified(new Date(latestModified));
+      }
+    } finally {
+      this.importRunning = false;
     }
   }
 
@@ -191,7 +201,7 @@ export class ImportService {
     //await this.em.nativeDelete(ProductIngredient, { product: product });
     //this.importIngredients(product, 0, data.ingredients);
 
-    return lastModified?.getTime();
+    return lastModified?.getTime() ?? 0;
   }
 
   /** Find an existing document by product code, or create a new one */
