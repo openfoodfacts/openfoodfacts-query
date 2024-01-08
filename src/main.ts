@@ -5,7 +5,7 @@ import { LogLevel } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useLogger([process.env['LOG_LEVEL'] as LogLevel || 'log']);
+  app.useLogger([(process.env['LOG_LEVEL'] as LogLevel) || 'log']);
 
   // Run migrations if needed. Note may need to change this if multiple containers are used for scaling
   const migrator = app.get(MikroORM).getMigrator();

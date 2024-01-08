@@ -13,8 +13,8 @@ export default async function () {
   process.env.POSTGRES_PASSWORD = container.getPassword();
   globalThis.__PGCONTAINER__ = container;
 
-  // Truied running migrations with the API but doesn't work because
-  // of the way Jest mocks things. Even importing MikroORM doesn't work.
+  // Tried running migrations with the API but doesn't work because
+  // of the way Jest mocks things. Even importing MikroORM is enough to break things.
   // https://github.com/mikro-orm/mikro-orm/discussions/3795
   await exec('npx mikro-orm migration:up');
 }
