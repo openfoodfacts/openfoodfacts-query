@@ -7,6 +7,8 @@ services:
       - POSTGRES_DB
     volumes:
       - dbdata:/var/lib/postgresql/data
+    networks:
+      - common_net
 
   query:
     image: ghcr.io/openfoodfacts/openfoodfacts-query:${TAG}
@@ -24,6 +26,13 @@ services:
     depends_on:
       query_postgres:
         condition: service_started
+    networks:
+      - common_net
+
+networks:
+  common_net:
+    name: ${COMMON_NET_NAME}
+    external: true
 
 volumes:
   dbdata:

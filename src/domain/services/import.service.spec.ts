@@ -371,7 +371,7 @@ describe('receiveMessages', () => {
       await client.connect();
       try {
         // When: A message is sent
-        const messageId = await client.xAdd('product_update', '*', {
+        const messageId = await client.xAdd('product_updates_off', '*', {
           code: 'TEST1',
         });
 
@@ -384,7 +384,7 @@ describe('receiveMessages', () => {
 
         // If a new message is added
         importSpy.mockClear();
-        await client.xAdd('product_update', '*', {
+        await client.xAdd('product_updates_off', '*', {
           code: 'TEST2',
         });
 

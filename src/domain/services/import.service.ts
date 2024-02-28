@@ -413,7 +413,7 @@ export class ImportService {
           // XREAD can read from multiple streams, starting at a
           // different ID for each...
           {
-            key: 'product_update',
+            key: 'product_updates_off',
             id: lastMessageId,
           },
         ],
