@@ -48,7 +48,7 @@ export class ImportService {
       if (from) {
         const fromTime = Math.floor(new Date(from).getTime() / 1000);
         filter['last_modified_t'] = { $gt: fromTime };
-        this.logger.log(`Starting import from ${from}`);
+        this.logger.debug(`Starting import from ${from}`);
       }
 
       const latestModified = await this.importWithFilter(
@@ -72,7 +72,7 @@ export class ImportService {
     // queries that should only affect products loaded in this import
     const updateId = Ulid.generate().toRaw();
 
-    this.logger.log('Connecting to MongoDB');
+    this.logger.debug('Connecting to MongoDB');
     const client = new MongoClient(process.env.MONGO_URI);
     await client.connect();
     const db = client.db('off');
@@ -88,7 +88,18 @@ export class ImportService {
 
     // Repeat the below for normal and then obsolete products
     // Both are stored in the same table in PostgreSQL
-    for (const obsolete of [false, true]) {
+    const collections = {
+      normal: {
+        obsolete: false,
+        count: 0,
+      },
+      obsolete: {
+        obsolete: true,
+        count: 0,
+      },
+    };
+    for (const collection of Object.values(collections)) {
+      const obsolete = collection.obsolete;
       const products = db.collection(`products${obsolete ? '_obsolete' : ''}`);
       const cursor = products.find(filter, { projection });
       let i = 0;
@@ -110,12 +121,12 @@ export class ImportService {
           this.em.clear();
         }
         if (!(i % this.importLogInterval)) {
-          this.logger.log(`Updated ${i}`);
+          this.logger.debug(`Updated ${i}`);
         }
       }
       await this.em.flush();
-      this.logger.log(`${i}${obsolete ? ' Obsolete' : ''} Products imported`);
       await cursor.close();
+      collection.count = i;
     }
     await client.close();
 
@@ -126,7 +137,10 @@ export class ImportService {
     if (fullImport) {
       await this.deleteOtherProducts(updateId);
     }
-    this.logger.log('Finished');
+
+    this.logger.log(
+      `Imported ${collections.normal.count} Products and ${collections.obsolete.count} Obsolete Products from ${source}`,
+    );
 
     return latestModified;
   }
@@ -223,7 +237,7 @@ export class ImportService {
    * This was found to be quicker than using ORM functionality
    */
   async updateTags(updateId: string, fullImport = false) {
-    this.logger.log(`Updating tags for updateId: ${updateId}`);
+    this.logger.debug(`Updating tags for updateId: ${updateId}`);
 
     const connection = this.em.getConnection();
 
@@ -316,7 +330,7 @@ export class ImportService {
       logText += ` > ${affectedRows}`;
     }
     await connection.execute('commit');
-    this.logger.log(logText + ' rows');
+    this.logger.debug(logText + ' rows');
 
     for (const [tag, entity] of Object.entries(ProductTagMap.MAPPED_TAGS)) {
       let logText = `Updated ${tag}`;
@@ -355,7 +369,7 @@ export class ImportService {
 
       logText += ` inserted ${results['affectedRows']} rows`;
 
-      this.logger.log(logText);
+      this.logger.debug(logText);
     }
   }
 
@@ -363,7 +377,7 @@ export class ImportService {
     const deleted = await this.em.nativeDelete(Product, {
       $or: [{ lastUpdateId: { $ne: updateId } }, { lastUpdateId: null }],
     });
-    this.logger.log(`${deleted} Products deleted`);
+    this.logger.debug(`${deleted} Products deleted`);
   }
 
   async scheduledImportFromMongo() {
@@ -413,7 +427,7 @@ export class ImportService {
           // XREAD can read from multiple streams, starting at a
           // different ID for each...
           {
-            key: 'product_update',
+            key: 'product_updates_off',
             id: lastMessageId,
           },
         ],
@@ -465,7 +479,7 @@ export class ImportService {
             if (lastModified < fromTime) {
               skip++;
               if (!(skip % this.importLogInterval)) {
-                this.logger.log(`Skippped ${skip}`);
+                this.logger.debug(`Skippped ${skip}`);
               }
               continue;
             }
@@ -486,18 +500,18 @@ export class ImportService {
           this.em.clear();
         }
         if (!(i % this.importLogInterval)) {
-          this.logger.log(`Updated ${i}`);
+          this.logger.debug(`Updated ${i}`);
         }
       } catch (e) {
-        this.logger.log(e.message + ': ' + line);
+        this.logger.debug(e.message + ': ' + line);
       }
     }
     await this.em.flush();
-    this.logger.log(`${i} Products imported`);
+    this.logger.debug(`${i} Products imported`);
     await this.updateTags(updateId, !from);
     if (!from) {
       await this.deleteOtherProducts(updateId);
     }
-    this.logger.log('Finished');
+    this.logger.debug('Finished');
   }
 }

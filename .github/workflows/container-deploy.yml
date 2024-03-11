@@ -30,15 +30,19 @@ jobs:
           # deploy target
           echo "SSH_HOST=10.1.0.200" >> $GITHUB_ENV
           # configurations
+          echo "COMMON_NET_NAME=po_webnet" >> $GITHUB_ENV
           echo "MONGO_URI=mongodb://10.1.0.200:27017" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://redis:6379" >> $GITHUB_ENV
       - name: Set various variable for production deployment
         if: matrix.env == 'off-query-org'
         run: |
           # deploy target
           echo "SSH_HOST=10.1.0.201" >> $GITHUB_ENV
           # configurations
-          # mongodb (through stunnel)
+          echo "COMMON_NET_NAME=" >> $GITHUB_ENV
+          # mongodb and redis (through stunnel)
           echo "MONGO_URI=mongodb://10.1.0.113:27017" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://10.1.0.113:6379" >> $GITHUB_ENV
 
       - name: Wait for container build workflow
         uses: tomchv/wait-my-workflow@v1.1.0
