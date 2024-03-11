@@ -21,6 +21,7 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - MONGO_URI
+      - REDIS_URL
       - LOG_LEVEL
     # Use a different number so does not clash with locally running instance
     ports:
