@@ -119,7 +119,9 @@ jobs:
             echo "POSTGRES_USER=postgres" >> .env
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
             echo "POSTGRES_DB=query" >> .env
+            echo "COMMON_NET_NAME=${{ env.COMMON_NET_NAME }}" >> .env
             echo "MONGO_URI=${{ env.MONGO_URI }}" >> .env
+            echo "REDIS_URL=${{ env.REDIS_URL }}" >> .env
             echo "LOG_LEVEL=log" >> .env
 
       # Not worried about this at the moment as data is a cache
