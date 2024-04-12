@@ -22,6 +22,11 @@ jobs:
     environment: ${{ matrix.env }}
     concurrency: ${{ matrix.env }}
     steps:
+      - name: Set various common variable for deployment
+        run: |
+          echo "PROJECT_DIR=${{ matrix.env }}" >> $GITHUB_ENV
+
+
       - name: Set various variable for staging deployment
         if: matrix.env == 'off-query-net'
         run: |
@@ -37,6 +42,8 @@ jobs:
         # FIXME - CHANGE BEFORE MERGE
         if: matrix.env == 'off-query-new-org'
         run: |
+          # FIXME - CHANGE BEFORE MERGE
+          echo "PROJECT_DIR=off-query-org" >> $GITHUB_ENV
           echo "SSH_PROXY_HOST=off1.openfoodfacts.org" >> $GITHUB_ENV
           echo "SSH_USERNAME=off" >> $GITHUB_ENV
           # deploy target
@@ -80,10 +87,10 @@ jobs:
           script_stop: false
           script: |
             # Clone Git repository if not already there
-            [ ! -d '${{ matrix.env }}' ] && git clone --depth 1 https://github.com/${{ github.repository }} ${{ matrix.env }} --no-single-branch 2>&1
+            [ ! -d '${{ env.PROJECT_DIR }}' ] && git clone --depth 1 https://github.com/${{ github.repository }} ${{ env.PROJECT_DIR }} --no-single-branch 2>&1
 
             # Go to repository directory
-            cd ${{ matrix.env }}
+            cd ${{ env.PROJECT_DIR }}
 
             # Fetch newest commits (in case it wasn't freshly cloned)
             git fetch --depth 1
@@ -103,7 +110,7 @@ jobs:
           script_stop: false
           script: |
             # Go to repository directory
-            cd ${{ matrix.env }}
+            cd ${{ env.PROJECT_DIR }}
 
             # new env
             rm .env
@@ -138,7 +145,7 @@ jobs:
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: false
           script: |
-            cd ${{ matrix.env }}
+            cd ${{ env.PROJECT_DIR }}
             make create_external_volumes && \
             make create_external_networks
 
@@ -154,7 +161,7 @@ jobs:
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: false
           script: |
-            cd ${{ matrix.env }}
+            cd ${{ env.PROJECT_DIR }}
             docker compose up -d 2>&1
 
       - name: Check services are up
@@ -170,7 +177,7 @@ jobs:
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: false
           script: |
-            cd ${{ matrix.env }}
+            cd ${{ env.PROJECT_DIR }}
             exit_code=0
             for service in `docker compose config  --service | tr '\n' ' '`; do 
               if [ -z `docker compose ps -q $service` ] || [ -z `docker ps -q --no-trunc | grep $(docker compose ${{ env.compose_args }} ps -q $service)` ]; then
@@ -194,5 +201,5 @@ jobs:
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: false
           script: |
-            cd ${{ matrix.env }}
+            cd ${{ env.PROJECT_DIR }}
             docker system prune -af
