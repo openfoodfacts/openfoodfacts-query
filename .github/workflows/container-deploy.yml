@@ -16,17 +16,17 @@ jobs:
         env:
           # FIXME name you envs, see reuse below
           # it's also the name of the directory for the application
-          - ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-org' || 'off-query-net' }}
+          # FIXME - REMOVE BEFORE MERGING !!!
+          - 'off-query-new-org'
+          #- ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-org' || 'off-query-net' }}
     environment: ${{ matrix.env }}
     concurrency: ${{ matrix.env }}
     steps:
-      - name: Set common variables
-        run: |
-          echo "SSH_PROXY_HOST=ovh1.openfoodfacts.org" >> $GITHUB_ENV
-          echo "SSH_USERNAME=off" >> $GITHUB_ENV
       - name: Set various variable for staging deployment
         if: matrix.env == 'off-query-net'
         run: |
+          echo "SSH_PROXY_HOST=ovh1.openfoodfacts.org" >> $GITHUB_ENV
+          echo "SSH_USERNAME=off" >> $GITHUB_ENV
           # deploy target
           echo "SSH_HOST=10.1.0.200" >> $GITHUB_ENV
           # configurations
@@ -34,16 +34,18 @@ jobs:
           echo "MONGO_URI=mongodb://10.1.0.200:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://redis:6379" >> $GITHUB_ENV
       - name: Set various variable for production deployment
-        if: matrix.env == 'off-query-org'
+        # FIXME - CHANGE BEFORE MERGE
+        if: matrix.env == 'off-query-new-org'
         run: |
+          echo "SSH_PROXY_HOST=off1.openfoodfacts.org" >> $GITHUB_ENV
+          echo "SSH_USERNAME=off" >> $GITHUB_ENV
           # deploy target
-          echo "SSH_HOST=10.1.0.201" >> $GITHUB_ENV
+          echo "SSH_HOST=10.1.0.115" >> $GITHUB_ENV
           # configurations
           echo "COMMON_NET_NAME=" >> $GITHUB_ENV
           # mongodb and redis (through stunnel)
-          echo "MONGO_URI=mongodb://10.1.0.113:27017" >> $GITHUB_ENV
-          echo "REDIS_URL=redis://10.1.0.113:6379" >> $GITHUB_ENV
-
+          echo "MONGO_URI=mongodb://10.1.0.102:27017" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://10.1.0.122:6379" >> $GITHUB_ENV
       - name: Wait for container build workflow
         uses: tomchv/wait-my-workflow@v1.1.0
         id: wait-build
@@ -152,7 +154,7 @@ jobs:
           script_stop: false
           script: |
             cd ${{ matrix.env }}
-            docker-compose up -d 2>&1
+            docker compose up -d 2>&1
 
       - name: Check services are up
         uses: appleboy/ssh-action@master
@@ -169,8 +171,8 @@ jobs:
           script: |
             cd ${{ matrix.env }}
             exit_code=0
-            for service in `docker-compose config  --service | tr '\n' ' '`; do 
-              if [ -z `docker-compose ps -q $service` ] || [ -z `docker ps -q --no-trunc | grep $(docker-compose ${{ env.compose_args }} ps -q $service)` ]; then
+            for service in `docker compose config  --service | tr '\n' ' '`; do 
+              if [ -z `docker compose ps -q $service` ] || [ -z `docker ps -q --no-trunc | grep $(docker compose ${{ env.compose_args }} ps -q $service)` ]; then
                 echo "$service: DOWN"
                 exit_code=1
               else
