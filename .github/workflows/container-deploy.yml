@@ -126,21 +126,22 @@ jobs:
             echo "REDIS_URL=${{ env.REDIS_URL }}" >> .env
             echo "LOG_LEVEL=log" >> .env
 
-      # Not worried about this at the moment as data is a cache
 
-      # - name: Create external Docker volumes
-      #   uses: appleboy/ssh-action@master
-      #   with:
-      #     host: ${{ env.SSH_HOST }}
-      #     username: ${{ env.SSH_USERNAME }}
-      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
-      #     proxy_host: ${{ env.SSH_PROXY_HOST }}
-      #     proxy_username: ${{ env.SSH_USERNAME }}
-      #     proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-      #     script_stop: false
-      #     script: |
-      #       cd ${{ matrix.env }}
-      #       docker volume create <VOLUME_NAME>
+      - name: Create external Docker networks and volumes
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ env.SSH_PROXY_HOST }}
+          proxy_username: ${{ env.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: false
+          script: |
+            cd ${{ matrix.env }}
+            make create_external_volumes && \
+            make create_external_networks
+
 
       - name: Start services
         uses: appleboy/ssh-action@master
