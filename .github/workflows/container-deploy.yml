@@ -42,7 +42,7 @@ jobs:
           # deploy target
           echo "SSH_HOST=10.1.0.115" >> $GITHUB_ENV
           # configurations
-          echo "COMMON_NET_NAME=" >> $GITHUB_ENV
+          echo "COMMON_NET_NAME=common_net" >> $GITHUB_ENV
           # mongodb and redis (through stunnel)
           echo "MONGO_URI=mongodb://10.1.0.102:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://10.1.0.122:6379" >> $GITHUB_ENV
