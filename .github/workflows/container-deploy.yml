@@ -20,13 +20,14 @@ jobs:
     environment: ${{ matrix.env }}
     concurrency: ${{ matrix.env }}
     steps:
-      - name: Set common variables
+      - name: Set various common variable for deployment
         run: |
-          echo "SSH_PROXY_HOST=ovh1.openfoodfacts.org" >> $GITHUB_ENV
-          echo "SSH_USERNAME=off" >> $GITHUB_ENV
+          echo "PROJECT_DIR=${{ matrix.env }}" >> $GITHUB_ENV
       - name: Set various variable for staging deployment
         if: matrix.env == 'off-query-net'
         run: |
+          echo "SSH_PROXY_HOST=ovh1.openfoodfacts.org" >> $GITHUB_ENV
+          echo "SSH_USERNAME=off" >> $GITHUB_ENV
           # deploy target
           echo "SSH_HOST=10.1.0.200" >> $GITHUB_ENV
           # configurations
@@ -36,14 +37,15 @@ jobs:
       - name: Set various variable for production deployment
         if: matrix.env == 'off-query-org'
         run: |
+          echo "SSH_PROXY_HOST=off1.openfoodfacts.org" >> $GITHUB_ENV
+          echo "SSH_USERNAME=off" >> $GITHUB_ENV
           # deploy target
-          echo "SSH_HOST=10.1.0.201" >> $GITHUB_ENV
+          echo "SSH_HOST=10.1.0.115" >> $GITHUB_ENV
           # configurations
-          echo "COMMON_NET_NAME=" >> $GITHUB_ENV
+          echo "COMMON_NET_NAME=common_net" >> $GITHUB_ENV
           # mongodb and redis (through stunnel)
-          echo "MONGO_URI=mongodb://10.1.0.113:27017" >> $GITHUB_ENV
-          echo "REDIS_URL=redis://10.1.0.113:6379" >> $GITHUB_ENV
-
+          echo "MONGO_URI=mongodb://10.1.0.102:27017" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://10.1.0.122:6379" >> $GITHUB_ENV
       - name: Wait for container build workflow
         uses: tomchv/wait-my-workflow@v1.1.0
         id: wait-build
@@ -78,10 +80,10 @@ jobs:
           script_stop: false
           script: |
             # Clone Git repository if not already there
-            [ ! -d '${{ matrix.env }}' ] && git clone --depth 1 https://github.com/${{ github.repository }} ${{ matrix.env }} --no-single-branch 2>&1
+            [ ! -d '${{ env.PROJECT_DIR }}' ] && git clone --depth 1 https://github.com/${{ github.repository }} ${{ env.PROJECT_DIR }} --no-single-branch 2>&1
 
             # Go to repository directory
-            cd ${{ matrix.env }}
+            cd ${{ env.PROJECT_DIR }}
 
             # Fetch newest commits (in case it wasn't freshly cloned)
             git fetch --depth 1
@@ -101,7 +103,7 @@ jobs:
           script_stop: false
           script: |
             # Go to repository directory
-            cd ${{ matrix.env }}
+            cd ${{ env.PROJECT_DIR }}
 
             # new env
             rm .env
@@ -124,21 +126,22 @@ jobs:
             echo "REDIS_URL=${{ env.REDIS_URL }}" >> .env
             echo "LOG_LEVEL=log" >> .env
 
-      # Not worried about this at the moment as data is a cache
 
-      # - name: Create external Docker volumes
-      #   uses: appleboy/ssh-action@master
-      #   with:
-      #     host: ${{ env.SSH_HOST }}
-      #     username: ${{ env.SSH_USERNAME }}
-      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
-      #     proxy_host: ${{ env.SSH_PROXY_HOST }}
-      #     proxy_username: ${{ env.SSH_USERNAME }}
-      #     proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-      #     script_stop: false
-      #     script: |
-      #       cd ${{ matrix.env }}
-      #       docker volume create <VOLUME_NAME>
+      - name: Create external Docker networks and volumes
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ env.SSH_PROXY_HOST }}
+          proxy_username: ${{ env.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: false
+          script: |
+            cd ${{ env.PROJECT_DIR }}
+            make create_external_volumes && \
+            make create_external_networks
+
 
       - name: Start services
         uses: appleboy/ssh-action@master
@@ -151,8 +154,8 @@ jobs:
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: false
           script: |
-            cd ${{ matrix.env }}
-            docker-compose up -d 2>&1
+            cd ${{ env.PROJECT_DIR }}
+            docker compose up -d 2>&1
 
       - name: Check services are up
         uses: appleboy/ssh-action@master
@@ -167,10 +170,10 @@ jobs:
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: false
           script: |
-            cd ${{ matrix.env }}
+            cd ${{ env.PROJECT_DIR }}
             exit_code=0
-            for service in `docker-compose config  --service | tr '\n' ' '`; do 
-              if [ -z `docker-compose ps -q $service` ] || [ -z `docker ps -q --no-trunc | grep $(docker-compose ${{ env.compose_args }} ps -q $service)` ]; then
+            for service in `docker compose config  --service | tr '\n' ' '`; do 
+              if [ -z `docker compose ps -q $service` ] || [ -z `docker ps -q --no-trunc | grep $(docker compose ${{ env.compose_args }} ps -q $service)` ]; then
                 echo "$service: DOWN"
                 exit_code=1
               else
@@ -191,5 +194,5 @@ jobs:
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: false
           script: |
-            cd ${{ matrix.env }}
+            cd ${{ env.PROJECT_DIR }}
             docker system prune -af

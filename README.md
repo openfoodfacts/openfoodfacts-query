@@ -15,7 +15,7 @@ To get started...
 Run the following:
 
 ```
-docker-compose up -d query_postgres
+docker compose up -d query_postgres
 ```
 
 ### Use an existing Postgres database
