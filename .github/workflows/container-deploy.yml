@@ -16,17 +16,13 @@ jobs:
         env:
           # FIXME name you envs, see reuse below
           # it's also the name of the directory for the application
-          # FIXME - REMOVE BEFORE MERGING !!!
-          - 'off-query-new-org'
-          #- ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-org' || 'off-query-net' }}
+          - ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-org' || 'off-query-net' }}
     environment: ${{ matrix.env }}
     concurrency: ${{ matrix.env }}
     steps:
       - name: Set various common variable for deployment
         run: |
           echo "PROJECT_DIR=${{ matrix.env }}" >> $GITHUB_ENV
-
-
       - name: Set various variable for staging deployment
         if: matrix.env == 'off-query-net'
         run: |
@@ -39,11 +35,8 @@ jobs:
           echo "MONGO_URI=mongodb://10.1.0.200:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://redis:6379" >> $GITHUB_ENV
       - name: Set various variable for production deployment
-        # FIXME - CHANGE BEFORE MERGE
-        if: matrix.env == 'off-query-new-org'
+        if: matrix.env == 'off-query-org'
         run: |
-          # FIXME - CHANGE BEFORE MERGE
-          echo "PROJECT_DIR=off-query-org" >> $GITHUB_ENV
           echo "SSH_PROXY_HOST=off1.openfoodfacts.org" >> $GITHUB_ENV
           echo "SSH_USERNAME=off" >> $GITHUB_ENV
           # deploy target
