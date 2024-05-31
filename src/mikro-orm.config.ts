@@ -7,12 +7,15 @@ import {
   defineConfig,
 } from '@mikro-orm/core';
 import { SCHEMA } from './constants';
+import { Logger } from '@nestjs/common';
 
 class DateTimeNtzType extends DateTimeType {
   getColumnType(): string {
     return 'timestamp';
   }
 }
+
+const logger = new Logger('MikroOrm');
 
 export default defineConfig({
   entities: ['./dist/domain/entities'],
@@ -46,6 +49,16 @@ export default defineConfig({
   migrations: {
     path: 'dist/migrations',
     pathTs: 'src/migrations',
+  },
+  pool: {
+    afterCreate: function (conn: any, done: any) {
+      conn.query('select 1 as result', function (err) {
+        conn.on('notice', function (msg) {
+          logger.error('Notice from PostgreSQL: ' + msg.message);
+        });
+        done(err, conn);
+      });
+    },
   },
   // Uncomment the below and 'app.useLogger(new Logger());' to the test to see Mikro-ORM logs
   // debug: ['query', 'query-params'],

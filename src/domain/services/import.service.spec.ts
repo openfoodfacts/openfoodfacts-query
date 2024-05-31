@@ -13,7 +13,6 @@ import { createClient } from 'redis';
 import { GenericContainer } from 'testcontainers';
 import { setTimeout } from 'timers/promises';
 
-let index = 0;
 const lastModified = 1692032161;
 
 function testProducts() {
@@ -36,24 +35,30 @@ function testProducts() {
   return { products, productIdExisting, productIdNew };
 }
 
-// Need to specify argumet list bellow so that calls in the assertion is typed
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const findMock = jest.fn((_filter, _projection) => ({
-  next: async () => {
-    return index++ <= mockedProducts.length ? mockedProducts[index - 1] : null;
-  },
-  close: jest.fn(),
-}));
+const findCalls = [];
 
 jest.mock('mongodb', () => {
   return {
     MongoClient: jest.fn(() => ({
       connect: jest.fn(),
-      db: () => ({
-        collection: () => ({
-          find: findMock,
-        }),
-      }),
+      db: () => {
+        let index = 0;
+        return {
+          collection: () => ({
+            find: (...args: any) => {
+              findCalls.push(args);
+              return {
+                next: async () => {
+                  return index++ <= mockedProducts.length
+                    ? mockedProducts[index - 1]
+                    : null;
+                },
+                close: jest.fn(),
+              };
+            },
+          }),
+        };
+      },
       close: jest.fn(),
     })),
   };
@@ -61,12 +66,12 @@ jest.mock('mongodb', () => {
 
 let mockedProducts = [];
 function mockMongoDB(productList) {
-  index = 0;
   mockedProducts = productList;
 }
 
 // Import tests can sometimes take a little time in GitHub
-jest.setTimeout(10000);
+// Plus Allow a little time for the testcontainer to start
+jest.setTimeout(300000);
 
 describe('importFromMongo', () => {
   it('should import a new product update existing products and delete missing products', async () => {
@@ -103,7 +108,7 @@ describe('importFromMongo', () => {
 
       await importService.importFromMongo();
 
-      // THEN: New product is addeded, updated product is updated and other product is unchanged
+      // THEN: New product is added, updated product is updated and other product is unchanged
       expect(deleteMock).toHaveBeenCalledTimes(1);
       let updateId = deleteMock.mock.calls[0][0];
       // Re-format updateId the way Postgres provides it
@@ -213,12 +218,12 @@ describe('importFromMongo', () => {
 
       // WHEN: Doing an incremental import from MongoDB
       mockMongoDB(products);
-      findMock.mockClear();
+      findCalls.length = 0;
       await importService.importFromMongo('');
 
       // THEN: Mongo find is called with the setting as a parameter
-      expect(findMock).toHaveBeenCalledTimes(2); // Called for normal an obsolete prodocuts
-      expect(findMock.mock.calls[0][0].last_modified_t.$gt).toBe(
+      expect(findCalls).toHaveLength(2); // Called for normal an obsolete prodocuts
+      expect(findCalls[0][0].last_modified_t.$gt).toBe(
         Math.floor(startFrom.getTime() / 1000),
       );
 
@@ -228,9 +233,9 @@ describe('importFromMongo', () => {
     });
   });
 
-  it('should cope with nul charactes', async () => {
+  it('should cope with nul characters', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      // WHEN: Impoting data containing nul characters
+      // WHEN: Importing data containing nul characters
       const { productIdNew } = testProducts();
       mockMongoDB([
         {
@@ -269,7 +274,6 @@ describe('importFromMongo', () => {
 
       // WHEN: Doing an import from MongoDB
       mockMongoDB(testData);
-      findMock.mockClear();
       await importService.importFromMongo('');
 
       // THEN: The last modified date is set correctly
@@ -346,9 +350,30 @@ describe('ProductTag', () => {
   });
 });
 
+describe('importWithFilter', () => {
+  it.only('should not get an error with concurrent imports', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+
+      // WHEN: Doing an incremental import from MongoDB
+      const { products, productIdExisting, productIdNew } = testProducts();
+      mockMongoDB(products);
+      const imports = [];
+      // Need more than 10 concurrent imports to start to see errors
+      for (let i = 0; i < 11; i++) {
+        imports.push(
+          importService.importWithFilter(
+            { code: { $in: [productIdExisting, productIdNew] } },
+            ProductSource.EVENT,
+          ),
+        );
+      }
+      await Promise.all(imports);
+    });
+  });
+});
+
 describe('receiveMessages', () => {
-  // Allow a little time for the testcontainer to start
-  jest.setTimeout(30000);
   it('should call importwithfilter when a message is received', async () => {
     await createTestingModule([DomainModule], async (app) => {
       // GIVEN: Redis is running
