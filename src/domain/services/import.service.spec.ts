@@ -1,6 +1,6 @@
 import { DomainModule } from '../domain.module';
 import { ImportService } from './import.service';
-import { EntityManager } from '@mikro-orm/core';
+import { EntityManager } from '@mikro-orm/postgresql';
 import { Product } from '../entities/product';
 import { ProductIngredientsTag } from '../entities/product-tags';
 import { createTestingModule, randomCode } from '../../../test/test.helper';
@@ -351,7 +351,7 @@ describe('ProductTag', () => {
 });
 
 describe('importWithFilter', () => {
-  it.only('should not get an error with concurrent imports', async () => {
+  it('should not get an error with concurrent imports', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const importService = app.get(ImportService);
 
