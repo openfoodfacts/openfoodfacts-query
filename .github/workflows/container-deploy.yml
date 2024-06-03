@@ -34,6 +34,7 @@ jobs:
           echo "COMMON_NET_NAME=po_webnet" >> $GITHUB_ENV
           echo "MONGO_URI=mongodb://10.1.0.200:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://redis:6379" >> $GITHUB_ENV
+          echo "POSTGRES_SHM_SIZE=1g" >> $GITHUB_ENV
       - name: Set various variable for production deployment
         if: matrix.env == 'off-query-org'
         run: |
@@ -46,6 +47,7 @@ jobs:
           # mongodb and redis (through stunnel)
           echo "MONGO_URI=mongodb://10.1.0.102:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://10.1.0.122:6379" >> $GITHUB_ENV
+          echo "POSTGRES_SHM_SIZE=256m" >> $GITHUB_ENV
       - name: Wait for container build workflow
         uses: tomchv/wait-my-workflow@v1.1.0
         id: wait-build
@@ -124,6 +126,7 @@ jobs:
             echo "COMMON_NET_NAME=${{ env.COMMON_NET_NAME }}" >> .env
             echo "MONGO_URI=${{ env.MONGO_URI }}" >> .env
             echo "REDIS_URL=${{ env.REDIS_URL }}" >> .env
+            echo "POSTGRES_SHM_SIZE=${{ env.POSTGRES_SHM_SIZE }}" >> .env
             echo "LOG_LEVEL=log" >> .env
 
 

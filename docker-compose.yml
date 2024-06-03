@@ -6,7 +6,7 @@ services:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - POSTGRES_DB
-    shm_size: 256m
+    shm_size: ${POSTGRES_SHM_SIZE}
     volumes:
       - dbdata:/var/lib/postgresql/data
     networks:

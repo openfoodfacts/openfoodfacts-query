@@ -52,6 +52,7 @@ export default defineConfig({
   },
   pool: {
     afterCreate: function (conn: any, done: any) {
+      // issue a query to verify SQL connection is working
       conn.query('select 1 as result', function (err) {
         conn.on('notice', function (msg) {
           logger.error('Notice from PostgreSQL: ' + msg.message);
