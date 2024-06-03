@@ -131,7 +131,7 @@ export class ImportService {
     await client.close();
 
     // Tags are popualted using raw SQL from the data field
-    await this.updateTags(updateId, fullImport);
+    await this.updateTags(updateId, fullImport, source);
 
     // If doing a full import delete all products that weren't updated
     if (fullImport) {
@@ -236,14 +236,21 @@ export class ImportService {
    * SQL is then run to insert this into the individual tag tables.
    * This was found to be quicker than using ORM functionality
    */
-  async updateTags(updateId: string, fullImport = false) {
+  async updateTags(
+    updateId: string,
+    fullImport = false,
+    source = ProductSource.FULL_LOAD,
+  ) {
+    // Commit after each tag for bulk (non-Redis) loads to minimise server snapshot size
+    const commitPerTag = source !== ProductSource.EVENT;
+
     this.logger.debug(`Updating tags for updateId: ${updateId}`);
 
     const connection = this.em.getConnection();
 
     // Fix ingredients
     let logText = `Updated ingredients`;
-    await connection.execute('begin');
+    if (commitPerTag) await connection.execute('begin');
     const deleted = await connection.execute(
       `delete from product_ingredient 
     where product_id in (select id from product 
@@ -329,7 +336,7 @@ export class ImportService {
       affectedRows = results['affectedRows'];
       logText += ` > ${affectedRows}`;
     }
-    await connection.execute('commit');
+    if (commitPerTag) await connection.execute('commit');
     this.logger.debug(logText + ' rows');
 
     for (const [tag, entity] of Object.entries(ProductTagMap.MAPPED_TAGS)) {
@@ -337,7 +344,7 @@ export class ImportService {
       // Get the underlying table name for the entity
       const tableName = this.em.getMetadata(entity).tableName;
 
-      await connection.execute('begin');
+      if (commitPerTag) await connection.execute('begin');
 
       // Delete existing tags for products that were imorted on this run
       const deleted = await connection.execute(
@@ -359,8 +366,7 @@ export class ImportService {
         'run',
       );
 
-      // Commit after each tag to minimise server snapshot size
-      await connection.execute('commit');
+      if (commitPerTag) await connection.execute('commit');
 
       // If this is a full load we can flag the tag as now available for query
       if (fullImport) {
