@@ -1,13 +1,12 @@
 import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
-import { Ulid } from 'id128';
 import { ProductSource } from '../enums/product-source';
 
 @Entity()
 export class Product {
-  @PrimaryKey({ type: 'uuid' })
-  id = Ulid.generate().toRaw();
+  @PrimaryKey({ columnType: 'serial' })
+  id: number;
 
-  /** The full JSON structure retreived from Product Opener */
+  /** The full JSON structure retrieved from Product Opener */
   @Property({ type: 'json', columnType: 'json' })
   data?: any;
 

@@ -228,7 +228,7 @@ export class QueryService {
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
     const response = results[0].count;
-    this.logger.log(
+    this.logger.debug(
       `Processed ${whereLog.join(' and ')} in ${
         Date.now() - start
       } ms. Count: ${response}`,
@@ -250,7 +250,7 @@ export class QueryService {
 
     this.logger.debug(qb.getFormattedQuery());
     const results = await qb.execute();
-    this.logger.log(
+    this.logger.debug(
       `Processed ${whereLog.join(' and ')} in ${
         Date.now() - start
       } ms. Selected ${results.length} records`,

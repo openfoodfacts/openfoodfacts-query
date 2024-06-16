@@ -7,11 +7,13 @@ export abstract class BaseProductTag {
     this.value = value;
   }
 
-  @ManyToOne({ primary: true, onDelete: 'cascade' })
-  product: Product;
-
-  @PrimaryKey({ index: true })
+  // We put the value first so that the primary key index is optimised to search by value
+  @PrimaryKey()
   value: string;
+
+  // Still need an index on product id for deletes during imports, but product id is smaller than value
+  @ManyToOne({ primary: true, onDelete: 'cascade', index: true })
+  product: Product;
 
   @Property()
   obsolete = false;
