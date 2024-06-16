@@ -2,6 +2,17 @@ import { Migration } from '@mikro-orm/migrations';
 
 export class Migration20240614163139 extends Migration {
   async up(): Promise<void> {
+    // Changing product id from a UUID to an integer. Migration steps are as follows:
+    // 1. Drop all existing primary keys that reference product_id (CASCADE removes foreign keys too)
+    // 2. Rename old product id column
+    // 3. Add new integer product id column
+    // 4. Update new column for tags
+    // 5. Make column not null
+    // 6. Add back primary keys
+    // 7. Add back foreign keys
+    // 8. Drop old column
+
+    // 1. Drop all existing primary keys that reference product_id (CASCADE removes foreign keys too)
     this.addSql('alter table query.product_additives_tag DROP CONSTRAINT product_additives_tag_pkey CASCADE;');
     this.addSql('alter table query.product_allergens_tag DROP CONSTRAINT product_allergens_tag_pkey CASCADE;');
     this.addSql('alter table query.product_amino_acids_tag DROP CONSTRAINT product_amino_acids_tag_pkey CASCADE;');
@@ -70,6 +81,7 @@ export class Migration20240614163139 extends Migration {
 
     this.addSql('ALTER TABLE "query"."product" DROP CONSTRAINT product_pkey CASCADE;');
 
+    // 2. Rename old product id column
     this.addSql('alter table query.product_additives_tag RENAME COLUMN product_id TO old_product_id;');
     this.addSql('alter table query.product_allergens_tag RENAME COLUMN product_id TO old_product_id;');
     this.addSql('alter table query.product_amino_acids_tag RENAME COLUMN product_id TO old_product_id;');
@@ -139,6 +151,8 @@ export class Migration20240614163139 extends Migration {
 
     this.addSql('alter table "query"."product" RENAME COLUMN "id" TO "old_id";');
     this.addSql('CREATE UNIQUE INDEX product_old_id ON "query"."product" (old_id);');
+
+    // 3. Add new integer product id column
     this.addSql('alter table "query"."product" add column "id" serial NOT NULL;');
 
     this.addSql('alter table query.product_additives_tag ADD COLUMN product_id int NULL;');
@@ -208,6 +222,7 @@ export class Migration20240614163139 extends Migration {
     this.addSql('alter table query.product_vitamins_tag ADD COLUMN product_id int NULL;');
     this.addSql('alter table query.product_weighers_tag ADD COLUMN product_id int NULL;');
 
+    // 4. Update new column for tags
     this.addSql('update query.product_additives_tag set product_id = id from query.product WHERE old_id = old_product_id AND product_id IS NULL;');
     this.addSql('update query.product_allergens_tag set product_id = id from query.product WHERE old_id = old_product_id AND product_id IS NULL;');
     this.addSql('update query.product_amino_acids_tag set product_id = id from query.product WHERE old_id = old_product_id AND product_id IS NULL;');
@@ -275,6 +290,7 @@ export class Migration20240614163139 extends Migration {
     this.addSql('update query.product_vitamins_tag set product_id = id from query.product WHERE old_id = old_product_id AND product_id IS NULL;');
     this.addSql('update query.product_weighers_tag set product_id = id from query.product WHERE old_id = old_product_id AND product_id IS NULL;');
 
+    // 5. Make column not null
     this.addSql('alter table query.product_additives_tag alter column product_id SET NOT NULL;');
     this.addSql('alter table query.product_allergens_tag alter column product_id SET NOT NULL;');
     this.addSql('alter table query.product_amino_acids_tag alter column product_id SET NOT NULL;');
@@ -341,74 +357,76 @@ export class Migration20240614163139 extends Migration {
     this.addSql('alter table query.product_vitamins_tag alter column product_id SET NOT NULL;');
     this.addSql('alter table query.product_weighers_tag alter column product_id SET NOT NULL;');
 
+    // 6. Add back primary keys
     this.addSql('alter table "query"."product" add constraint "product_pkey" primary key ("id");');
 
-    this.addSql('alter table query.product_additives_tag ADD CONSTRAINT product_additives_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_allergens_tag ADD CONSTRAINT product_allergens_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_amino_acids_tag ADD CONSTRAINT product_amino_acids_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_brands_tag ADD CONSTRAINT product_brands_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_categories_properites_tag ADD CONSTRAINT product_categories_properites_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_categories_tag ADD CONSTRAINT product_categories_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_checkers_tag ADD CONSTRAINT product_checkers_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_cities_tag ADD CONSTRAINT product_cities_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_codes_tag ADD CONSTRAINT product_codes_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_correctors_tag ADD CONSTRAINT product_correctors_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_countries_tag ADD CONSTRAINT product_countries_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_data_quality_bugs_tag ADD CONSTRAINT product_data_quality_bugs_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_data_quality_errors_tag ADD CONSTRAINT product_data_quality_errors_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_data_quality_tag ADD CONSTRAINT product_data_quality_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_data_quality_warnings_tag ADD CONSTRAINT product_data_quality_warnings_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_data_sources_tag ADD CONSTRAINT product_data_sources_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_debug_tag ADD CONSTRAINT product_debug_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_ecoscore_tag ADD CONSTRAINT product_ecoscore_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_editors_tag ADD CONSTRAINT product_editors_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_emb_codes_tag ADD CONSTRAINT product_emb_codes_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_entry_dates_tag ADD CONSTRAINT product_entry_dates_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_food_groups_tag ADD CONSTRAINT product_food_groups_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_informers_tag ADD CONSTRAINT product_informers_tag_pkey PRIMARY KEY (value,product_id);');
+    this.addSql('alter table "query"."product_additives_tag" add constraint "product_additives_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_allergens_tag" add constraint "product_allergens_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_amino_acids_tag" add constraint "product_amino_acids_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_brands_tag" add constraint "product_brands_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_categories_properites_tag" add constraint "product_categories_properites_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_categories_tag" add constraint "product_categories_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_checkers_tag" add constraint "product_checkers_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_cities_tag" add constraint "product_cities_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_codes_tag" add constraint "product_codes_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_correctors_tag" add constraint "product_correctors_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_countries_tag" add constraint "product_countries_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_data_quality_bugs_tag" add constraint "product_data_quality_bugs_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_data_quality_errors_tag" add constraint "product_data_quality_errors_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_data_quality_tag" add constraint "product_data_quality_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_data_quality_warnings_tag" add constraint "product_data_quality_warnings_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_data_sources_tag" add constraint "product_data_sources_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_debug_tag" add constraint "product_debug_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_ecoscore_tag" add constraint "product_ecoscore_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_editors_tag" add constraint "product_editors_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_emb_codes_tag" add constraint "product_emb_codes_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_entry_dates_tag" add constraint "product_entry_dates_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_food_groups_tag" add constraint "product_food_groups_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_informers_tag" add constraint "product_informers_tag_pkey" primary key ("product_id", "value");');
     this.addSql('alter table query.product_ingredient ADD CONSTRAINT product_ingredient_pkey PRIMARY KEY (product_id,sequence);');
-    this.addSql('alter table query.product_ingredients_analysis_tag ADD CONSTRAINT product_ingredients_analysis_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_ingredients_from_palm_oil_tag ADD CONSTRAINT product_ingredients_from_palm_oil_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_ingredients_ntag ADD CONSTRAINT product_ingredients_ntag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_ingredients_original_tag ADD CONSTRAINT product_ingredients_original_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_ingredients_tag ADD CONSTRAINT product_ingredients_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_ingredients_that_may_be_from_palm_oil_tag ADD CONSTRAINT product_ingredients_that_may_be_from_palm_oil_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_keywords_tag ADD CONSTRAINT product_keywords_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_labels_tag ADD CONSTRAINT product_labels_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_languages_tag ADD CONSTRAINT product_languages_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_last_check_dates_tag ADD CONSTRAINT product_last_check_dates_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_last_edit_dates_tag ADD CONSTRAINT product_last_edit_dates_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_latest_image_dates_tag ADD CONSTRAINT product_latest_image_dates_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_manufacturing_places_tag ADD CONSTRAINT product_manufacturing_places_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_minerals_tag ADD CONSTRAINT product_minerals_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_misc_tag ADD CONSTRAINT product_misc_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_nova_groups_tag ADD CONSTRAINT product_nova_groups_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_nucleotides_tag ADD CONSTRAINT product_nucleotides_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_nutrient_levels_tag ADD CONSTRAINT product_nutrient_levels_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_nutriscore_tag ADD CONSTRAINT product_nutriscore_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_nutriscore2021tag ADD CONSTRAINT product_nutriscore2021tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_nutriscore2023tag ADD CONSTRAINT product_nutriscore2023tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_nutrition_grades_tag ADD CONSTRAINT product_nutrition_grades_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_origins_tag ADD CONSTRAINT product_origins_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_other_nutritional_substances_tag ADD CONSTRAINT product_other_nutritional_substances_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_packaging_materials_tag ADD CONSTRAINT product_packaging_materials_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_packaging_recycling_tag ADD CONSTRAINT product_packaging_recycling_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_packaging_shapes_tag ADD CONSTRAINT product_packaging_shapes_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_packaging_tag ADD CONSTRAINT product_packaging_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_periods_after_opening_tag ADD CONSTRAINT product_periods_after_opening_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_photographers_tag ADD CONSTRAINT product_photographers_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_pnns_groups1tag ADD CONSTRAINT product_pnns_groups1tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_pnns_groups2tag ADD CONSTRAINT product_pnns_groups2tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_popularity_tag ADD CONSTRAINT product_popularity_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_purchase_places_tag ADD CONSTRAINT product_purchase_places_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_states_tag ADD CONSTRAINT product_states_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_stores_tag ADD CONSTRAINT product_stores_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_teams_tag ADD CONSTRAINT product_teams_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_traces_tag ADD CONSTRAINT product_traces_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_unknown_nutrients_tag ADD CONSTRAINT product_unknown_nutrients_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_vitamins_tag ADD CONSTRAINT product_vitamins_tag_pkey PRIMARY KEY (value,product_id);');
-    this.addSql('alter table query.product_weighers_tag ADD CONSTRAINT product_weighers_tag_pkey PRIMARY KEY (value,product_id);');
+    this.addSql('alter table "query"."product_ingredients_analysis_tag" add constraint "product_ingredients_analysis_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_ingredients_from_palm_oil_tag" add constraint "product_ingredients_from_palm_oil_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_ingredients_ntag" add constraint "product_ingredients_ntag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_ingredients_original_tag" add constraint "product_ingredients_original_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_ingredients_tag" add constraint "product_ingredients_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_ingredients_that_may_be_from_palm_oil_tag" add constraint "product_ingredients_that_may_be_from_palm_oil_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_keywords_tag" add constraint "product_keywords_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_labels_tag" add constraint "product_labels_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_languages_tag" add constraint "product_languages_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_last_check_dates_tag" add constraint "product_last_check_dates_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_last_edit_dates_tag" add constraint "product_last_edit_dates_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_latest_image_dates_tag" add constraint "product_latest_image_dates_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_manufacturing_places_tag" add constraint "product_manufacturing_places_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_minerals_tag" add constraint "product_minerals_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_misc_tag" add constraint "product_misc_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_nova_groups_tag" add constraint "product_nova_groups_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_nucleotides_tag" add constraint "product_nucleotides_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_nutrient_levels_tag" add constraint "product_nutrient_levels_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_nutriscore_tag" add constraint "product_nutriscore_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_nutriscore2021tag" add constraint "product_nutriscore2021tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_nutriscore2023tag" add constraint "product_nutriscore2023tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_nutrition_grades_tag" add constraint "product_nutrition_grades_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_origins_tag" add constraint "product_origins_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_other_nutritional_substances_tag" add constraint "product_other_nutritional_substances_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_packaging_materials_tag" add constraint "product_packaging_materials_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_packaging_recycling_tag" add constraint "product_packaging_recycling_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_packaging_shapes_tag" add constraint "product_packaging_shapes_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_packaging_tag" add constraint "product_packaging_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_periods_after_opening_tag" add constraint "product_periods_after_opening_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_photographers_tag" add constraint "product_photographers_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_pnns_groups1tag" add constraint "product_pnns_groups1tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_pnns_groups2tag" add constraint "product_pnns_groups2tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_popularity_tag" add constraint "product_popularity_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_purchase_places_tag" add constraint "product_purchase_places_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_states_tag" add constraint "product_states_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_stores_tag" add constraint "product_stores_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_teams_tag" add constraint "product_teams_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_traces_tag" add constraint "product_traces_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_unknown_nutrients_tag" add constraint "product_unknown_nutrients_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_vitamins_tag" add constraint "product_vitamins_tag_pkey" primary key ("product_id", "value");');
+    this.addSql('alter table "query"."product_weighers_tag" add constraint "product_weighers_tag_pkey" primary key ("product_id", "value");');
     
+    // 7. Add back foreign keys
     this.addSql('alter table query.product_additives_tag add constraint product_additives_tag_product_id_foreign FOREIGN KEY (product_id) references "query"."product" ("id") on update cascade on delete cascade;');
     this.addSql('alter table query.product_allergens_tag add constraint product_allergens_tag_product_id_foreign FOREIGN KEY (product_id) references "query"."product" ("id") on update cascade on delete cascade;');
     this.addSql('alter table query.product_amino_acids_tag add constraint product_amino_acids_tag_product_id_foreign FOREIGN KEY (product_id) references "query"."product" ("id") on update cascade on delete cascade;');
@@ -475,6 +493,7 @@ export class Migration20240614163139 extends Migration {
     this.addSql('alter table query.product_vitamins_tag add constraint product_vitamins_tag_product_id_foreign FOREIGN KEY (product_id) references "query"."product" ("id") on update cascade on delete cascade;');
     this.addSql('alter table query.product_weighers_tag add constraint product_weighers_tag_product_id_foreign FOREIGN KEY (product_id) references "query"."product" ("id") on update cascade on delete cascade;');
 
+    // 8. Drop old column
     this.addSql('alter table query.product_additives_tag drop column old_product_id;');
     this.addSql('alter table query.product_allergens_tag drop column old_product_id;');
     this.addSql('alter table query.product_amino_acids_tag drop column old_product_id;');
@@ -544,71 +563,6 @@ export class Migration20240614163139 extends Migration {
 
     this.addSql('DROP INDEX query.product_old_id;');
     this.addSql('alter table query.product drop column old_id;');
-
-    this.addSql('DROP INDEX query.product_additives_tag_value_index;');
-    this.addSql('DROP INDEX query.product_allergens_tag_value_index;');
-    this.addSql('DROP INDEX query.product_amino_acids_tag_value_index;');
-    this.addSql('DROP INDEX query.product_brands_tag_value_index;');
-    this.addSql('DROP INDEX query.product_categories_properites_tag_value_index;');
-    this.addSql('DROP INDEX query.product_categories_tag_value_index;');
-    this.addSql('DROP INDEX query.product_checkers_tag_value_index;');
-    this.addSql('DROP INDEX query.product_cities_tag_value_index;');
-    this.addSql('DROP INDEX query.product_codes_tag_value_index;');
-    this.addSql('DROP INDEX query.product_correctors_tag_value_index;');
-    this.addSql('DROP INDEX query.product_countries_tag_value_index;');
-    this.addSql('DROP INDEX query.product_data_quality_bugs_tag_value_index;');
-    this.addSql('DROP INDEX query.product_data_quality_errors_tag_value_index;');
-    this.addSql('DROP INDEX query.product_data_quality_tag_value_index;');
-    this.addSql('DROP INDEX query.product_data_quality_warnings_tag_value_index;');
-    this.addSql('DROP INDEX query.product_data_sources_tag_value_index;');
-    this.addSql('DROP INDEX query.product_debug_tag_value_index;');
-    this.addSql('DROP INDEX query.product_ecoscore_tag_value_index;');
-    this.addSql('DROP INDEX query.product_editors_tag_value_index;');
-    this.addSql('DROP INDEX query.product_emb_codes_tag_value_index;');
-    this.addSql('DROP INDEX query.product_entry_dates_tag_value_index;');
-    this.addSql('DROP INDEX query.product_food_groups_tag_value_index;');
-    this.addSql('DROP INDEX query.product_informers_tag_value_index;');
-    this.addSql('DROP INDEX query.product_ingredients_analysis_tag_value_index;');
-    this.addSql('DROP INDEX query.product_ingredients_from_palm_oil_tag_value_index;');
-    this.addSql('DROP INDEX query.product_ingredients_ntag_value_index;');
-    this.addSql('DROP INDEX query.product_ingredients_original_tag_value_index;');
-    this.addSql('DROP INDEX query.product_ingredients_tag_value_index;');
-    this.addSql('DROP INDEX query.product_ingredients_that_may_be_from_palm_oil_tag_value_index;');
-    this.addSql('DROP INDEX query.product_keywords_tag_value_index;');
-    this.addSql('DROP INDEX query.product_labels_tag_value_index;');
-    this.addSql('DROP INDEX query.product_languages_tag_value_index;');
-    this.addSql('DROP INDEX query.product_last_check_dates_tag_value_index;');
-    this.addSql('DROP INDEX query.product_last_edit_dates_tag_value_index;');
-    this.addSql('DROP INDEX query.product_latest_image_dates_tag_value_index;');
-    this.addSql('DROP INDEX query.product_manufacturing_places_tag_value_index;');
-    this.addSql('DROP INDEX query.product_minerals_tag_value_index;');
-    this.addSql('DROP INDEX query.product_misc_tag_value_index;');
-    this.addSql('DROP INDEX query.product_nova_groups_tag_value_index;');
-    this.addSql('DROP INDEX query.product_nucleotides_tag_value_index;');
-    this.addSql('DROP INDEX query.product_nutrient_levels_tag_value_index;');
-    this.addSql('DROP INDEX query.product_nutriscore_tag_value_index;');
-    this.addSql('DROP INDEX query.product_nutriscore2021tag_value_index;');
-    this.addSql('DROP INDEX query.product_nutriscore2023tag_value_index;');
-    this.addSql('DROP INDEX query.product_nutrition_grades_tag_value_index;');
-    this.addSql('DROP INDEX query.product_origins_tag_value_index;');
-    this.addSql('DROP INDEX query.product_other_nutritional_substances_tag_value_index;');
-    this.addSql('DROP INDEX query.product_packaging_materials_tag_value_index;');
-    this.addSql('DROP INDEX query.product_packaging_recycling_tag_value_index;');
-    this.addSql('DROP INDEX query.product_packaging_shapes_tag_value_index;');
-    this.addSql('DROP INDEX query.product_packaging_tag_value_index;');
-    this.addSql('DROP INDEX query.product_periods_after_opening_tag_value_index;');
-    this.addSql('DROP INDEX query.product_photographers_tag_value_index;');
-    this.addSql('DROP INDEX query.product_pnns_groups1tag_value_index;');
-    this.addSql('DROP INDEX query.product_pnns_groups2tag_value_index;');
-    this.addSql('DROP INDEX query.product_popularity_tag_value_index;');
-    this.addSql('DROP INDEX query.product_purchase_places_tag_value_index;');
-    this.addSql('DROP INDEX query.product_states_tag_value_index;');
-    this.addSql('DROP INDEX query.product_stores_tag_value_index;');
-    this.addSql('DROP INDEX query.product_teams_tag_value_index;');
-    this.addSql('DROP INDEX query.product_traces_tag_value_index;');
-    this.addSql('DROP INDEX query.product_unknown_nutrients_tag_value_index;');
-    this.addSql('DROP INDEX query.product_vitamins_tag_value_index;');
-    this.addSql('DROP INDEX query.product_weighers_tag_value_index;');
 
     this.addSql('create index "product_ingredient_parent_product_id_parent_sequence_index" on "query"."product_ingredient" ("parent_product_id", "parent_sequence");');
   }
