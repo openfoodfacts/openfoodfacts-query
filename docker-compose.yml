@@ -1,6 +1,7 @@
 services:
   query_postgres:
     image: postgres:12-alpine
+    command: postgres -c shared_buffers=${QUERY_POSTGRES_SHARED_BUFFERS} -c work_mem=${QUERY_POSTGRES_WORK_MEM} -c listen_addresses='*'
     restart: ${RESTART_POLICY:-always}
     environment:
       - POSTGRES_USER
@@ -8,7 +9,7 @@ services:
       - POSTGRES_DB
     shm_size: ${POSTGRES_SHM_SIZE}
     volumes:
-      - dbdata:/var/lib/postgresql/data
+      - ${QUERY_DATA_DIR}:/var/lib/postgresql/data
     networks:
       - common_net
 
@@ -38,5 +39,7 @@ networks:
     name: ${COMMON_NET_NAME}
     external: true
 
+# This is here for legacy reasons as QUERY_DATA_DIR didn't used to be configurable
+# Set QUERY_DATA_DIR to "dbdata" to continue to use this volume
 volumes:
   dbdata:

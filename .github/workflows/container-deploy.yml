@@ -28,26 +28,39 @@ jobs:
         run: |
           echo "SSH_PROXY_HOST=ovh1.openfoodfacts.org" >> $GITHUB_ENV
           echo "SSH_USERNAME=off" >> $GITHUB_ENV
+
           # deploy target
           echo "SSH_HOST=10.1.0.200" >> $GITHUB_ENV
+
           # configurations
           echo "COMMON_NET_NAME=po_webnet" >> $GITHUB_ENV
           echo "MONGO_URI=mongodb://10.1.0.200:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://redis:6379" >> $GITHUB_ENV
+
+          # Postgres config
           echo "POSTGRES_SHM_SIZE=256m" >> $GITHUB_ENV
+          echo "QUERY_POSTGRES_SHARED_BUFFERS=4GB" >> $GITHUB_ENV
+          echo "QUERY_POSTGRES_WORK_MEM=256MB" >> $GITHUB_ENV
       - name: Set various variable for production deployment
         if: matrix.env == 'off-query-org'
         run: |
           echo "SSH_PROXY_HOST=off1.openfoodfacts.org" >> $GITHUB_ENV
           echo "SSH_USERNAME=off" >> $GITHUB_ENV
+
           # deploy target
           echo "SSH_HOST=10.1.0.115" >> $GITHUB_ENV
+
           # configurations
           echo "COMMON_NET_NAME=common_net" >> $GITHUB_ENV
+
           # mongodb and redis (through stunnel)
           echo "MONGO_URI=mongodb://10.1.0.102:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://10.1.0.122:6379" >> $GITHUB_ENV
+
+          # Postgres config
           echo "POSTGRES_SHM_SIZE=1g" >> $GITHUB_ENV
+          echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
+          echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
       - name: Wait for container build workflow
         uses: tomchv/wait-my-workflow@v1.1.0
         id: wait-build
@@ -126,7 +139,14 @@ jobs:
             echo "COMMON_NET_NAME=${{ env.COMMON_NET_NAME }}" >> .env
             echo "MONGO_URI=${{ env.MONGO_URI }}" >> .env
             echo "REDIS_URL=${{ env.REDIS_URL }}" >> .env
+
+            # Postgres config
             echo "POSTGRES_SHM_SIZE=${{ env.POSTGRES_SHM_SIZE }}" >> .env
+            echo "QUERY_POSTGRES_SHARED_BUFFERS=${{ env.QUERY_POSTGRES_SHARED_BUFFERS }}" >> .env
+            echo "QUERY_POSTGRES_WORK_MEM=${{ env.QUERY_POSTGRES_WORK_MEM }}" >> .env
+
+            # Use docker volume for now
+            echo "QUERY_DATA_DIR=dbdata" >> .env
             echo "LOG_LEVEL=log" >> .env
 
 
