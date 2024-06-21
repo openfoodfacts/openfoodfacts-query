@@ -13,7 +13,14 @@ ifneq (,$(wildcard ./${ENV_FILE}))
     export
 endif
 
-create_folders:
+# Space delimited list of dependant projects
+DEPS=openfoodfacts-shared-services
+# Set the DEPS_DIR if it hasn't been set already
+ifeq (${DEPS_DIR},)
+	export DEPS_DIR=${PWD}/deps
+endif
+
+create_folders: run_deps
 	mkdir -p ${QUERY_DATA_DIR}
 
 # Use this to start both the query service and associated database in Docker
@@ -32,11 +39,21 @@ tests:
 lint:
 	npm run lint
 
-# PRODUCTION
-create_external_volumes:
-	@echo "🎣 No external volumes (it's all cache !)"
+# Run dependent projects
+run_deps: clone_deps
+	@for dep in ${DEPS} ; do \
+		cd ${DEPS_DIR}/$$dep && $(MAKE) run; \
+	done
 
-create_external_networks:
-	@echo "🎣 Creating external networks (production only) …"
-	docker network create --driver=bridge --subnet="172.30.0.0/16" ${COMMON_NET_NAME} \
-	|| echo "network already exists"
+# Clone dependent projects without running them
+clone_deps:
+	@mkdir -p ${DEPS_DIR}; \
+	for dep in ${DEPS} ; do \
+		echo $$dep; \
+		if [ ! -d ${DEPS_DIR}/$$dep ]; then \
+			git clone --filter=blob:none --sparse \
+				https://github.com/openfoodfacts/$$dep.git ${DEPS_DIR}/$$dep; \
+		else \
+			cd ${DEPS_DIR}/$$dep && git pull; \
+		fi; \
+	done
