@@ -2,9 +2,7 @@ services:
   query_postgres:
     # Expose port locally for testing purposes.
     ports:
-      - "${POSTGRES_PORT:-5512}:5432"
-    volumes:
-      - ./data:/mnt/data
+      - "${POSTGRES_EXPOSE:-5512}:5432"
 
   query:
     build: .

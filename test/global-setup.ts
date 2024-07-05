@@ -7,7 +7,7 @@ const exec = util.promisify(child_process.exec);
 export default async function () {
   const container = await new PostgreSqlContainer().start();
   process.env.POSTGRES_HOST = container.getHost();
-  process.env.POSTGRES_PORT = container.getPort().toString();
+  process.env.POSTGRES_EXPOSE = container.getPort().toString();
   process.env.POSTGRES_DB = container.getDatabase();
   process.env.POSTGRES_USER = container.getUsername();
   process.env.POSTGRES_PASSWORD = container.getPassword();

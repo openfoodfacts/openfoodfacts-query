@@ -145,8 +145,6 @@ jobs:
             echo "QUERY_POSTGRES_SHARED_BUFFERS=${{ env.QUERY_POSTGRES_SHARED_BUFFERS }}" >> .env
             echo "QUERY_POSTGRES_WORK_MEM=${{ env.QUERY_POSTGRES_WORK_MEM }}" >> .env
 
-            # Use docker volume for now
-            echo "QUERY_DATA_DIR=dbdata" >> .env
             echo "LOG_LEVEL=log" >> .env
 
       - name: Start services
