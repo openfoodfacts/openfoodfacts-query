@@ -4,3 +4,6 @@ dist
 data/*
 !data/README.md
 temp
+
+/deps
+.envrc

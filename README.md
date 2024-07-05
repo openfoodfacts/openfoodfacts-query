@@ -65,7 +65,7 @@ QUERY_URL=http://host.docker.internal:5510
 
 The project joins the Product Opener "po_default" network.
 
-The project still uses its own Postgres database but will connect to product opener's Mongo database using the "mongodb" host.
+The project still uses its own Postgres database but will connect to shared-services Mongo database using the "mongodb" host.
 
 The service is exposed to localhost on 5511 to avoid clashing with any locally running instance.
 

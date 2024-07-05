@@ -9,7 +9,7 @@ services:
       - POSTGRES_DB
     shm_size: ${POSTGRES_SHM_SIZE}
     volumes:
-      - ${QUERY_DATA_DIR}:/var/lib/postgresql/data
+      - dbdata:/var/lib/postgresql/data
     networks:
       - common_net
 
@@ -18,6 +18,7 @@ services:
     restart: ${RESTART_POLICY:-always}
     environment:
       - POSTGRES_HOST=query_postgres
+      # When we are running inside docker we use the internal port
       - POSTGRES_PORT=5432
       - POSTGRES_DB
       - POSTGRES_USER
@@ -39,7 +40,5 @@ networks:
     name: ${COMMON_NET_NAME}
     external: true
 
-# This is here for legacy reasons as QUERY_DATA_DIR didn't used to be configurable
-# Set QUERY_DATA_DIR to "dbdata" to continue to use this volume
 volumes:
   dbdata:

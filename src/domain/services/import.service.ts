@@ -447,6 +447,16 @@ export class ImportService {
         if (keys?.length) {
           const messages = keys[0].messages;
           if (messages?.length) {
+            /** Message looks like this:
+              {
+                code: "0850026029062",
+                flavor: "off",
+                user_id: "stephane",
+                action: "updated",
+                comment: "Modification : Remove changes",
+                diffs: "{\"fields\":{\"change\":[\"categories\"],\"delete\":[\"product_name\",\"product_name_es\"]}}",
+              }
+             */
             const productCodes = messages.map((m) => m.message.code);
             const filter = { code: { $in: productCodes } };
             await this.importWithFilter(filter, ProductSource.EVENT);

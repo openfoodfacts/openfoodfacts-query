@@ -145,26 +145,7 @@ jobs:
             echo "QUERY_POSTGRES_SHARED_BUFFERS=${{ env.QUERY_POSTGRES_SHARED_BUFFERS }}" >> .env
             echo "QUERY_POSTGRES_WORK_MEM=${{ env.QUERY_POSTGRES_WORK_MEM }}" >> .env
 
-            # Use docker volume for now
-            echo "QUERY_DATA_DIR=dbdata" >> .env
             echo "LOG_LEVEL=log" >> .env
-
-
-      - name: Create external Docker networks and volumes
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          proxy_host: ${{ env.SSH_PROXY_HOST }}
-          proxy_username: ${{ env.SSH_USERNAME }}
-          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: false
-          script: |
-            cd ${{ env.PROJECT_DIR }}
-            make create_external_volumes && \
-            make create_external_networks
-
 
       - name: Start services
         uses: appleboy/ssh-action@master

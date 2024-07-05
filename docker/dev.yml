@@ -3,14 +3,12 @@ services:
     # Expose port locally for testing purposes.
     ports:
       - "${POSTGRES_PORT:-5512}:5432"
-    volumes:
-      - ./data:/mnt/data
 
   query:
     build: .
     image: openfoodfacts-query:dev
     environment:
-      # Use Product Opener's MongoDB and REDIS
+      # Use shared-services MongoDB and REDIS
       - MONGO_URI=mongodb://mongodb:27017
       - REDIS_URL=redis://redis:6379
 
