@@ -2,7 +2,7 @@ services:
   query_postgres:
     # Expose port locally for testing purposes.
     ports:
-      - "${POSTGRES_EXPOSE:-5512}:5432"
+      - "${POSTGRES_PORT:-5512}:5432"
 
   query:
     build: .
