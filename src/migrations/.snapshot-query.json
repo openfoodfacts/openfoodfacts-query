@@ -191,15 +191,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -208,6 +199,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -224,10 +224,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_additives_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_additives_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -253,15 +262,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -270,6 +270,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -286,10 +295,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_allergens_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_allergens_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -315,15 +333,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -332,6 +341,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -348,10 +366,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_amino_acids_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_amino_acids_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -377,15 +404,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -394,6 +412,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -410,10 +437,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_brands_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_brands_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -439,15 +475,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -456,6 +483,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -472,10 +508,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_categories_properites_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_categories_properites_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -501,15 +546,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -518,6 +554,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -534,10 +579,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_categories_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_categories_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -563,15 +617,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -580,6 +625,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -596,10 +650,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_checkers_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_checkers_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -625,15 +688,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -642,6 +696,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -658,10 +721,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_cities_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_cities_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -687,15 +759,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -704,6 +767,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -720,10 +792,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_codes_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_codes_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -749,15 +830,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -766,6 +838,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -782,10 +863,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_correctors_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_correctors_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -811,15 +901,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -828,6 +909,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -844,10 +934,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_countries_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_countries_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -873,15 +972,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -890,6 +980,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -906,10 +1005,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_data_quality_bugs_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_data_quality_bugs_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -935,15 +1043,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -952,6 +1051,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -968,10 +1076,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_data_quality_errors_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_data_quality_errors_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -997,15 +1114,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1014,6 +1122,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1030,10 +1147,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_data_quality_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_data_quality_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1059,15 +1185,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1076,6 +1193,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1092,10 +1218,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_data_quality_warnings_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_data_quality_warnings_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1121,15 +1256,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1138,6 +1264,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1154,10 +1289,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_data_sources_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_data_sources_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1183,15 +1327,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1200,6 +1335,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1216,10 +1360,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_debug_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_debug_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1245,15 +1398,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1262,6 +1406,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1278,10 +1431,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ecoscore_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_ecoscore_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1307,15 +1469,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1324,6 +1477,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1340,10 +1502,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_editors_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_editors_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1369,15 +1540,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1386,6 +1548,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1402,10 +1573,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_emb_codes_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_emb_codes_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1431,15 +1611,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1448,6 +1619,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1464,10 +1644,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_entry_dates_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_entry_dates_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1493,15 +1682,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1510,6 +1690,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1526,10 +1715,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_food_groups_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_food_groups_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1555,15 +1753,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1572,6 +1761,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1588,10 +1786,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_informers_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_informers_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1794,15 +2001,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1811,6 +2009,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1827,10 +2034,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ingredients_analysis_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_ingredients_analysis_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1856,15 +2072,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1873,6 +2080,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1889,10 +2105,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ingredients_from_palm_oil_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_ingredients_from_palm_oil_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1918,15 +2143,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1935,6 +2151,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -1951,10 +2176,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ingredients_ntag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_ingredients_ntag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -1980,15 +2214,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -1997,6 +2222,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2013,10 +2247,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ingredients_original_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_ingredients_original_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2042,15 +2285,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2059,6 +2293,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2075,10 +2318,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ingredients_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_ingredients_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2104,15 +2356,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2121,6 +2364,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2137,10 +2389,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_ingredients_that_may_be_from_palm_oil_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_ingredients_that_may_be_from_palm_oil_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2166,15 +2427,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2183,6 +2435,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2199,10 +2460,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_keywords_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_keywords_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2228,15 +2498,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2245,6 +2506,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2261,10 +2531,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_labels_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_labels_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2290,15 +2569,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2307,6 +2577,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2323,10 +2602,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_languages_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_languages_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2352,15 +2640,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2369,6 +2648,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2385,10 +2673,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_last_check_dates_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_last_check_dates_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2414,15 +2711,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2431,6 +2719,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2447,10 +2744,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_last_edit_dates_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_last_edit_dates_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2476,15 +2782,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2493,6 +2790,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2509,10 +2815,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_latest_image_dates_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_latest_image_dates_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2538,15 +2853,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2555,6 +2861,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2571,10 +2886,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_manufacturing_places_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_manufacturing_places_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2600,15 +2924,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2617,6 +2932,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2633,10 +2957,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_minerals_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_minerals_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2662,15 +2995,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2679,6 +3003,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2695,10 +3028,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_misc_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_misc_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2724,15 +3066,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2741,6 +3074,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2757,10 +3099,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nova_groups_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_nova_groups_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2786,15 +3137,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2803,6 +3145,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2819,10 +3170,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nucleotides_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_nucleotides_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2848,15 +3208,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2865,6 +3216,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2881,10 +3241,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nutrient_levels_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_nutrient_levels_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2910,15 +3279,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2927,6 +3287,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -2943,10 +3312,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nutriscore2021tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_nutriscore2021tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -2972,15 +3350,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -2989,6 +3358,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3005,10 +3383,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nutriscore2023tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_nutriscore2023tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3034,15 +3421,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3051,6 +3429,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3067,10 +3454,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nutriscore_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_nutriscore_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3096,15 +3492,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3113,6 +3500,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3129,10 +3525,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_nutrition_grades_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_nutrition_grades_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3158,15 +3563,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3175,6 +3571,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3191,10 +3596,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_origins_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_origins_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3220,15 +3634,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3237,6 +3642,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3253,10 +3667,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_other_nutritional_substances_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_other_nutritional_substances_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3282,15 +3705,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3299,6 +3713,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3315,10 +3738,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_packaging_materials_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_packaging_materials_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3344,15 +3776,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3361,6 +3784,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3377,10 +3809,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_packaging_recycling_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_packaging_recycling_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3406,15 +3847,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3423,6 +3855,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3439,10 +3880,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_packaging_shapes_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_packaging_shapes_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3468,15 +3918,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3485,6 +3926,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3501,10 +3951,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_packaging_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_packaging_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3530,15 +3989,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3547,6 +3997,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3563,10 +4022,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_periods_after_opening_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_periods_after_opening_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3592,15 +4060,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3609,6 +4068,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3625,10 +4093,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_photographers_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_photographers_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3654,15 +4131,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3671,6 +4139,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3687,10 +4164,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_pnns_groups1tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_pnns_groups1tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3716,15 +4202,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3733,6 +4210,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3749,10 +4235,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_pnns_groups2tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_pnns_groups2tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3778,15 +4273,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3795,6 +4281,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3811,10 +4306,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_popularity_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_popularity_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3840,15 +4344,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3857,6 +4352,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3873,10 +4377,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_purchase_places_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_purchase_places_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3902,15 +4415,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3919,6 +4423,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3935,10 +4448,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_states_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_states_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -3964,15 +4486,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -3981,6 +4494,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -3997,10 +4519,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_stores_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_stores_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -4026,15 +4557,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -4043,6 +4565,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -4059,10 +4590,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_teams_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_teams_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -4088,15 +4628,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -4105,6 +4636,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -4121,10 +4661,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_traces_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_traces_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -4150,15 +4699,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -4167,6 +4707,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -4183,10 +4732,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_unknown_nutrients_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_unknown_nutrients_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -4212,15 +4770,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -4229,6 +4778,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -4245,10 +4803,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_vitamins_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_vitamins_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
@@ -4274,15 +4841,6 @@
     },
     {
       "columns": {
-        "value": {
-          "name": "value",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "mappedType": "text"
-        },
         "product_id": {
           "name": "product_id",
           "type": "int",
@@ -4291,6 +4849,15 @@
           "primary": false,
           "nullable": false,
           "mappedType": "integer"
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
         },
         "obsolete": {
           "name": "obsolete",
@@ -4307,10 +4874,19 @@
       "schema": "query",
       "indexes": [
         {
+          "columnNames": [
+            "value"
+          ],
+          "composite": false,
+          "keyName": "product_weighers_tag_value_index",
+          "primary": false,
+          "unique": false
+        },
+        {
           "keyName": "product_weighers_tag_pkey",
           "columnNames": [
-            "value",
-            "product_id"
+            "product_id",
+            "value"
           ],
           "composite": true,
           "primary": true,
