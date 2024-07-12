@@ -187,7 +187,6 @@ describe('importFromMongo', () => {
       const { products, productIdExisting } = testProducts();
       em.create(Product, {
         code: productIdExisting,
-        data: products[1],
         source: ProductSource.EVENT,
         lastUpdated: lastUpdated,
         lastModified: new Date(lastModified * 1000),

@@ -43,15 +43,6 @@
           "nullable": false,
           "mappedType": "integer"
         },
-        "data": {
-          "name": "data",
-          "type": "json",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "mappedType": "json"
-        },
         "name": {
           "name": "name",
           "type": "text",

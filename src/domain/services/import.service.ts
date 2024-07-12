@@ -95,6 +95,10 @@ export class ImportService {
         count: 0,
       },
     };
+
+    // Flush mikro-orm before switching to native SQL
+    await this.em.flush();
+
     const connection = this.em.getConnection();
     await connection.execute(
       'CREATE TEMP TABLE IF NOT EXISTS product_temp (id int, last_modified timestamp, data jsonb)',
@@ -203,7 +207,7 @@ export class ImportService {
     const productResults = await connection.execute(
       `
       UPDATE product
-      SET name = tp.data->>'name',
+      SET name = tp.data->>'product_name',
         creator = tp.data->>'creator',
         owners_tags = tp.data->>'owners_tags',
         obsolete = ?,
@@ -216,6 +220,7 @@ export class ImportService {
       FROM product_temp tp
       WHERE product.id = tp.id`,
       [obsolete, updateId, new Date(), source],
+      'run',
     );
     this.logger.debug(`Updated ${productResults['affectedRows']} products`);
 

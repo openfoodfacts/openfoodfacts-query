@@ -2,6 +2,9 @@ import { Migration } from '@mikro-orm/migrations';
 
 export class Migration20240614163139 extends Migration {
   async up(): Promise<void> {
+    // Merged in from a later migration
+    this.addSql('alter table "query"."product" drop column "data";');
+
     // Changing product id from a UUID to an integer. Migration steps are as follows:
     // 1. Drop all existing primary keys that reference product_id (CASCADE removes foreign keys too)
     // 2. Drop old value index

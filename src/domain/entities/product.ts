@@ -6,10 +6,6 @@ export class Product {
   @PrimaryKey({ columnType: 'serial' })
   id: number;
 
-  /** The full JSON structure retrieved from Product Opener */
-  @Property({ type: 'json', columnType: 'json' })
-  data?: any;
-
   // The following fields map directly to Product fields
   @Property()
   name?: string;
