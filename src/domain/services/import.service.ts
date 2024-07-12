@@ -1,14 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MAPPED_FIELDS, Product } from '../entities/product';
+import { MAPPED_FIELDS } from '../entities/product';
 import { Ulid } from 'id128';
 import { MongoClient } from 'mongodb';
-import { AbstractSqlConnection, EntityManager } from '@mikro-orm/postgresql';
+import { EntityManager } from '@mikro-orm/postgresql';
 import { TagService } from './tag.service';
 import { ProductTagMap } from '../entities/product-tag-map';
 import { createClient, commandOptions } from 'redis';
 import { ProductSource } from '../enums/product-source';
 import equal from 'fast-deep-equal';
 import { SettingsService } from './settings.service';
+import sql from '../../db';
+import { ReservedSql } from 'postgres';
+import { SerializableParameter } from 'postgres';
 
 @Injectable()
 export class ImportService {
@@ -62,6 +65,7 @@ export class ImportService {
       this.importRunning = false;
     }
   }
+
   async importWithFilter(filter: any, source: ProductSource, skip?: number) {
     let latestModified = 0;
 
@@ -99,14 +103,13 @@ export class ImportService {
     // Flush mikro-orm before switching to native SQL
     await this.em.flush();
 
-    const connection = this.em.getConnection();
-    await connection.execute(
-      'CREATE TEMP TABLE IF NOT EXISTS product_temp (id int, last_modified timestamp, data jsonb)',
-    );
+    // Now using postgres to help with transactions
+    const connection = await sql.reserve();
+    await connection`CREATE TEMP TABLE product_temp (id int, last_modified timestamptz, data jsonb)`;
     // let sql: string;
     // const vars = [];
     for (const collection of Object.values(collections)) {
-      await connection.execute('begin');
+      await connection`begin`;
       const obsolete = collection.obsolete;
       const products = db.collection(`products${obsolete ? '_obsolete' : ''}`);
       const cursor = products.find(filter, { projection });
@@ -118,15 +121,11 @@ export class ImportService {
         i++;
         if (skip && i < skip) continue;
         // Find the product if it exists
-        let results = await connection.execute(
-          'select id, last_modified from product where code = ?',
-          [data.code],
-        );
+        let results =
+          await connection`select id, last_modified from product where code = ${data.code}`;
         if (!results.length) {
-          results = await connection.execute(
-            'insert into product (code) values (?) returning id',
-            [data.code],
-          );
+          results =
+            await connection`insert into product (code) values (${data.code}) returning id`;
         }
         const id = results[0].id;
         const previousLastModified = results[0].last_modified;
@@ -138,8 +137,11 @@ export class ImportService {
           );
           lastModified = null;
         }
-        // Skip product if nothing has changed
-        if (lastModified?.getTime() === previousLastModified?.getTime())
+        // Skip product if nothing has changed and not doing a full load
+        if (
+          source !== ProductSource.FULL_LOAD &&
+          lastModified?.getTime() === previousLastModified?.getTime()
+        )
           continue;
 
         for (const key of this.tags) {
@@ -161,16 +163,16 @@ export class ImportService {
           }
         }
 
-        results = await connection.execute(
-          'insert into product_temp (id, last_modified, data) values (?, ?, ?)',
-          [id, lastModified, data],
-        );
+        results =
+          await connection`insert into product_temp (id, last_modified, data) values (${id}, ${lastModified}, ${
+            data as unknown as SerializableParameter
+          })`;
 
         latestModified = Math.max(latestModified, lastModified?.getTime() ?? 0);
 
         if (!(i % this.importBatchSize)) {
           await this.applyProductChange(connection, obsolete, source, updateId);
-          await connection.execute('begin');
+          await connection`begin`;
         }
         if (!(i % this.importLogInterval)) {
           this.logger.debug(`Updated ${i}`);
@@ -187,8 +189,11 @@ export class ImportService {
       await this.tagService.addLoadedTags(
         Object.keys(ProductTagMap.MAPPED_TAGS),
       );
-      await this.deleteOtherProducts(updateId);
+      await this.deleteOtherProducts(connection, updateId);
     }
+
+    await connection`DROP TABLE product_temp`;
+    connection.release();
 
     this.logger.log(
       `Imported ${collections.normal.count} Products and ${collections.obsolete.count} Obsolete Products from ${source}`,
@@ -198,43 +203,34 @@ export class ImportService {
   }
 
   async applyProductChange(
-    connection: AbstractSqlConnection,
+    connection: ReservedSql,
     obsolete: boolean,
     source: string,
     updateId: string,
   ) {
     // Apply updates to products
-    const productResults = await connection.execute(
-      `
+    const productResults = await connection`
       UPDATE product
       SET name = tp.data->>'product_name',
         creator = tp.data->>'creator',
         owners_tags = tp.data->>'owners_tags',
-        obsolete = ?,
+        obsolete = ${obsolete},
         ingredients_count = (tp.data->>'ingredients_n')::numeric,
         ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
         last_modified = tp.last_modified,
-        last_update_id = ?,
-        last_updated = ?,
-        source = ?
+        last_update_id = ${updateId},
+        last_updated = ${new Date()},
+        source = ${source}
       FROM product_temp tp
-      WHERE product.id = tp.id`,
-      [obsolete, updateId, new Date(), source],
-      'run',
-    );
-    this.logger.debug(`Updated ${productResults['affectedRows']} products`);
+      WHERE product.id = tp.id`;
+    this.logger.debug(`Updated ${productResults.count} products`);
 
     // Fix ingredients
     let logText = `Updated ingredients`;
-    const deleted = await connection.execute(
-      `delete from product_ingredient 
-    where product_id in (select id from product_temp)`,
-      [],
-      'run',
-    );
-    logText += ` deleted ${deleted['affectedRows']},`;
-    const results = await connection.execute(
-      `insert into product_ingredient (
+    const deleted = await connection`delete from product_ingredient 
+    where product_id in (select id from product_temp)`;
+    logText += ` deleted ${deleted.count},`;
+    const results = await connection`insert into product_ingredient (
         product_id,
         sequence,
         id,
@@ -258,17 +254,13 @@ export class ImportService {
         (tag.value->>'percent_max')::numeric,
         (tag.value->>'percent_estimate')::numeric,
         tag.value->'ingredients',
-        ?
+        ${obsolete}
       from product_temp product
-      cross join jsonb_array_elements(data->'ingredients') with ordinality tag`,
-      [obsolete],
-      'run',
-    );
-    let affectedRows = results['affectedRows'];
+      cross join jsonb_array_elements(data->'ingredients') with ordinality tag`;
+    let affectedRows = results.count;
     logText += ` inserted ${affectedRows}`;
     while (affectedRows > 0) {
-      const results = await connection.execute(
-        `insert into product_ingredient (
+      const results = await connection`insert into product_ingredient (
           product_id,
           parent_product_id,
           parent_sequence,
@@ -296,16 +288,13 @@ export class ImportService {
           (tag.value->>'percent_max')::numeric,
           (tag.value->>'percent_estimate')::numeric,
           tag.value->'ingredients',
-          ?
+          ${obsolete}
         from product_ingredient pi 
         join product_temp product on product.id = pi.product_id
         cross join json_array_elements(pi.data) with ordinality tag
         WHERE pi.data IS NOT NULL
-        AND NOT EXISTS (SELECT * FROM product_ingredient pi2 WHERE pi2.parent_product_id = pi.product_id AND pi2.parent_sequence = pi.sequence)`,
-        [obsolete],
-        'run',
-      );
-      affectedRows = results['affectedRows'];
+        AND NOT EXISTS (SELECT * FROM product_ingredient pi2 WHERE pi2.parent_product_id = pi.product_id AND pi2.parent_sequence = pi.sequence)`;
+      affectedRows = results.count;
       logText += ` > ${affectedRows}`;
     }
     this.logger.debug(logText + ' rows');
@@ -316,36 +305,29 @@ export class ImportService {
       const tableName = this.em.getMetadata(entity).tableName;
 
       // Delete existing tags for products that were imported on this run
-      const deleted = await connection.execute(
-        `delete from ${tableName} 
-      where product_id in (select id from product_temp)`,
-        [],
-        'run',
-      );
-      logText += ` deleted ${deleted['affectedRows']},`;
+      const deleted = await connection`delete from ${sql(tableName)} 
+      where product_id in (select id from product_temp)`;
+      logText += ` deleted ${deleted.count},`;
 
       // Add tags back in with the updated information
-      const results = await connection.execute(
-        `insert into ${tableName} (product_id, value, obsolete)
-        select DISTINCT id, tag.value, ? from product_temp 
-        cross join jsonb_array_elements_text(data->'${tag}') tag`,
-        [obsolete],
-        'run',
-      );
+      const results = await connection`insert into ${sql(
+        tableName,
+      )} (product_id, value, obsolete)
+        select DISTINCT id, tag.value, ${obsolete} from product_temp 
+        cross join jsonb_array_elements_text(data->'${sql.unsafe(tag)}') tag`;
 
-      logText += ` inserted ${results['affectedRows']} rows`;
+      logText += ` inserted ${results.count} rows`;
 
       this.logger.debug(logText);
     }
-    await connection.execute('truncate table product_temp');
-    await connection.execute('commit');
+    await connection`truncate table product_temp`;
+    await connection`commit`;
   }
 
-  async deleteOtherProducts(updateId: string) {
-    const deleted = await this.em.nativeDelete(Product, {
-      $or: [{ lastUpdateId: { $ne: updateId } }, { lastUpdateId: null }],
-    });
-    this.logger.debug(`${deleted} Products deleted`);
+  async deleteOtherProducts(connection: ReservedSql, updateId: string) {
+    const deleted =
+      await connection`delete from product where last_update_id != ${updateId} OR last_update_id IS NULL`;
+    this.logger.debug(`${deleted.count} Products deleted`);
   }
 
   async scheduledImportFromMongo() {

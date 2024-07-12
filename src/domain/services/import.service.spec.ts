@@ -110,7 +110,7 @@ describe('importFromMongo', () => {
 
       // THEN: New product is added, updated product is updated and other product is unchanged
       expect(deleteMock).toHaveBeenCalledTimes(1);
-      let updateId = deleteMock.mock.calls[0][0];
+      let updateId = deleteMock.mock.calls[0][1];
       // Re-format updateId the way Postgres provides it
       updateId = `${updateId.substring(0, 8)}-${updateId.substring(
         8,
@@ -351,29 +351,28 @@ describe('ProductTag', () => {
   });
 });
 
-// This doesn't work at the moment as we use a shared connection object for each transaction
-// describe('importWithFilter', () => {
-//   it('should not get an error with concurrent imports', async () => {
-//     await createTestingModule([DomainModule], async (app) => {
-//       const importService = app.get(ImportService);
+describe('importWithFilter', () => {
+  it('should not get an error with concurrent imports', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
 
-//       // WHEN: Doing an incremental import from MongoDB
-//       const { products, productIdExisting, productIdNew } = testProducts();
-//       mockMongoDB(products);
-//       const imports = [];
-//       // Need more than 10 concurrent imports to start to see errors
-//       for (let i = 0; i < 11; i++) {
-//         imports.push(
-//           importService.importWithFilter(
-//             { code: { $in: [productIdExisting, productIdNew] } },
-//             ProductSource.EVENT,
-//           ),
-//         );
-//       }
-//       await Promise.all(imports);
-//     });
-//   });
-// });
+      // WHEN: Doing an incremental import from MongoDB
+      const { products, productIdExisting, productIdNew } = testProducts();
+      mockMongoDB(products);
+      const imports = [];
+      // Need more than 10 concurrent imports to start to see errors
+      for (let i = 0; i < 11; i++) {
+        imports.push(
+          importService.importWithFilter(
+            { code: { $in: [productIdExisting, productIdNew] } },
+            ProductSource.EVENT,
+          ),
+        );
+      }
+      await Promise.all(imports);
+    });
+  });
+});
 
 describe('receiveMessages', () => {
   it('should call importwithfilter when a message is received', async () => {

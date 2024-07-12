@@ -63,7 +63,7 @@
         },
         "last_modified": {
           "name": "last_modified",
-          "type": "timestamp",
+          "type": "timestamptz",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
@@ -128,7 +128,7 @@
         },
         "last_updated": {
           "name": "last_updated",
-          "type": "timestamp",
+          "type": "timestamptz",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
@@ -4915,7 +4915,7 @@
         },
         "last_modified": {
           "name": "last_modified",
-          "type": "timestamp",
+          "type": "timestamptz",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,

@@ -20,7 +20,7 @@ export class Product {
   @Property({ index: true })
   code?: string;
 
-  @Property()
+  @Property({ columnType: 'timestamptz' })
   lastModified?: Date;
 
   @Property()
@@ -42,7 +42,7 @@ export class Product {
   @Property({ type: 'uuid', index: true })
   lastUpdateId?: string;
 
-  @Property()
+  @Property({ columnType: 'timestamptz' })
   lastUpdated?: Date;
 
   @Property()

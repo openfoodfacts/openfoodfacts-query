@@ -5,7 +5,7 @@ export class Settings {
   @PrimaryKey()
   id = 1;
 
-  @Property()
+  @Property({ columnType: 'timestamptz' })
   lastModified?: Date;
 
   @Property()
