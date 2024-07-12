@@ -17,10 +17,13 @@ export class TagService {
     return this.loadedTags;
   }
 
-  async tagLoaded(tag: string) {
-    if ((await this.getLoadedTags()).includes(tag)) return;
-    this.loadedTags.push(tag);
-    this.em.create(LoadedTag, { id: tag });
+  async addLoadedTags(tags: string[]) {
+    await this.getLoadedTags();
+    for (const tag of tags) {
+      if (this.loadedTags.includes(tag)) continue;
+      this.loadedTags.push(tag);
+      this.em.create(LoadedTag, { id: tag });
+    }
     await this.em.flush();
   }
 }

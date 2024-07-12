@@ -9,11 +9,6 @@ export class AppController {
     private readonly queryService: QueryService,
   ) {}
 
-  @Get('importfromfile')
-  async importFromFile(@Query('from') from = null) {
-    await this.importService.importFromFile(from);
-  }
-
   @Get('importfrommongo')
   async importFromMongo(
     @Query('from') from = null,
@@ -25,11 +20,6 @@ export class AppController {
   @Get('scheduledimportfrommongo')
   async scheduledImportFromMongo() {
     await this.importService.scheduledImportFromMongo();
-  }
-
-  @Get('updatetags')
-  async updateTags(@Query('updateid') updateId) {
-    await this.importService.updateTags(updateId, true);
   }
 
   parseBoolean(value) {
