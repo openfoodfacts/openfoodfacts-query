@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MAPPED_FIELDS, Product } from '../entities/product';
 import { Ulid } from 'id128';
 import { MongoClient } from 'mongodb';
-import { EntityManager } from '@mikro-orm/postgresql';
+import { AbstractSqlConnection, EntityManager } from '@mikro-orm/postgresql';
 import * as fs from 'fs';
 import * as readline from 'readline';
 import { TagService } from './tag.service';
@@ -24,8 +24,8 @@ export class ImportService {
   ) {}
 
   // Lowish batch size seems to work best, probably due to the size of the product document
-  importBatchSize = 100;
-  importLogInterval = 1000;
+  importBatchSize = 10000;
+  importLogInterval = 10000;
   importRunning = false;
 
   private tags = Object.keys(ProductTagMap.MAPPED_TAGS);
@@ -63,8 +63,145 @@ export class ImportService {
       this.importRunning = false;
     }
   }
-
   async importWithFilter(filter: any, source: ProductSource, skip?: number) {
+    let latestModified = 0;
+    const fullImport = !Object.keys(filter).length;
+
+    // The update id is unique to this run and is used later to run other
+    // queries that should only affect products loaded in this import
+    const updateId = Ulid.generate().toRaw();
+
+    this.logger.debug('Connecting to MongoDB');
+    const client = new MongoClient(process.env.MONGO_URI);
+    await client.connect();
+    const db = client.db('off');
+
+    // Only fetch the tags that we store to limit the payload from MongoDB
+    const projection = {};
+    for (const key of MAPPED_FIELDS) {
+      projection[key] = 1;
+    }
+    for (const key of this.tags) {
+      projection[key] = 1;
+    }
+
+    // Repeat the below for normal and then obsolete products
+    // Both are stored in the same table in PostgreSQL
+    const collections = {
+      normal: {
+        obsolete: false,
+        count: 0,
+      },
+      obsolete: {
+        obsolete: true,
+        count: 0,
+      },
+    };
+    const connection = this.em.getConnection();
+    await connection.execute(
+      'create temp table product_temp (id int, obsolete bool, data jsonb)',
+    );
+    // let sql: string;
+    // const vars = [];
+    async function startTransaction() {
+      await connection.execute('begin');
+      // sql = 'insert into product_temp (id, obsolete, data) values ';
+      // vars.length = 0;
+    }
+    const self = this;
+    async function finishTransaction() {
+      // await connection.execute(sql, vars);
+      await self.updateTags2(connection);
+      await connection.execute('truncate table product_temp');
+      await connection.execute('commit');
+    }
+    for (const collection of Object.values(collections)) {
+      await startTransaction();
+      const obsolete = collection.obsolete;
+      const products = db.collection(`products${obsolete ? '_obsolete' : ''}`);
+      const cursor = products.find(filter, { projection });
+      let i = 0;
+      while (true) {
+        const data = await cursor.next();
+        if (!data) break;
+
+        i++;
+        if (skip && i < skip) continue;
+        // Find the product if it exists
+        let results = await connection.execute(
+          'select id from product where code = ?',
+          [data.code],
+        );
+        if (!results.length) {
+          results = await connection.execute(
+            'insert into product (code) values (?) returning id',
+            [data.code],
+          );
+        }
+        const id = results[0].id;
+        for (const key of this.tags) {
+          const tagData = data[key] as string[];
+          if (tagData) {
+            // Strip out any nul characters
+            try {
+              for (const [index, value] of tagData.entries()) {
+                if (value.includes('\u0000')) {
+                  this.logger.warn(
+                    `Product: ${data.code}. Nuls stripped from ${key} value: ${value}`,
+                  );
+                  tagData[index] = value.replace(this.nulRegex, '');
+                }
+              }
+            } catch (e) {
+              this.logger.error(`${key}: ${e.message}`);
+            }
+          }
+        }
+
+        // sql += (vars.length > 0 ? ',' : '') + '(?,?,?)';
+        // vars.push(id, obsolete, data);
+        results = await connection.execute(
+          'insert into product_temp (id, obsolete, data) values (?, ?, ?)',
+          [id, obsolete, data],
+        );
+
+        let lastModified = new Date(data.last_modified_t * 1000);
+        if (isNaN(+lastModified)) {
+          this.logger.warn(
+            `Product: ${data.code}. Invalid last_modified_t: ${data.last_modified_t}.`,
+          );
+          lastModified = null;
+        }
+
+        latestModified = Math.max(latestModified, lastModified?.getTime() ?? 0);
+
+        if (!(i % this.importBatchSize)) {
+          await finishTransaction();
+          await startTransaction();
+        }
+        if (!(i % this.importLogInterval)) {
+          this.logger.debug(`Updated ${i}`);
+        }
+      }
+      await finishTransaction();
+      await cursor.close();
+      collection.count = i;
+    }
+    await client.close();
+
+    // If doing a full import delete all products that weren't updated
+    if (fullImport) {
+      await this.deleteOtherProducts(updateId);
+    }
+
+    this.logger.log(
+      `Imported ${collections.normal.count} Products and ${collections.obsolete.count} Obsolete Products from ${source}`,
+    );
+
+    return latestModified;
+  }
+
+  async importWithFilterOld(filter: any, source: ProductSource, skip?: number) {
     let latestModified = 0;
     const fullImport = !Object.keys(filter).length;
 
@@ -229,6 +366,122 @@ export class ImportService {
       this.em.persist(product);
     }
     return product;
+  }
+
+  async updateTags2(connection: AbstractSqlConnection) {
+    // Fix ingredients
+    let logText = `Updated ingredients`;
+    const deleted = await connection.execute(
+      `delete from product_ingredient 
+    where product_id in (select id from product_temp)`,
+      [],
+      'run',
+    );
+    logText += ` deleted ${deleted['affectedRows']},`;
+    const results = await connection.execute(
+      `insert into product_ingredient (
+        product_id,
+        sequence,
+        id,
+        ciqual_food_code,
+        ingredient_text,
+        percent,
+        percent_min,
+        percent_max,
+        percent_estimate,
+        data,
+        obsolete
+      )
+      select 
+        product.id,
+        ordinality,
+        tag.value->>'id',
+        tag.value->>'ciqual_food_code',
+        tag.value->>'ingredient_text',
+        tag.value->>'percent',
+        (tag.value->>'percent_min')::numeric,
+        (tag.value->>'percent_max')::numeric,
+        (tag.value->>'percent_estimate')::numeric,
+        tag.value->'ingredients',
+        product.obsolete
+      from product_temp product
+      cross join jsonb_array_elements(data->'ingredients') with ordinality tag`,
+      [],
+      'run',
+    );
+    let affectedRows = results['affectedRows'];
+    logText += ` inserted ${affectedRows}`;
+    while (affectedRows > 0) {
+      const results = await connection.execute(
+        `insert into product_ingredient (
+          product_id,
+          parent_product_id,
+          parent_sequence,
+          sequence,
+          id,
+          ciqual_food_code,
+          ingredient_text,
+          percent,
+          percent_min,
+          percent_max,
+          percent_estimate,
+          data,
+          obsolete
+        )
+        select 
+          pi.product_id,
+          pi.product_id,
+          pi.sequence,
+          pi.sequence || '.' || ordinality,
+          tag.value->>'id',
+          tag.value->>'ciqual_food_code',
+          tag.value->>'ingredient_text',
+          tag.value->>'percent',
+          (tag.value->>'percent_min')::numeric,
+          (tag.value->>'percent_max')::numeric,
+          (tag.value->>'percent_estimate')::numeric,
+          tag.value->'ingredients',
+          pi.obsolete
+        from product_ingredient pi 
+        join product_temp product on product.id = pi.product_id
+        cross join json_array_elements(pi.data) with ordinality tag
+        WHERE pi.data IS NOT NULL
+        AND NOT EXISTS (SELECT * FROM product_ingredient pi2 WHERE pi2.parent_product_id = pi.product_id AND pi2.parent_sequence = pi.sequence)`,
+        [],
+        'run',
+      );
+      affectedRows = results['affectedRows'];
+      logText += ` > ${affectedRows}`;
+    }
+    this.logger.debug(logText + ' rows');
+
+    for (const [tag, entity] of Object.entries(ProductTagMap.MAPPED_TAGS)) {
+      let logText = `Updated ${tag}`;
+      // Get the underlying table name for the entity
+      const tableName = this.em.getMetadata(entity).tableName;
+
+      // Delete existing tags for products that were imorted on this run
+      const deleted = await connection.execute(
+        `delete from ${tableName} 
+      where product_id in (select id from product_temp)`,
+        [],
+        'run',
+      );
+      logText += ` deleted ${deleted['affectedRows']},`;
+
+      // Add tags back in with the updated information
+      const results = await connection.execute(
+        `insert into ${tableName} (product_id, value, obsolete)
+        select DISTINCT id, tag.value, obsolete from product_temp 
+        cross join jsonb_array_elements_text(data->'${tag}') tag`,
+        [],
+        'run',
+      );
+
+      logText += ` inserted ${results['affectedRows']} rows`;
+
+      this.logger.debug(logText);
+    }
   }
 
   /**
