@@ -9,12 +9,6 @@ import {
 import { SCHEMA } from './constants';
 import { Logger } from '@nestjs/common';
 
-class DateTimeNtzType extends DateTimeType {
-  getColumnType(): string {
-    return 'timestamp';
-  }
-}
-
 const logger = new Logger('MikroOrm');
 
 export default defineConfig({
@@ -38,10 +32,6 @@ export default defineConfig({
       if (type === 'string') {
         return Type.getType(TextType);
       }
-      if (type === 'datetime') {
-        return new DateTimeNtzType();
-      }
-
       const mappedType = platform.getDefaultMappedType(type);
       return mappedType;
     },

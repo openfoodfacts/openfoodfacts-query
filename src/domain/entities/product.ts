@@ -1,15 +1,10 @@
 import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
-import { Ulid } from 'id128';
 import { ProductSource } from '../enums/product-source';
 
 @Entity()
 export class Product {
-  @PrimaryKey({ type: 'uuid' })
-  id = Ulid.generate().toRaw();
-
-  /** The full JSON structure retreived from Product Opener */
-  @Property({ type: 'json', columnType: 'json' })
-  data?: any;
+  @PrimaryKey({ columnType: 'serial' })
+  id: number;
 
   // The following fields map directly to Product fields
   @Property()
@@ -25,7 +20,7 @@ export class Product {
   @Property({ index: true })
   code?: string;
 
-  @Property()
+  @Property({ columnType: 'timestamptz' })
   lastModified?: Date;
 
   @Property()
@@ -47,7 +42,7 @@ export class Product {
   @Property({ type: 'uuid', index: true })
   lastUpdateId?: string;
 
-  @Property()
+  @Property({ columnType: 'timestamptz' })
   lastUpdated?: Date;
 
   @Property()

@@ -37,6 +37,9 @@ jobs:
           echo "MONGO_URI=mongodb://10.1.0.200:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://redis:6379" >> $GITHUB_ENV
 
+          # Keep debug logging on staging
+          echo "LOG_LEVEL=debug" >> $GITHUB_ENV
+
           # Postgres config
           echo "POSTGRES_SHM_SIZE=256m" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_SHARED_BUFFERS=4GB" >> $GITHUB_ENV
@@ -53,11 +56,14 @@ jobs:
           # configurations
           echo "COMMON_NET_NAME=common_net" >> $GITHUB_ENV
 
+          # Reduce log level on production
+          echo "LOG_LEVEL=log" >> $GITHUB_ENV
+
           # mongodb and redis (through stunnel)
           echo "MONGO_URI=mongodb://10.1.0.102:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://10.1.0.122:6379" >> $GITHUB_ENV
 
-          # Postgres config
+          # Postgres config. We use memory to gain performance on reads and writes
           echo "POSTGRES_SHM_SIZE=1g" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
@@ -145,7 +151,9 @@ jobs:
             echo "QUERY_POSTGRES_SHARED_BUFFERS=${{ env.QUERY_POSTGRES_SHARED_BUFFERS }}" >> .env
             echo "QUERY_POSTGRES_WORK_MEM=${{ env.QUERY_POSTGRES_WORK_MEM }}" >> .env
 
-            echo "LOG_LEVEL=log" >> .env
+            # Use docker volume for now
+            echo "QUERY_DATA_DIR=dbdata" >> .env
+            echo "LOG_LEVEL=${{ env.LOG_LEVEL }}" >> .env
 
       - name: Start services
         uses: appleboy/ssh-action@master

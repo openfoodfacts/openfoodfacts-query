@@ -110,7 +110,7 @@ describe('importFromMongo', () => {
 
       // THEN: New product is added, updated product is updated and other product is unchanged
       expect(deleteMock).toHaveBeenCalledTimes(1);
-      let updateId = deleteMock.mock.calls[0][0];
+      let updateId = deleteMock.mock.calls[0][1];
       // Re-format updateId the way Postgres provides it
       updateId = `${updateId.substring(0, 8)}-${updateId.substring(
         8,
@@ -187,10 +187,11 @@ describe('importFromMongo', () => {
       const { products, productIdExisting } = testProducts();
       em.create(Product, {
         code: productIdExisting,
-        data: products[1],
         source: ProductSource.EVENT,
         lastUpdated: lastUpdated,
+        lastModified: new Date(lastModified * 1000),
       });
+      await em.flush();
       const importService = app.get(ImportService);
 
       // WHEN: Doing an incremental import from MongoDB
