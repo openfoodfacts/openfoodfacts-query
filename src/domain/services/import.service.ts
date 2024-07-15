@@ -208,6 +208,9 @@ export class ImportService {
     source: string,
     updateId: string,
   ) {
+    // Analyze table for best query performance
+    await connection`ANALYZE product_temp`;
+
     // Apply updates to products
     const productResults = await connection`
       UPDATE product
