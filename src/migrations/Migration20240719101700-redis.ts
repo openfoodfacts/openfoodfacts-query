@@ -8,6 +8,8 @@ export class Migration20240719101700Redis extends Migration {
     this.addSql(`CREATE USER ${VIEW_USER} PASSWORD '${VIEW_PASSWORD}'`);
     this.addSql(`ALTER ROLE ${VIEW_USER} SET search_path=${SCHEMA},public`,
     );
+    this.addSql(`GRANT USAGE ON SCHEMA ${SCHEMA} TO ${VIEW_USER}`);
+
     this.addSql(`CREATE OR REPLACE VIEW product_update_view AS SELECT 
         DATE_TRUNC('day', pe.updated_at) updated_day,
         p.owners_tags,

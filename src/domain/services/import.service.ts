@@ -41,6 +41,8 @@ export class ImportService {
       return;
     }
     this.importRunning = true;
+    const source =
+      from != null ? ProductSource.INCREMENTAL_LOAD : ProductSource.FULL_LOAD;
     try {
       // If the from parameter is supplied but it is empty then obtain the most
       // recent modified time from the database and query MongoDB for products
@@ -55,11 +57,7 @@ export class ImportService {
         this.logger.debug(`Starting import from ${from}`);
       }
 
-      const latestModified = await this.importWithFilter(
-        filter,
-        from ? ProductSource.INCREMENTAL_LOAD : ProductSource.FULL_LOAD,
-        skip,
-      );
+      const latestModified = await this.importWithFilter(filter, source, skip);
       if (latestModified) {
         await this.settings.setLastModified(new Date(latestModified));
       }
@@ -122,6 +120,11 @@ export class ImportService {
 
         i++;
         if (skip && i < skip) continue;
+
+        if (!(i % this.importLogInterval)) {
+          this.logger.debug(`Fetched ${i}`);
+        }
+
         // Find the product if it exists
         let results =
           await connection`select id, last_modified from product where code = ${data.code}`;
@@ -175,9 +178,6 @@ export class ImportService {
         if (!(i % this.importBatchSize)) {
           await this.applyProductChange(connection, obsolete, source, updateId);
           await connection`begin`;
-        }
-        if (!(i % this.importLogInterval)) {
-          this.logger.debug(`Updated ${i}`);
         }
       }
       await this.applyProductChange(connection, obsolete, source, updateId);
