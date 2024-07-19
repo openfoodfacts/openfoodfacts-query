@@ -12,6 +12,7 @@ import { SettingsService } from './settings.service';
 import { createClient } from 'redis';
 import { GenericContainer } from 'testcontainers';
 import { setTimeout } from 'timers/promises';
+import { ProductIngredient } from '../entities/product-ingredient';
 
 const lastModified = 1692032161;
 
@@ -299,6 +300,33 @@ describe('importFromMongo', () => {
 
       // THEN: Second import just logs a warning
       expect(warnSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('should cope with duplicate product codes', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      // WHEN: Importing data containing nul characters
+      const { productIdNew } = testProducts();
+      const productWithIngredients = {
+        code: productIdNew,
+        ingredients: [{ ingredient_text: 'test' }],
+      };
+      const duplicateProducts = [
+        productWithIngredients,
+        productWithIngredients,
+      ];
+      mockMongoDB(duplicateProducts);
+      await app.get(ImportService).importFromMongo();
+
+      // THEN: Product should be loaded with no duplicates
+      const ingredientsNew = await app
+        .get(EntityManager)
+        .find(ProductIngredient, {
+          product: { code: productIdNew },
+        });
+
+      expect(ingredientsNew).toHaveLength(1);
+      expect(ingredientsNew[0].ingredientText).toBe('test');
     });
   });
 });
