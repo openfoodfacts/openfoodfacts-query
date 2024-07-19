@@ -1,3 +1,6 @@
+import { configDotenv } from 'dotenv';
+configDotenv();
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { MikroORM } from '@mikro-orm/core';
