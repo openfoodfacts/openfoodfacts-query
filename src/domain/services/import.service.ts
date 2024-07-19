@@ -230,45 +230,14 @@ export class ImportService {
       WHERE product.id = tp.id`;
     this.logger.debug(`Updated ${productResults.count} products`);
 
-    // Fix ingredients
-    let logText = `Updated ingredients`;
-    const deleted = await connection`delete from product_ingredient 
-    where product_id in (select id from product_temp)`;
-    logText += ` deleted ${deleted.count},`;
-    const results = await connection`insert into product_ingredient (
-        product_id,
-        sequence,
-        id,
-        ciqual_food_code,
-        ingredient_text,
-        percent,
-        percent_min,
-        percent_max,
-        percent_estimate,
-        data,
-        obsolete
-      )
-      select 
-        product.id,
-        ordinality,
-        tag.value->>'id',
-        tag.value->>'ciqual_food_code',
-        tag.value->>'ingredient_text',
-        tag.value->>'percent',
-        (tag.value->>'percent_min')::numeric,
-        (tag.value->>'percent_max')::numeric,
-        (tag.value->>'percent_estimate')::numeric,
-        tag.value->'ingredients',
-        ${obsolete}
-      from product_temp product
-      cross join jsonb_array_elements(data->'ingredients') with ordinality tag`;
-    let affectedRows = results.count;
-    logText += ` inserted ${affectedRows}`;
-    while (affectedRows > 0) {
+    if (productResults.count) {
+      // Fix ingredients
+      let logText = `Updated ingredients`;
+      const deleted = await connection`delete from product_ingredient 
+      where product_id in (select id from product_temp)`;
+      logText += ` deleted ${deleted.count},`;
       const results = await connection`insert into product_ingredient (
           product_id,
-          parent_product_id,
-          parent_sequence,
           sequence,
           id,
           ciqual_food_code,
@@ -281,10 +250,8 @@ export class ImportService {
           obsolete
         )
         select 
-          pi.product_id,
-          pi.product_id,
-          pi.sequence,
-          pi.sequence || '.' || ordinality,
+          product.id,
+          ordinality,
           tag.value->>'id',
           tag.value->>'ciqual_food_code',
           tag.value->>'ingredient_text',
@@ -294,37 +261,73 @@ export class ImportService {
           (tag.value->>'percent_estimate')::numeric,
           tag.value->'ingredients',
           ${obsolete}
-        from product_ingredient pi 
-        join product_temp product on product.id = pi.product_id
-        cross join json_array_elements(pi.data) with ordinality tag
-        WHERE pi.data IS NOT NULL
-        AND NOT EXISTS (SELECT * FROM product_ingredient pi2 WHERE pi2.parent_product_id = pi.product_id AND pi2.parent_sequence = pi.sequence)`;
-      affectedRows = results.count;
-      logText += ` > ${affectedRows}`;
+        from product_temp product
+        cross join jsonb_array_elements(data->'ingredients') with ordinality tag`;
+      let affectedRows = results.count;
+      logText += ` inserted ${affectedRows}`;
+      while (affectedRows > 0) {
+        const results = await connection`insert into product_ingredient (
+            product_id,
+            parent_product_id,
+            parent_sequence,
+            sequence,
+            id,
+            ciqual_food_code,
+            ingredient_text,
+            percent,
+            percent_min,
+            percent_max,
+            percent_estimate,
+            data,
+            obsolete
+          )
+          select 
+            pi.product_id,
+            pi.product_id,
+            pi.sequence,
+            pi.sequence || '.' || ordinality,
+            tag.value->>'id',
+            tag.value->>'ciqual_food_code',
+            tag.value->>'ingredient_text',
+            tag.value->>'percent',
+            (tag.value->>'percent_min')::numeric,
+            (tag.value->>'percent_max')::numeric,
+            (tag.value->>'percent_estimate')::numeric,
+            tag.value->'ingredients',
+            ${obsolete}
+          from product_ingredient pi 
+          join product_temp product on product.id = pi.product_id
+          cross join json_array_elements(pi.data) with ordinality tag
+          WHERE pi.data IS NOT NULL
+          AND NOT EXISTS (SELECT * FROM product_ingredient pi2 WHERE pi2.parent_product_id = pi.product_id AND pi2.parent_sequence = pi.sequence)`;
+        affectedRows = results.count;
+        logText += ` > ${affectedRows}`;
+      }
+      this.logger.debug(logText + ' rows');
+
+      for (const [tag, entity] of Object.entries(ProductTagMap.MAPPED_TAGS)) {
+        let logText = `Updated ${tag}`;
+        // Get the underlying table name for the entity
+        const tableName = this.em.getMetadata(entity).tableName;
+
+        // Delete existing tags for products that were imported on this run
+        const deleted = await connection`delete from ${sql(tableName)} 
+        where product_id in (select id from product_temp)`;
+        logText += ` deleted ${deleted.count},`;
+
+        // Add tags back in with the updated information
+        const results = await connection`insert into ${sql(
+          tableName,
+        )} (product_id, value, obsolete)
+          select DISTINCT id, tag.value, ${obsolete} from product_temp 
+          cross join jsonb_array_elements_text(data->'${sql.unsafe(tag)}') tag`;
+
+        logText += ` inserted ${results.count} rows`;
+
+        this.logger.debug(logText);
+      }
     }
-    this.logger.debug(logText + ' rows');
 
-    for (const [tag, entity] of Object.entries(ProductTagMap.MAPPED_TAGS)) {
-      let logText = `Updated ${tag}`;
-      // Get the underlying table name for the entity
-      const tableName = this.em.getMetadata(entity).tableName;
-
-      // Delete existing tags for products that were imported on this run
-      const deleted = await connection`delete from ${sql(tableName)} 
-      where product_id in (select id from product_temp)`;
-      logText += ` deleted ${deleted.count},`;
-
-      // Add tags back in with the updated information
-      const results = await connection`insert into ${sql(
-        tableName,
-      )} (product_id, value, obsolete)
-        select DISTINCT id, tag.value, ${obsolete} from product_temp 
-        cross join jsonb_array_elements_text(data->'${sql.unsafe(tag)}') tag`;
-
-      logText += ` inserted ${results.count} rows`;
-
-      this.logger.debug(logText);
-    }
     await connection`truncate table product_temp`;
     await connection`commit`;
   }
