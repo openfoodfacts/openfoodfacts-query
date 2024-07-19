@@ -6,10 +6,17 @@ import { TagService } from './services/tag.service';
 import { SettingsService } from './services/settings.service';
 import { EntityManager, RequestContext } from '@mikro-orm/core';
 import { Cron, ScheduleModule } from '@nestjs/schedule';
+import { MessagesService } from './services/messages.service';
 
 @Module({
   imports: [MikroOrmModule.forRoot(), ScheduleModule.forRoot()],
-  providers: [ImportService, QueryService, TagService, SettingsService],
+  providers: [
+    ImportService,
+    QueryService,
+    TagService,
+    SettingsService,
+    MessagesService,
+  ],
   exports: [ImportService, QueryService, TagService, SettingsService],
 })
 export class DomainModule implements OnModuleInit, OnModuleDestroy {
