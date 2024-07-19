@@ -105,7 +105,7 @@ export class ImportService {
 
     // Now using postgres to help with transactions
     const connection = await sql.reserve();
-    await connection`CREATE TEMP TABLE product_temp (id int, last_modified timestamptz, data jsonb)`;
+    await connection`CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_modified timestamptz, data jsonb)`;
     // let sql: string;
     // const vars = [];
     for (const collection of Object.values(collections)) {
@@ -166,7 +166,7 @@ export class ImportService {
         results =
           await connection`insert into product_temp (id, last_modified, data) values (${id}, ${lastModified}, ${
             data as unknown as SerializableParameter
-          })`;
+          }) ON CONFLICT DO NOTHING`;
 
         latestModified = Math.max(latestModified, lastModified?.getTime() ?? 0);
 
