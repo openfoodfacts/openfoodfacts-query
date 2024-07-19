@@ -409,18 +409,22 @@ export class ImportService {
                 diffs: "{\"fields\":{\"change\":[\"categories\"],\"delete\":[\"product_name\",\"product_name_es\"]}}",
               }
              */
-            await this.messages.create(messages);
-            const productCodes = messages.map((m) => m.message.code);
-            const filter = { code: { $in: productCodes } };
-            await this.importWithFilter(filter, ProductSource.EVENT);
-            await this.settings.setLastMessageId(
-              messages[messages.length - 1].id,
-            );
+            await this.processMessages(messages);
           }
         }
         setTimeout(() => {
           this.receiveMessages();
         }, 0);
       });
+  }
+
+  async processMessages(messages: any[]) {
+    await this.messages.create(messages);
+    const productCodes = messages
+      .filter((m) => !m.message.diffs?.initial_import) // Don't trigger product updates on initial import
+      .map((m) => m.message.code);
+    const filter = { code: { $in: productCodes } };
+    await this.importWithFilter(filter, ProductSource.EVENT);
+    await this.settings.setLastMessageId(messages[messages.length - 1].id);
   }
 }
