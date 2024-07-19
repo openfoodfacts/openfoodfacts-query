@@ -1,6 +1,8 @@
+import postgres from 'postgres';
 import { randomCode } from '../../../test/test.helper';
 import sql from '../../db';
 import { MessagesService } from './messages.service';
+import { VIEW_PASSWORD, VIEW_USER } from '../../constants';
 
 describe('product_updates_view', () => {
   it('should aggregate events by count and distinct products', async () => {
@@ -52,15 +54,16 @@ describe('product_updates_view', () => {
       },
     ]);
 
-    const results = await sql`SELECT 
-        DATE_TRUNC('day', pe.updated_at) updated_day,
-        p.owners_tags,
-        count(*) update_count,
-        count(DISTINCT pe.code) product_count
-    FROM product_update_event pe
-        LEFT JOIN product p on p.code = pe.code
-    GROUP BY DATE_TRUNC('day', pe.updated_at),
-        p.owners_tags`;
+    // Use viewer user
+    const viewer = postgres({
+      host: process.env.POSTGRES_HOST,
+      database: process.env.POSTGRES_DB,
+      user: VIEW_USER,
+      password: VIEW_PASSWORD,
+      port: parseInt(process.env.POSTGRES_PORT.split(':').pop()),
+    });
+
+    const results = await viewer`SELECT * from product_update_view`;
 
     const myResult = results.find((r) => r.owners_tags === owner1);
     expect(myResult.update_count).toBe('4');
