@@ -65,7 +65,7 @@ describe('product_updates_view', () => {
 
     const results = await viewer`SELECT * from product_update_view`;
 
-    const myResult = results.find((r) => r.owners_tags === owner1);
+    const myResult = results.find((r) => r.owner_tag === owner1);
     expect(myResult.update_count).toBe('4');
     expect(myResult.product_count).toBe('2');
   });

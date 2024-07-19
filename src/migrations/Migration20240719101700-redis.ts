@@ -12,7 +12,7 @@ export class Migration20240719101700Redis extends Migration {
 
     this.addSql(`CREATE OR REPLACE VIEW product_update_view AS SELECT 
         DATE_TRUNC('day', pe.updated_at) updated_day,
-        p.owners_tags,
+        p.owners_tags owner_tag,
         count(*) update_count,
         count(DISTINCT pe.code) product_count
     FROM product_update_event pe
