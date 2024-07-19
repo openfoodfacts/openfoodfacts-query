@@ -1,3 +1,5 @@
+import { randomCode } from '../../../test/test.helper';
+import sql from '../../db';
 import { MessagesService } from './messages.service';
 
 describe('messageTime', () => {
@@ -24,5 +26,30 @@ describe('messageTime', () => {
     const now = Date.now();
     const date = importService.messageTime({});
     expect(date.getTime()).toBeGreaterThanOrEqual(now);
+  });
+});
+
+describe('create', () => {
+  it('should ignore duplicate events', async () => {
+    const code1 = randomCode();
+    const messages = new MessagesService();
+    await messages.create([
+      {
+        id: '1-0',
+        message: {
+          code: code1,
+        },
+      },
+      {
+        id: '1-0',
+        message: {
+          code: code1,
+        },
+      },
+    ]);
+
+    const result =
+      await sql`SELECT * FROM product_update_event WHERE code = ${code1}`;
+    expect(result).toHaveLength(1);
   });
 });

@@ -16,6 +16,6 @@ export class MessagesService {
         code: m.message.code,
         message: m.message,
       })),
-    )}`;
+    )} ON CONFLICT DO NOTHING`;
   }
 }
