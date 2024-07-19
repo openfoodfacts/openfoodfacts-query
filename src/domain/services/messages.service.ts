@@ -4,7 +4,13 @@ import sql from '../../db';
 @Injectable()
 export class MessagesService {
   messageTime(message: any) {
-    const time = new Date(parseInt(message.id?.split('-')[0]));
+    // First preference is to use timestamp in the message
+    let time = new Date(parseInt(message.timestamp) * 1000);
+    // Otherwise derive from message id
+    time = isNaN(time.getTime())
+      ? new Date(parseInt(message.id?.split('-')[0]))
+      : time;
+    // Or use today's date/time if that doesn't work
     return isNaN(time.getTime()) ? new Date() : time;
   }
 

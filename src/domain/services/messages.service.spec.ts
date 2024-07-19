@@ -27,6 +27,12 @@ describe('messageTime', () => {
     const date = importService.messageTime({});
     expect(date.getTime()).toBeGreaterThanOrEqual(now);
   });
+  it('should use timestamp if provided', async () => {
+    const importService = new MessagesService();
+    const time = Math.trunc((Date.now() - 1000) / 1000);
+    const date = importService.messageTime({ timestamp: time });
+    expect(date.getTime()).toBe(time * 1000);
+  });
 });
 
 describe('create', () => {
