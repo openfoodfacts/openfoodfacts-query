@@ -368,6 +368,11 @@ export class ImportService {
     if (this.client && this.client.isOpen) await this.client.quit();
   }
 
+  messageTime(message: any) {
+    const time = new Date(parseInt(message.id?.split('-')[0]));
+    return isNaN(time.getTime()) ? new Date() : time;
+  }
+
   async receiveMessages() {
     const lastMessageId = await this.settings.getLastMessageId();
     if (!this.client.isOpen) return;
@@ -404,6 +409,14 @@ export class ImportService {
                 diffs: "{\"fields\":{\"change\":[\"categories\"],\"delete\":[\"product_name\",\"product_name_es\"]}}",
               }
              */
+            await sql`INSERT into product_update_event ${sql(
+              messages.map((m) => ({
+                id: m.id,
+                updated_at: this.messageTime(m),
+                code: m.message.code,
+                message: m.message,
+              })),
+            )}`;
             const productCodes = messages.map((m) => m.message.code);
             const filter = { code: { $in: productCodes } };
             await this.importWithFilter(filter, ProductSource.EVENT);

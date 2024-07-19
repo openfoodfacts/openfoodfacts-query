@@ -13,6 +13,7 @@ import { createClient } from 'redis';
 import { GenericContainer } from 'testcontainers';
 import { setTimeout } from 'timers/promises';
 import { ProductIngredient } from '../entities/product-ingredient';
+import sql from '../../db';
 
 const lastModified = 1692032161;
 
@@ -402,6 +403,41 @@ describe('importWithFilter', () => {
   });
 });
 
+describe('messageTime', () => {
+  it('should return a date from a message id', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      const time = lastModified * 1000;
+      const date = importService.messageTime({ id: `${time}-0` });
+      expect(date.getTime()).toBe(time);
+    });
+  });
+  it('should return the current date for an invalid message id', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      const now = Date.now();
+      const date = importService.messageTime({ id: 'invalid' });
+      expect(date.getTime()).toBeGreaterThanOrEqual(now);
+    });
+  });
+  it('should cope with a null id', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      const now = Date.now();
+      const date = importService.messageTime({ id: null });
+      expect(date.getTime()).toBeGreaterThanOrEqual(now);
+    });
+  });
+  it('should cope with no id', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      const now = Date.now();
+      const date = importService.messageTime({});
+      expect(date.getTime()).toBeGreaterThanOrEqual(now);
+    });
+  });
+});
+
 describe('receiveMessages', () => {
   it('should call importwithfilter when a message is received', async () => {
     await createTestingModule([DomainModule], async (app) => {
@@ -424,13 +460,16 @@ describe('receiveMessages', () => {
       const client = createClient({ url: redisUrl });
       await client.connect();
       try {
+        const code1 = randomCode();
+        const code2 = randomCode();
+
         // When: A message is sent
         const messageId = await client.xAdd('product_updates_off', '*', {
-          code: 'TEST1',
+          code: code1,
         });
 
         // Wait for message to be delivered
-        await setTimeout(10);
+        await setTimeout(100);
 
         // Then the import is called
         expect(importSpy).toHaveBeenCalledTimes(1);
@@ -439,17 +478,24 @@ describe('receiveMessages', () => {
         // If a new message is added
         importSpy.mockClear();
         await client.xAdd('product_updates_off', '*', {
-          code: 'TEST2',
+          code: code2,
         });
 
         // Wait for message to be delivered
-        await setTimeout(10);
+        await setTimeout(100);
 
         // Then import is called again but only with the new code
         expect(importSpy).toHaveBeenCalledTimes(1);
         const codes = importSpy.mock.calls[0][0].code.$in;
         expect(codes).toHaveLength(1);
-        expect(codes[0]).toBe('TEST2');
+        expect(codes[0]).toBe(code2);
+
+        // Update events are created
+        const events =
+          await sql`SELECT * FROM product_update_event WHERE code = ${code1}`;
+
+        expect(events).toHaveLength(1);
+        expect(events[0].id).toBe(messageId);
       } finally {
         await client.quit();
         await importService.stopRedisConsumer();
