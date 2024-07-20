@@ -35,19 +35,23 @@ describe('messageTime', () => {
   });
 });
 
+let idCount = 0;
+
 describe('create', () => {
   it('should ignore duplicate events', async () => {
     const code1 = randomCode();
     const messages = new MessagesService();
+    const messageId = `${Date.now()}-${idCount++}`;
+
     await messages.create([
       {
-        id: '1-0',
+        id: messageId,
         message: {
           code: code1,
         },
       },
       {
-        id: '1-0',
+        id: messageId,
         message: {
           code: code1,
         },
@@ -57,5 +61,24 @@ describe('create', () => {
     const result =
       await sql`SELECT * FROM product_update_event WHERE code = ${code1}`;
     expect(result).toHaveLength(1);
+  });
+
+  it('should cope with null characters', async () => {
+    const code1 = randomCode();
+    const messages = new MessagesService();
+    await messages.create([
+      {
+        id: `${Date.now()}-${idCount++}`,
+        message: {
+          code: code1,
+          comment: 'test \u0000 test2 \u0000 end',
+        },
+      },
+    ]);
+
+    const result =
+      await sql`SELECT * FROM product_update_event WHERE code = ${code1}`;
+    expect(result).toHaveLength(1);
+    expect(result[0].message.comment).toBe('test  test2  end');
   });
 });

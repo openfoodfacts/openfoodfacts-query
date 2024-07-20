@@ -419,12 +419,26 @@ export class ImportService {
   }
 
   async processMessages(messages: any[]) {
+    // Fix JSON properties on each message to be objects rather than strings
+    for (const event of messages) {
+      if (event.message.diffs)
+        event.message.diffs = JSON.parse(event.message.diffs);
+    }
     await this.messages.create(messages);
-    const productCodes = messages
-      .filter((m) => !m.message.diffs?.initial_import) // Don't trigger product updates on initial import
-      .map((m) => m.message.code);
-    const filter = { code: { $in: productCodes } };
-    await this.importWithFilter(filter, ProductSource.EVENT);
+    const productCodes = [
+      ...new Set(
+        messages
+          .filter((m) => !m.message.diffs?.initial_import) // Don't trigger product updates on initial import
+          .map((m) => m.message.code),
+      ),
+    ];
+    this.logger.log(
+      `Received ${messages.length} events with ${productCodes.length} products to import`,
+    );
+    if (productCodes.length) {
+      const filter = { code: { $in: productCodes } };
+      await this.importWithFilter(filter, ProductSource.EVENT);
+    }
     await this.settings.setLastMessageId(messages[messages.length - 1].id);
   }
 }

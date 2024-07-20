@@ -538,7 +538,7 @@ describe('receiveMessages', () => {
 });
 
 describe('processMessages', () => {
-  it('should not call importwithfilter when a message contains the initial_import diff', async () => {
+  it('should not call importwithfilter for messages that contain the initial_import diff', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const importService = app.get(ImportService);
       const importSpy = jest
@@ -560,9 +560,10 @@ describe('processMessages', () => {
           id: nextId(),
           message: {
             code: code2,
-            diffs: {
+            // Note JSON properties in Redis come in as strings
+            diffs: JSON.stringify({
               initial_import: 1,
-            },
+            }),
           },
         },
       ];
@@ -572,6 +573,55 @@ describe('processMessages', () => {
       const codes = importSpy.mock.calls[0][0].code.$in;
       expect(codes).toHaveLength(1);
       expect(codes[0]).toBe(code1);
+
+      // Update events are created for all codes
+      const events =
+        await sql`SELECT * FROM product_update_event WHERE code IN ${sql([
+          code1,
+          code2,
+        ])}`;
+
+      expect(events).toHaveLength(2);
+    });
+  });
+
+  it('should not call importwithfilter at all if all messages contain the initial_import diff', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      const importSpy = jest
+        .spyOn(importService, 'importWithFilter')
+        .mockImplementation();
+
+      const code1 = randomCode();
+      const code2 = randomCode();
+      let idCount = 0;
+      const nextId = () => `${Date.now()}-${idCount++}`;
+      const messages = [
+        {
+          id: nextId(),
+          message: {
+            code: code1,
+            // Note JSON properties in Redis come in as strings
+            diffs: JSON.stringify({
+              initial_import: 1,
+            }),
+          },
+        },
+        {
+          id: nextId(),
+          message: {
+            code: code2,
+            // Note JSON properties in Redis come in as strings
+            diffs: JSON.stringify({
+              initial_import: 1,
+            }),
+          },
+        },
+      ];
+
+      await importService.processMessages(messages);
+      // Then the import is not called at all
+      expect(importSpy).toHaveBeenCalledTimes(0);
 
       // Update events are created for all codes
       const events =
