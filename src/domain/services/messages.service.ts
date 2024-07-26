@@ -7,7 +7,7 @@ const nulRegex = /\\u0000/g;
 export class MessagesService {
   messageTime(message: any) {
     // First preference is to use timestamp in the message
-    let time = new Date(parseInt(message.timestamp) * 1000);
+    let time = new Date(parseInt(message.message?.timestamp) * 1000);
     // Otherwise derive from message id
     time = isNaN(time.getTime())
       ? new Date(parseInt(message.id?.split('-')[0]))

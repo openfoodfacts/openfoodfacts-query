@@ -30,7 +30,10 @@ describe('messageTime', () => {
   it('should use timestamp if provided', async () => {
     const importService = new MessagesService();
     const time = Math.trunc((Date.now() - 1000) / 1000);
-    const date = importService.messageTime({ timestamp: time });
+    const date = importService.messageTime({
+      id: '100-0',
+      message: { timestamp: time },
+    });
     expect(date.getTime()).toBe(time * 1000);
   });
 });
