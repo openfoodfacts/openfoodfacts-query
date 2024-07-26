@@ -68,7 +68,6 @@ function mockMongoDB(productList) {
 }
 
 // Import tests can sometimes take a little time in GitHub
-// Plus Allow a little time for the testcontainer to start
 jest.setTimeout(300000);
 
 describe('importFromMongo', () => {

@@ -43,44 +43,20 @@ export class MessagesService {
 
     const messageIds = messages.map((m) => m.id);
 
-    const results = await sql`insert into contributor (code)
+    await sql`insert into contributor (code)
       select distinct message->>'user_id'
       from product_update_event 
       where id in ${sql(messageIds)}
       on conflict (code)
       do nothing`;
-    /*
-    const [minTime, maxTime] = messagesForInsert.reduce(
-      ([prevMin, prevMax], m) => [
-        Math.min(prevMin, m.updated_at.getTime()),
-        Math.max(prevMax, m.updated_at.getTime()),
-      ],
-      [Infinity, -Infinity],
-    );
 
-    const minDate = new Date(minTime).toISOString().substring(0, 10);
-    const maxDate = new Date(maxTime + 86400000).toISOString().substring(0, 10);
+    await sql`insert into action (code)
+      select distinct message->>'action'
+      from product_update_event 
+      where id in ${sql(messageIds)}
+      on conflict (code)
+      do nothing`;
 
-    // TODO: When we upgrade to PostgreSQL 15 we can us a unique constraint to cover the nullable columns
-    // so won't need to expressions in the on conflict clause
-    await sql`INSERT INTO product_updates_by_owner
-      SELECT 
-        date(pe.updated_at at time zone 'UTC') updated_day,
-        p.owners_tags owner_tag,
-        pe.action,
-        count(*) update_count,
-        count(DISTINCT pe.code) product_count
-      FROM product_update_event pe
-        LEFT JOIN product p on p.code = pe.code
-      WHERE pe.updated_at >= ${minDate} AND pe.updated_at < ${maxDate}
-      GROUP BY date(pe.updated_at at time zone 'UTC'),
-        p.owners_tags,
-        pe.action
-      on conflict (updated_date, coalesce(owner_tag, ''), coalesce(action, ''))
-       do update set 
-      	update_count = EXCLUDED.update_count,
-      	product_count = EXCLUDED.product_count`;
-    */
     const productCodes = [
       ...new Set(
         messages
@@ -95,6 +71,28 @@ export class MessagesService {
       const filter = { code: { $in: productCodes } };
       await this.importService.importWithFilter(filter, ProductSource.EVENT);
     }
+
+    // Update counts on product_action after products have been imported
+    await sql`INSERT INTO product_action
+      SELECT 
+      	p.id,
+        date(pe.updated_at at time zone 'UTC') updated_day,
+        action.id,
+        contributor.id,
+        count(*) update_count
+      FROM product_update_event pe
+        JOIN product p on p.code = pe.message->>'code'
+        join contributor on contributor.code = pe.message->>'user_id'
+        join action on action.code = pe.message->>'action'
+      where pe.id in ${sql(messageIds)}
+      GROUP BY p.id,
+        date(pe.updated_at at time zone 'UTC'),
+        action.id,
+        contributor.id
+       on conflict (updated_date,product_id,action,contributor_id)
+       do update set 
+      	update_count = product_action.update_count + EXCLUDED.update_count`;
+
     await this.settings.setLastMessageId(messages[messages.length - 1].id);
   }
 }

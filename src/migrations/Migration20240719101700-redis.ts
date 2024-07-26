@@ -14,13 +14,19 @@ export class Migration20240719101700Redis extends Migration {
       code text,
       constraint contributor_pkey primary key (id),
       constraint contributor_code unique (code))`);
+
+    this.addSql(`CREATE TABLE IF NOT EXISTS action (
+      id serial,
+      code text,
+      constraint action_pkey primary key (id),
+      constraint action_code unique (code))`);
   
-    this.addSql(`CREATE TYPE action AS ENUM ('created', 'updated', 'archived', 'unarchived', 'deleted', 'unknown')`);
+    this.addSql(`INSERT INTO action (code) VALUES ('created'), ('updated'), ('archived'), ('unarchived'), ('deleted'), ('unknown')`);
 
     this.addSql(`CREATE TABLE IF NOT EXISTS product_action (
 	    product_id int,
       updated_date date,
-      action action,
+      action int,
       contributor_id int,
       update_count int,
      constraint product_action_pkey primary key (updated_date, product_id, action, contributor_id))`);
