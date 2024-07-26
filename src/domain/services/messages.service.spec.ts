@@ -49,6 +49,7 @@ describe('create', () => {
           message: {
             code: code1,
             action: 'created',
+            diffs: { initial_import: 1 },
           },
         },
         {
@@ -56,6 +57,7 @@ describe('create', () => {
           message: {
             code: code1,
             action: 'created',
+            diffs: { initial_import: 1 },
           },
         },
       ]);
@@ -77,6 +79,7 @@ describe('create', () => {
           message: {
             code: code1,
             comment: 'test \u0000 test2 \u0000 end',
+            diffs: { initial_import: 1 },
           },
         },
       ]);
@@ -106,6 +109,7 @@ describe('create', () => {
             code: code1,
             user_id: user1,
             action: 'created',
+            diffs: { initial_import: 1 },
           },
         },
         {
@@ -114,6 +118,7 @@ describe('create', () => {
             code: code1,
             user_id: user2,
             action: 'created',
+            diffs: { initial_import: 1 },
           },
         },
       ]);
