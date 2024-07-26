@@ -1,12 +1,14 @@
 import { Body, Controller, Get, Post, Query, All } from '@nestjs/common';
 import { ImportService } from './domain/services/import.service';
 import { QueryService } from './domain/services/query.service';
+import { RedisListener } from './domain/services/redis.listener';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly importService: ImportService,
     private readonly queryService: QueryService,
+    private readonly redisListener: RedisListener,
   ) {}
 
   @Get('importfrommongo')
@@ -19,7 +21,10 @@ export class AppController {
 
   @Get('scheduledimportfrommongo')
   async scheduledImportFromMongo() {
-    await this.importService.scheduledImportFromMongo();
+    // Pause redis while doing a scheduled import
+    await this.redisListener.pauseAndRun(
+      this.importService.scheduledImportFromMongo,
+    );
   }
 
   parseBoolean(value) {

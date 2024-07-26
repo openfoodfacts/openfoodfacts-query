@@ -7,6 +7,7 @@ import { SettingsService } from './services/settings.service';
 import { EntityManager, RequestContext } from '@mikro-orm/core';
 import { Cron, ScheduleModule } from '@nestjs/schedule';
 import { MessagesService } from './services/messages.service';
+import { RedisListener } from './services/redis.listener';
 
 @Module({
   imports: [MikroOrmModule.forRoot(), ScheduleModule.forRoot()],
@@ -16,23 +17,32 @@ import { MessagesService } from './services/messages.service';
     TagService,
     SettingsService,
     MessagesService,
+    RedisListener,
   ],
-  exports: [ImportService, QueryService, TagService, SettingsService],
+  exports: [
+    ImportService,
+    QueryService,
+    TagService,
+    SettingsService,
+    RedisListener,
+    MessagesService,
+  ],
 })
 export class DomainModule implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly em: EntityManager,
     private readonly importService: ImportService,
+    private readonly redisListener: RedisListener,
   ) {}
 
   async onModuleInit() {
     RequestContext.create(this.em, () => {
-      this.importService.startRedisConsumer();
+      this.redisListener.startRedisConsumer();
     });
   }
 
   async onModuleDestroy() {
-    await this.importService.stopRedisConsumer();
+    await this.redisListener.stopRedisConsumer();
   }
 
   // Refresh the PostgreSQL database from MongoDB at 2am every night
@@ -42,7 +52,9 @@ export class DomainModule implements OnModuleInit, OnModuleDestroy {
     // The request context creates a separate entity manager instance
     // which avoids clashes with other requests
     await RequestContext.createAsync(this.em, async () => {
-      await this.importService.scheduledImportFromMongo();
+      await this.redisListener.pauseAndRun(
+        this.importService.scheduledImportFromMongo,
+      );
     });
   }
 }

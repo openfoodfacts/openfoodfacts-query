@@ -5,25 +5,21 @@ import { MongoClient } from 'mongodb';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { TagService } from './tag.service';
 import { ProductTagMap } from '../entities/product-tag-map';
-import { createClient, commandOptions } from 'redis';
 import { ProductSource } from '../enums/product-source';
 import equal from 'fast-deep-equal';
 import { SettingsService } from './settings.service';
 import sql from '../../db';
 import { ReservedSql } from 'postgres';
 import { SerializableParameter } from 'postgres';
-import { MessagesService } from './messages.service';
 
 @Injectable()
 export class ImportService {
   private logger = new Logger(ImportService.name);
-  private client: any; // Don't strongly type here is it is really verbose
 
   constructor(
     private readonly em: EntityManager,
     private readonly tagService: TagService,
     private readonly settings: SettingsService,
-    private readonly messages: MessagesService,
   ) {}
 
   // Lowish batch size seems to work best, probably due to the size of the product document
@@ -338,107 +334,18 @@ export class ImportService {
     this.logger.debug(`${deleted.count} Products deleted`);
   }
 
+  // Make sure to pause redis before calling this
   async scheduledImportFromMongo() {
-    // Pause redis while doing a scheduled import
-    await this.stopRedisConsumer();
-
-    try {
-      if (
-        equal(
-          Object.keys(ProductTagMap.MAPPED_TAGS).sort(),
-          (await this.tagService.getLoadedTags()).sort(),
-        )
-      ) {
-        // Do an incremental load if all tags are already loaded
-        await this.importFromMongo('');
-      } else {
-        await this.importFromMongo();
-      }
-    } finally {
-      // Resume redis after import
-      await this.startRedisConsumer();
-    }
-  }
-
-  async startRedisConsumer() {
-    const redisUrl = this.settings.getRedisUrl();
-    if (!redisUrl) return;
-    this.client = createClient({ url: redisUrl });
-    this.client.on('error', (err) => this.logger.error(err));
-    await this.client.connect();
-    this.receiveMessages();
-  }
-
-  async stopRedisConsumer() {
-    if (this.client && this.client.isOpen) await this.client.quit();
-  }
-
-  async receiveMessages() {
-    const lastMessageId = await this.settings.getLastMessageId();
-    if (!this.client.isOpen) return;
-    this.client
-      .xRead(
-        commandOptions({
-          isolated: true,
-        }),
-        [
-          // XREAD can read from multiple streams, starting at a
-          // different ID for each...
-          {
-            key: 'product_updates_off',
-            id: lastMessageId,
-          },
-        ],
-        {
-          // Read 1000 entry at a time, block for 5 seconds if there are none.
-          COUNT: 1000,
-          BLOCK: 5000,
-        },
+    if (
+      equal(
+        Object.keys(ProductTagMap.MAPPED_TAGS).sort(),
+        (await this.tagService.getLoadedTags()).sort(),
       )
-      .then(async (keys) => {
-        if (keys?.length) {
-          const messages = keys[0].messages;
-          if (messages?.length) {
-            /** Message looks like this:
-              {
-                code: "0850026029062",
-                flavor: "off",
-                user_id: "stephane",
-                action: "updated",
-                comment: "Modification : Remove changes",
-                diffs: "{\"fields\":{\"change\":[\"categories\"],\"delete\":[\"product_name\",\"product_name_es\"]}}",
-              }
-             */
-            await this.processMessages(messages);
-          }
-        }
-        setTimeout(() => {
-          this.receiveMessages();
-        }, 0);
-      });
-  }
-
-  async processMessages(messages: any[]) {
-    // Fix JSON properties on each message to be objects rather than strings
-    for (const event of messages) {
-      if (event.message.diffs)
-        event.message.diffs = JSON.parse(event.message.diffs);
+    ) {
+      // Do an incremental load if all tags are already loaded
+      await this.importFromMongo('');
+    } else {
+      await this.importFromMongo();
     }
-    await this.messages.create(messages);
-    const productCodes = [
-      ...new Set(
-        messages
-          .filter((m) => !m.message.diffs?.initial_import) // Don't trigger product updates on initial import
-          .map((m) => m.message.code),
-      ),
-    ];
-    this.logger.log(
-      `Received ${messages.length} events with ${productCodes.length} products to import`,
-    );
-    if (productCodes.length) {
-      const filter = { code: { $in: productCodes } };
-      await this.importWithFilter(filter, ProductSource.EVENT);
-    }
-    await this.settings.setLastMessageId(messages[messages.length - 1].id);
   }
 }
