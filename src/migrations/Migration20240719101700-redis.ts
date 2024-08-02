@@ -35,6 +35,8 @@ export class Migration20240719101700Redis extends Migration {
     this.addSql(`ALTER ROLE ${VIEW_USER} SET search_path=${SCHEMA},public`);
     this.addSql(`GRANT USAGE ON SCHEMA ${SCHEMA} TO ${VIEW_USER}`);
     this.addSql(`GRANT SELECT ON product_update TO ${VIEW_USER}`);
+    this.addSql(`GRANT SELECT ON action TO ${VIEW_USER}`);
+    this.addSql(`GRANT SELECT ON contributor TO ${VIEW_USER}`);
     this.addSql(`GRANT SELECT ON product TO ${VIEW_USER}`);
   }
 }
