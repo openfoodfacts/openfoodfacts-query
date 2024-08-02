@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { Migration } from '@mikro-orm/migrations';
-import { SCHEMA, VIEW_PASSWORD, VIEW_USER } from '../constants';
+import { VIEW_PASSWORD, VIEW_USER } from '../constants';
 
 export class Migration20240719101700Redis extends Migration {
   async up(): Promise<void> {
@@ -31,12 +31,22 @@ export class Migration20240719101700Redis extends Migration {
       update_count int,
      constraint product_update_pkey primary key (updated_date, product_id, update_type_id, contributor_id))`);
 
+    this.addSql('create schema if not exists views;');
     this.addSql(`CREATE USER ${VIEW_USER} PASSWORD '${VIEW_PASSWORD}'`);
-    this.addSql(`ALTER ROLE ${VIEW_USER} SET search_path=${SCHEMA},public`);
-    this.addSql(`GRANT USAGE ON SCHEMA ${SCHEMA} TO ${VIEW_USER}`);
-    this.addSql(`GRANT SELECT ON product_update TO ${VIEW_USER}`);
-    this.addSql(`GRANT SELECT ON update_type TO ${VIEW_USER}`);
-    this.addSql(`GRANT SELECT ON contributor TO ${VIEW_USER}`);
-    this.addSql(`GRANT SELECT ON product TO ${VIEW_USER}`);
+    this.addSql(`ALTER ROLE ${VIEW_USER} SET search_path=views,public`);
+    this.addSql(`CREATE OR REPLACE VIEW views.product_updates_by_owner AS
+      SELECT pu.updated_date,
+        p.owners_tags owner_tag,
+        ut.code update_type,
+        sum(pu.update_count) update_count,
+        count(DISTINCT pu.product_id) product_count
+      FROM product_update pu
+      JOIN product p ON p.id = pu.product_id
+      JOIN update_type ut ON ut.id = pu.update_type_id
+      GROUP BY pu.updated_date,
+        p.owners_tags,
+        ut.code`);
+    this.addSql(`GRANT USAGE ON SCHEMA views TO ${VIEW_USER}`);
+    this.addSql(`GRANT SELECT ON views.product_updates_by_owner TO ${VIEW_USER}`);
   }
 }
