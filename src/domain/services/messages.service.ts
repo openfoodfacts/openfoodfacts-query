@@ -72,8 +72,8 @@ export class MessagesService {
       await this.importService.importWithFilter(filter, ProductSource.EVENT);
     }
 
-    // Update counts on product_action after products have been imported
-    await sql`INSERT INTO product_action
+    // Update counts on product_update after products have been imported
+    await sql`INSERT INTO product_update
       SELECT 
       	p.id,
         date(pe.updated_at at time zone 'UTC') updated_day,
@@ -91,7 +91,7 @@ export class MessagesService {
         contributor.id
        on conflict (updated_date,product_id,action,contributor_id)
        do update set 
-      	update_count = product_action.update_count + EXCLUDED.update_count`;
+      	update_count = product_update.update_count + EXCLUDED.update_count`;
 
     await this.settings.setLastMessageId(messages[messages.length - 1].id);
   }

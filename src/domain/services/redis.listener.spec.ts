@@ -169,7 +169,7 @@ describe('processMessages', () => {
 
       // Update events are created for all codes
       const events =
-        await sql`SELECT * FROM product_update_event WHERE code IN ${sql([
+        await sql`SELECT * FROM product_update_event WHERE message->>'code' IN ${sql([
           code1,
           code2,
         ])}`;

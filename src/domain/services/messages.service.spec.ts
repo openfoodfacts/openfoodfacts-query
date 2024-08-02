@@ -190,7 +190,7 @@ describe('create', () => {
       ]);
 
       const results =
-        await sql`SELECT * from product_action join product on product.id = product_action.product_id`;
+        await sql`SELECT * from product_update join product on product.id = product_update.product_id`;
 
       const myResult1 = results.find(
         (r) => r.owners_tags === owner1 && r.code === code1,
@@ -245,7 +245,7 @@ describe('create', () => {
       ]);
 
       const results =
-        await sql`SELECT * from product_action join product on product.id = product_action.product_id`;
+        await sql`SELECT * from product_update join product on product.id = product_update.product_id`;
 
       const myResult1 = results.find((r) => r.code === code1);
       expect(myResult1.update_count).toBe(2);
