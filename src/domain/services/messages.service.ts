@@ -50,7 +50,7 @@ export class MessagesService {
       on conflict (code)
       do nothing`;
 
-    await sql`insert into action (code)
+    await sql`insert into update_type (code)
       select distinct message->>'action'
       from product_update_event 
       where id in ${sql(messageIds)}
@@ -77,19 +77,19 @@ export class MessagesService {
       SELECT 
       	p.id,
         date(pe.updated_at at time zone 'UTC') updated_day,
-        action.id,
+        update_type.id,
         contributor.id,
         count(*) update_count
       FROM product_update_event pe
         JOIN product p on p.code = pe.message->>'code'
         join contributor on contributor.code = pe.message->>'user_id'
-        join action on action.code = pe.message->>'action'
+        join update_type on update_type.code = pe.message->>'action'
       where pe.id in ${sql(messageIds)}
       GROUP BY p.id,
         date(pe.updated_at at time zone 'UTC'),
-        action.id,
+        update_type.id,
         contributor.id
-       on conflict (updated_date,product_id,action,contributor_id)
+       on conflict (updated_date,product_id,update_type_id,contributor_id)
        do update set 
       	update_count = product_update.update_count + EXCLUDED.update_count`;
 

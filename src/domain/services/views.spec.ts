@@ -141,14 +141,14 @@ describe('product_update', () => {
       });
 
       const results = await viewer`SELECT 
-          a.code,
+          ut.code update_type,
           sum(update_count) update_count,
           count(DISTINCT product_id) product_count
         from product_update pu
-        join action a on a.id = pu.action
-        group by a.code`;
+        join update_type ut on ut.id = pu.update_type_id
+        group by ut.code`;
 
-      const myResult = results.find((r) => r.code === action1);
+      const myResult = results.find((r) => r.update_type === action1);
       expect(myResult.update_count).toBe('2');
       expect(myResult.product_count).toBe('1');
     });
