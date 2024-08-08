@@ -52,8 +52,8 @@ export class DomainModule implements OnModuleInit, OnModuleDestroy {
     // The request context creates a separate entity manager instance
     // which avoids clashes with other requests
     await RequestContext.createAsync(this.em, async () => {
-      await this.redisListener.pauseAndRun(
-        this.importService.scheduledImportFromMongo,
+      await this.redisListener.pauseAndRun(() =>
+        this.importService.scheduledImportFromMongo(),
       );
     });
   }
