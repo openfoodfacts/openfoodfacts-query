@@ -23,10 +23,10 @@ export class Product {
   @Property({ columnType: 'timestamptz' })
   lastModified?: Date;
 
-  @Property()
+  @Property({ index: true })
   creator?: string;
 
-  @Property()
+  @Property({ index: true })
   ownersTags?: string;
 
   @Property()

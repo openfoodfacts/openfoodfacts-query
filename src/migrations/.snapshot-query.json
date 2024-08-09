@@ -160,6 +160,24 @@
         },
         {
           "columnNames": [
+            "creator"
+          ],
+          "composite": false,
+          "keyName": "product_creator_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
+            "owners_tags"
+          ],
+          "composite": false,
+          "keyName": "product_owners_tags_index",
+          "primary": false,
+          "unique": false
+        },
+        {
+          "columnNames": [
             "last_update_id"
           ],
           "composite": false,
