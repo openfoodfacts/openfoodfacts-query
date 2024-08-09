@@ -1,5 +1,4 @@
 import postgres from 'postgres';
-import { SCHEMA } from './constants';
 
 const sql = postgres({
   host: process.env.POSTGRES_HOST,
