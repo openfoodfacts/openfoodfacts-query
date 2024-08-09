@@ -1,9 +1,4 @@
 services:
-  query_postgres:
-    # Expose port locally for testing purposes.
-    ports:
-      - "${POSTGRES_PORT:-5512}:5432"
-
   query:
     build: .
     image: openfoodfacts-query:dev
