@@ -127,9 +127,12 @@ describe('create', () => {
         true,
       );
 
-      const result = await sql`SELECT * FROM contributor WHERE code = ${user2}`;
-      expect(result).toHaveLength(1);
-      // TODO: test there are no wasted ids
+      const result = await sql`SELECT * FROM contributor WHERE code in ${sql([
+        user1,
+        user2,
+      ])} order by id`;
+      expect(result).toHaveLength(2);
+      expect(result[1].id).toBe(result[0].id + 1);
     });
   });
 
