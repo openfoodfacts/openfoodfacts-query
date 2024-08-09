@@ -5,6 +5,9 @@ import { MessagesService } from './messages.service';
 import { VIEW_PASSWORD, VIEW_USER } from '../../constants';
 import { DomainModule } from '../domain.module';
 
+// Allow a little time for the testContainers to start
+jest.setTimeout(300000);
+
 async function withViewUser(
   action: (viewer: postgres.Sql<any>) => Promise<void>,
 ) {
