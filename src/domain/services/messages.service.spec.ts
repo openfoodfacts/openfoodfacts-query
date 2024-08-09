@@ -38,7 +38,7 @@ describe('messageTime', () => {
 let idCount = 0;
 
 describe('create', () => {
-  it('should ignore duplicate events', async () => {
+  it('should load duplicate events', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const messages = app.get(MessagesService);
       const code1 = randomCode();
@@ -66,8 +66,7 @@ describe('create', () => {
 
       const result =
         await sql`SELECT * FROM product_update_event WHERE message->>'code' = ${code1}`;
-      expect(result).toHaveLength(1);
-      expect(result[0].message.action).toBe('created');
+      expect(result).toHaveLength(2);
     });
   });
 
@@ -164,6 +163,7 @@ describe('create', () => {
               code: code1,
               action: 'created',
               user_id: 'test',
+              rev: 1,
             },
           },
           {
@@ -172,6 +172,7 @@ describe('create', () => {
               code: code1,
               action: 'created',
               user_id: 'test',
+              rev: 2,
             },
           },
           {
@@ -180,6 +181,7 @@ describe('create', () => {
               code: code1,
               action: 'created',
               user_id: 'test',
+              rev: 2, // Duplicate
             },
           },
           {
@@ -188,6 +190,7 @@ describe('create', () => {
               code: code2,
               action: 'created',
               user_id: 'test',
+              rev: 1,
             },
           },
         ],
@@ -197,15 +200,15 @@ describe('create', () => {
       const results =
         await sql`SELECT * from product_update join product on product.id = product_update.product_id`;
 
-      const myResult1 = results.find(
+      const myResult1 = results.filter(
         (r) => r.owners_tags === owner1 && r.code === code1,
       );
-      expect(myResult1.update_count).toBe(3);
+      expect(myResult1).toHaveLength(2);
 
-      const myResult2 = results.find(
+      const myResult2 = results.filter(
         (r) => r.owners_tags === owner1 && r.code === code2,
       );
-      expect(myResult2.update_count).toBe(1);
+      expect(myResult2).toHaveLength(1);
     });
   });
 
@@ -232,6 +235,7 @@ describe('create', () => {
               code: code1,
               action: action1,
               user_id: 'test',
+              rev: 1,
             },
           },
         ],
@@ -247,6 +251,7 @@ describe('create', () => {
               code: code1,
               action: action1,
               user_id: 'test',
+              rev: 2,
             },
           },
         ],
@@ -256,8 +261,8 @@ describe('create', () => {
       const results =
         await sql`SELECT * from product_update join product on product.id = product_update.product_id`;
 
-      const myResult1 = results.find((r) => r.code === code1);
-      expect(myResult1.update_count).toBe(2);
+      const myResult1 = results.filter((r) => r.code === code1);
+      expect(myResult1).toHaveLength(2);
     });
   });
 

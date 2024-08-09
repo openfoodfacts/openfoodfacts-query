@@ -5,7 +5,8 @@ import { VIEW_PASSWORD, VIEW_USER } from '../constants';
 export class Migration20240719101700Redis extends Migration {
   async up(): Promise<void> {
     this.addSql(`CREATE TABLE IF NOT EXISTS product_update_event (
-      id text NOT NULL PRIMARY KEY,
+      id bigserial NOT NULL PRIMARY KEY,
+      message_id text NOT NULL,
       received_at timestamptz NOT NULL,
       updated_at timestamptz NOT NULL,
       message jsonb NOT NULL)`);
@@ -22,15 +23,17 @@ export class Migration20240719101700Redis extends Migration {
       constraint action_pkey primary key (id),
       constraint action_code unique (code))`);
   
-    this.addSql(`INSERT INTO update_type (code) VALUES ('created'), ('updated'), ('archived'), ('unarchived'), ('deleted'), ('unknown')`);
+    this.addSql(`INSERT INTO update_type (code) VALUES ('created'), ('updated'), ('archived'), ('unarchived'), ('deleted'), ('reprocessed'), ('unknown')`);
 
     this.addSql(`CREATE TABLE IF NOT EXISTS product_update (
 	    product_id int,
+	    revision int,
       updated_date date,
       update_type_id int,
       contributor_id int,
-      update_count int,
-     constraint product_update_pkey primary key (updated_date, product_id, update_type_id, contributor_id))`);
+      event_id bigint,
+     constraint product_update_pkey primary key (product_id, revision))`);
+    this.addSql('create index product_update_updated_date_index on product_update (updated_date);');
 
     this.addSql('create schema if not exists views;');
     this.addSql(`CREATE USER ${VIEW_USER} PASSWORD '${VIEW_PASSWORD}'`);
@@ -39,7 +42,7 @@ export class Migration20240719101700Redis extends Migration {
       SELECT pu.updated_date,
         p.owners_tags owner_tag,
         ut.code update_type,
-        sum(pu.update_count) update_count,
+        count(*) update_count,
         count(DISTINCT pu.product_id) product_count
       FROM product_update pu
       JOIN product p ON p.id = pu.product_id
@@ -49,5 +52,15 @@ export class Migration20240719101700Redis extends Migration {
         ut.code`);
     this.addSql(`GRANT USAGE ON SCHEMA views TO ${VIEW_USER}`);
     this.addSql(`GRANT SELECT ON views.product_updates_by_owner TO ${VIEW_USER}`);
+  }
+  async down(): Promise<void> {
+    this.addSql(`drop owned by ${VIEW_USER}`);
+    this.addSql(`DROP ROLE ${VIEW_USER}`);
+    this.addSql(`drop view views.product_updates_by_owner`);
+    this.addSql(`drop schema views`);
+    this.addSql(`drop table product_update CASCADE`);
+    this.addSql(`drop table contributor CASCADE`);
+    this.addSql(`drop table update_type CASCADE`);
+    this.addSql(`drop table product_update_event CASCADE`);
   }
 }

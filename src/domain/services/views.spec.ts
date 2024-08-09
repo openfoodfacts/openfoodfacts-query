@@ -55,6 +55,7 @@ describe('product_update', () => {
               code: code1,
               action: 'updated',
               user_id: 'user1',
+              rev: 1,
             },
           },
           {
@@ -63,6 +64,7 @@ describe('product_update', () => {
               code: code1,
               action: 'updated',
               user_id: 'user1',
+              rev: 2,
             },
           },
           {
@@ -71,6 +73,7 @@ describe('product_update', () => {
               code: code1,
               action: 'updated',
               user_id: 'user1',
+              rev: 3,
             },
           },
           {
@@ -79,6 +82,7 @@ describe('product_update', () => {
               code: code2,
               action: 'updated',
               user_id: 'user1',
+              rev: 1,
             },
           },
         ],
@@ -119,6 +123,7 @@ describe('product_update', () => {
             code: code1,
             action: action1,
             user_id: 'user1',
+            rev: 1,
           },
         },
       ]);
@@ -132,6 +137,7 @@ describe('product_update', () => {
               code: code1,
               action: action1,
               user_id: 'user1',
+              rev: 2,
             },
           },
         ],

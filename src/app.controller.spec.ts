@@ -16,6 +16,7 @@ describe('productupdate', () => {
       const updates = [
         {
           code: code1,
+          rev: 1,
         },
       ];
 

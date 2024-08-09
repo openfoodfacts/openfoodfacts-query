@@ -42,6 +42,7 @@ describe('receiveMessages', () => {
         // When: A message is sent
         const messageId = await client.xAdd('product_updates_off', '*', {
           code: code1,
+          rev: '1',
         });
 
         // Wait for message to be delivered
@@ -71,7 +72,7 @@ describe('receiveMessages', () => {
           await sql`SELECT * FROM product_update_event WHERE message->>'code' = ${code1}`;
 
         expect(events).toHaveLength(1);
-        expect(events[0].id).toBe(messageId);
+        expect(events[0].message_id).toBe(messageId);
       } finally {
         await client.quit();
         await redisListener.stopRedisConsumer();

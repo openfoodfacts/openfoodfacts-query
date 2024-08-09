@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import sql from '../../db';
 import { ImportService } from './import.service';
-import { SettingsService } from './settings.service';
 import { ProductSource } from '../enums/product-source';
 
 const nulRegex = /\\u0000/g;
@@ -31,21 +30,22 @@ export class MessagesService {
     }
 
     const receivedAt = new Date();
-    await sql`INSERT into product_update_event ${sql(
+    const insertResult = await sql`INSERT into product_update_event ${sql(
       messages.map((m) => ({
-        id: m.id,
+        message_id: m.id,
         received_at: receivedAt,
         updated_at: MessagesService.messageTime(m),
         message: m.message,
       })),
-    )} ON CONFLICT DO NOTHING`;
+    )} RETURNING (id)`;
 
-    const messageIds = messages.map((m) => m.id);
+    const messageIds = insertResult.map((m) => m.id);
 
     await sql`insert into contributor (code)
       select distinct message->>'user_id'
       from product_update_event 
       where id in ${sql(messageIds)}
+      and not exists (select * from contributor where code = message->>'user_id')
       on conflict (code)
       do nothing`;
 
@@ -53,6 +53,7 @@ export class MessagesService {
       select distinct message->>'action'
       from product_update_event 
       where id in ${sql(messageIds)}
+      and not exists (select * from update_type where code = message->>'action')
       on conflict (code)
       do nothing`;
 
@@ -63,25 +64,26 @@ export class MessagesService {
     }
 
     // Update counts on product_update after products have been imported
-    await sql`INSERT INTO product_update
+    await sql`INSERT INTO product_update (
+        product_id,
+        revision,
+        updated_date,
+        update_type_id,
+        contributor_id,
+        event_id)
       SELECT 
       	p.id,
+        (pe.message->>'rev')::int,
         date(pe.updated_at at time zone 'UTC') updated_day,
         update_type.id,
         contributor.id,
-        count(*) update_count
+        pe.id
       FROM product_update_event pe
         JOIN product p on p.code = pe.message->>'code'
         join contributor on contributor.code = pe.message->>'user_id'
         join update_type on update_type.code = pe.message->>'action'
       where pe.id in ${sql(messageIds)}
-      GROUP BY p.id,
-        date(pe.updated_at at time zone 'UTC'),
-        update_type.id,
-        contributor.id
-       on conflict (updated_date,product_id,update_type_id,contributor_id)
-       do update set 
-      	update_count = product_update.update_count + EXCLUDED.update_count`;
+      on conflict (product_id,revision) DO NOTHING`;
 
     this.logger.log(`Received ${messages.length} events`);
   }
