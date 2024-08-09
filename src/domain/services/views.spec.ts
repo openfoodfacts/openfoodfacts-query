@@ -5,9 +5,6 @@ import { MessagesService } from './messages.service';
 import { VIEW_PASSWORD, VIEW_USER } from '../../constants';
 import { DomainModule } from '../domain.module';
 
-// Allow a little time for the testContainers to start
-jest.setTimeout(300000);
-
 async function withViewUser(
   action: (viewer: postgres.Sql<any>) => Promise<void>,
 ) {
@@ -119,17 +116,20 @@ describe('product_update', () => {
       // Create an existing message
       let idCount = 0;
       const nextId = () => `${Date.now()}-${idCount++}`;
-      await messages.create([
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            action: action1,
-            user_id: 'user1',
-            rev: 1,
+      await messages.create(
+        [
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: action1,
+              user_id: 'user1',
+              rev: 1,
+            },
           },
-        },
-      ]);
+        ],
+        true,
+      );
 
       // Add another message
       await messages.create(
