@@ -10,10 +10,7 @@ const nulRegex = /\\u0000/g;
 export class MessagesService {
   private logger = new Logger(MessagesService.name);
 
-  constructor(
-    private readonly importService: ImportService,
-    private readonly settings: SettingsService,
-  ) {}
+  constructor(private readonly importService: ImportService) {}
 
   static messageTime(message: any) {
     // First preference is to use timestamp in the message
@@ -33,9 +30,11 @@ export class MessagesService {
       messages = JSON.parse(messageJson.replace(nulRegex, ''));
     }
 
+    const receivedAt = new Date();
     await sql`INSERT into product_update_event ${sql(
       messages.map((m) => ({
         id: m.id,
+        received_at: receivedAt,
         updated_at: MessagesService.messageTime(m),
         message: m.message,
       })),
@@ -83,8 +82,6 @@ export class MessagesService {
        on conflict (updated_date,product_id,update_type_id,contributor_id)
        do update set 
       	update_count = product_update.update_count + EXCLUDED.update_count`;
-
-    await this.settings.setLastMessageId(messages[messages.length - 1].id);
 
     this.logger.log(`Received ${messages.length} events`);
   }

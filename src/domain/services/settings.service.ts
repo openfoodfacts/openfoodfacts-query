@@ -20,7 +20,7 @@ export class SettingsService {
 
   async getLastMessageId() {
     return (
-      (await sql`SELECT last_message_id FROM settings`)[0].last_message_id ||
+      (await sql`SELECT last_message_id FROM settings`)[0]?.last_message_id ||
       '$'
     );
   }

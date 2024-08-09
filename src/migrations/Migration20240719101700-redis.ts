@@ -6,6 +6,7 @@ export class Migration20240719101700Redis extends Migration {
   async up(): Promise<void> {
     this.addSql(`CREATE TABLE IF NOT EXISTS product_update_event (
       id text NOT NULL PRIMARY KEY,
+      received_at timestamptz NOT NULL,
       updated_at timestamptz NOT NULL,
       message jsonb NOT NULL)`);
 

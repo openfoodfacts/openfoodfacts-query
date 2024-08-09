@@ -29,8 +29,8 @@ export class RedisListener {
   async receiveMessages() {
     const lastMessageId = await this.settings.getLastMessageId();
     if (!this.client.isOpen) return;
-    this.client
-      .xRead(
+    try {
+      const keys = await this.client.xRead(
         commandOptions({
           isolated: true,
         }),
@@ -47,28 +47,36 @@ export class RedisListener {
           COUNT: 1000,
           BLOCK: 5000,
         },
-      )
-      .then(async (keys: string | any[]) => {
-        if (keys?.length) {
-          const messages = keys[0].messages;
-          if (messages?.length) {
-            /** Message looks like this:
-                  {
-                    code: "0850026029062",
-                    flavor: "off",
-                    user_id: "stephane",
-                    action: "updated",
-                    comment: "Modification : Remove changes",
-                    diffs: "{\"fields\":{\"change\":[\"categories\"],\"delete\":[\"product_name\",\"product_name_es\"]}}",
-                  }
-                 */
-            await this.processMessages(messages);
-          }
+      );
+      if (keys?.length) {
+        const messages = keys[0].messages;
+        if (messages?.length) {
+          /** Message looks like this:
+                {
+                  code: "0850026029062",
+                  flavor: "off",
+                  user_id: "stephane",
+                  action: "updated",
+                  comment: "Modification : Remove changes",
+                  diffs: "{\"fields\":{\"change\":[\"categories\"],\"delete\":[\"product_name\",\"product_name_es\"]}}",
+                }
+               */
+          await this.processMessages(messages);
+          await this.settings.setLastMessageId(
+            messages[messages.length - 1].id,
+          );
         }
-        setTimeout(() => {
-          this.receiveMessages();
-        }, 0);
-      });
+      }
+      setTimeout(() => {
+        this.receiveMessages();
+      }, 0);
+    } catch (e) {
+      this.logger.error(e);
+      // Try again in 10 seconds
+      setTimeout(() => {
+        this.receiveMessages();
+      }, 10000);
+    }
   }
 
   async processMessages(messages: any[]) {
