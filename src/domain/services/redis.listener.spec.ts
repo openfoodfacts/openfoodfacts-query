@@ -7,12 +7,13 @@ import { ImportService } from './import.service';
 import { SettingsService } from './settings.service';
 import { RedisListener } from './redis.listener';
 import { setTimeout } from 'timers/promises';
+import { MessagesService } from './messages.service';
 
 // Allow a little time for the testcontainer to start
 jest.setTimeout(300000);
 
 describe('receiveMessages', () => {
-  it('should call importwithfilter when a message is received', async () => {
+  it('should call importWithFilter when a message is received', async () => {
     await createTestingModule([DomainModule], async (app) => {
       // GIVEN: Redis is running
       const redis = await new GenericContainer('redis')
@@ -81,100 +82,29 @@ describe('receiveMessages', () => {
 });
 
 describe('processMessages', () => {
-  it('should not call importwithfilter for messages that contain the initial_import diff', async () => {
+  it('should convert json properties to objects', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      const importService = app.get(ImportService);
-      const importSpy = jest
-        .spyOn(importService, 'importWithFilter')
+      const messagesService = app.get(MessagesService);
+      const createSpy = jest
+        .spyOn(messagesService, 'create')
         .mockImplementation();
 
-      const code1 = randomCode();
-      const code2 = randomCode();
-      let idCount = 0;
-      const nextId = () => `${Date.now()}-${idCount++}`;
       const messages = [
         {
-          id: nextId(),
+          id: `0-0`,
           message: {
-            code: code1,
-          },
-        },
-        {
-          id: nextId(),
-          message: {
-            code: code2,
-            // Note JSON properties in Redis come in as strings
-            diffs: JSON.stringify({
-              initial_import: 1,
-            }),
+            code: 'test',
+            diffs: `{"action":"update"}`,
           },
         },
       ];
 
       const redisListener = app.get(RedisListener);
       await redisListener.processMessages(messages);
-      // Then the import is called only once for code1
-      const codes = importSpy.mock.calls[0][0].code.$in;
-      expect(codes).toHaveLength(1);
-      expect(codes[0]).toBe(code1);
 
-      // Update events are created for all codes
-      const events =
-        await sql`SELECT * FROM product_update_event WHERE message->>'code' IN ${sql(
-          [code1, code2],
-        )}`;
-
-      expect(events).toHaveLength(2);
-    });
-  });
-
-  it('should not call importwithfilter at all if all messages contain the initial_import diff', async () => {
-    await createTestingModule([DomainModule], async (app) => {
-      const importService = app.get(ImportService);
-      const importSpy = jest
-        .spyOn(importService, 'importWithFilter')
-        .mockImplementation();
-
-      const code1 = randomCode();
-      const code2 = randomCode();
-      let idCount = 0;
-      const nextId = () => `${Date.now()}-${idCount++}`;
-      const messages = [
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            // Note JSON properties in Redis come in as strings
-            diffs: JSON.stringify({
-              initial_import: 1,
-            }),
-          },
-        },
-        {
-          id: nextId(),
-          message: {
-            code: code2,
-            // Note JSON properties in Redis come in as strings
-            diffs: JSON.stringify({
-              initial_import: 1,
-            }),
-          },
-        },
-      ];
-
-      const redisListener = app.get(RedisListener);
-      await redisListener.processMessages(messages);
-      // Then the import is not called at all
-      expect(importSpy).toHaveBeenCalledTimes(0);
-
-      // Update events are created for all codes
-      const events =
-        await sql`SELECT * FROM product_update_event WHERE message->>'code' IN ${sql([
-          code1,
-          code2,
-        ])}`;
-
-      expect(events).toHaveLength(2);
+      // Then create is called with a real object
+      const diffs = createSpy.mock.calls[0][0][0].message.diffs;
+      expect(diffs.action).toBe('update');
     });
   });
 });

@@ -1,6 +1,7 @@
 import { createTestingModule, randomCode } from '../../../test/test.helper';
 import sql from '../../db';
 import { DomainModule } from '../domain.module';
+import { ImportService } from './import.service';
 import { MessagesService } from './messages.service';
 
 describe('messageTime', () => {
@@ -43,24 +44,25 @@ describe('create', () => {
       const code1 = randomCode();
       const messageId = `${Date.now()}-${idCount++}`;
 
-      await messages.create([
-        {
-          id: messageId,
-          message: {
-            code: code1,
-            action: 'created',
-            diffs: { initial_import: 1 },
+      await messages.create(
+        [
+          {
+            id: messageId,
+            message: {
+              code: code1,
+              action: 'created',
+            },
           },
-        },
-        {
-          id: messageId,
-          message: {
-            code: code1,
-            action: 'created',
-            diffs: { initial_import: 1 },
+          {
+            id: messageId,
+            message: {
+              code: code1,
+              action: 'created',
+            },
           },
-        },
-      ]);
+        ],
+        true,
+      );
 
       const result =
         await sql`SELECT * FROM product_update_event WHERE message->>'code' = ${code1}`;
@@ -73,16 +75,18 @@ describe('create', () => {
     await createTestingModule([DomainModule], async (app) => {
       const messages = app.get(MessagesService);
       const code1 = randomCode();
-      await messages.create([
-        {
-          id: `${Date.now()}-${idCount++}`,
-          message: {
-            code: code1,
-            comment: 'test \u0000 test2 \u0000 end',
-            diffs: { initial_import: 1 },
+      await messages.create(
+        [
+          {
+            id: `${Date.now()}-${idCount++}`,
+            message: {
+              code: code1,
+              comment: 'test \u0000 test2 \u0000 end',
+            },
           },
-        },
-      ]);
+        ],
+        true,
+      );
 
       const result =
         await sql`SELECT * FROM product_update_event WHERE message->>'code' = ${code1}`;
@@ -102,26 +106,27 @@ describe('create', () => {
       sql`INSERT INTO contributor (code) VALUES(${user1})`;
 
       // When events are imported
-      await messages.create([
-        {
-          id: `${Date.now()}-${idCount++}`,
-          message: {
-            code: code1,
-            user_id: user1,
-            action: 'created',
-            diffs: { initial_import: 1 },
+      await messages.create(
+        [
+          {
+            id: `${Date.now()}-${idCount++}`,
+            message: {
+              code: code1,
+              user_id: user1,
+              action: 'created',
+            },
           },
-        },
-        {
-          id: `${Date.now()}-${idCount++}`,
-          message: {
-            code: code1,
-            user_id: user2,
-            action: 'created',
-            diffs: { initial_import: 1 },
+          {
+            id: `${Date.now()}-${idCount++}`,
+            message: {
+              code: code1,
+              user_id: user2,
+              action: 'created',
+            },
           },
-        },
-      ]);
+        ],
+        true,
+      );
 
       const result = await sql`SELECT * FROM contributor WHERE code = ${user2}`;
       expect(result).toHaveLength(1);
@@ -151,44 +156,43 @@ describe('create', () => {
       // Create some messages
       let idCount = 0;
       const nextId = () => `${Date.now()}-${idCount++}`;
-      await messages.create([
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            action: 'created',
-            user_id: 'test',
-            diffs: { initial_import: 1 },
+      await messages.create(
+        [
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: 'created',
+              user_id: 'test',
+            },
           },
-        },
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            action: 'created',
-            user_id: 'test',
-            diffs: { initial_import: 1 },
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: 'created',
+              user_id: 'test',
+            },
           },
-        },
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            action: 'created',
-            user_id: 'test',
-            diffs: { initial_import: 1 },
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: 'created',
+              user_id: 'test',
+            },
           },
-        },
-        {
-          id: nextId(),
-          message: {
-            code: code2,
-            action: 'created',
-            user_id: 'test',
-            diffs: { initial_import: 1 },
+          {
+            id: nextId(),
+            message: {
+              code: code2,
+              action: 'created',
+              user_id: 'test',
+            },
           },
-        },
-      ]);
+        ],
+        true,
+      );
 
       const results =
         await sql`SELECT * from product_update join product on product.id = product_update.product_id`;
@@ -220,36 +224,124 @@ describe('create', () => {
       // Create an existing message
       let idCount = 0;
       const nextId = () => `${Date.now()}-${idCount++}`;
-      await messages.create([
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            action: action1,
-            user_id: 'test',
-            diffs: { initial_import: 1 },
+      await messages.create(
+        [
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: action1,
+              user_id: 'test',
+            },
           },
-        },
-      ]);
+        ],
+        true,
+      );
 
       // Add another message
-      await messages.create([
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            action: action1,
-            user_id: 'test',
-            diffs: { initial_import: 1 },
+      await messages.create(
+        [
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: action1,
+              user_id: 'test',
+            },
           },
-        },
-      ]);
+        ],
+        true,
+      );
 
       const results =
         await sql`SELECT * from product_update join product on product.id = product_update.product_id`;
 
       const myResult1 = results.find((r) => r.code === code1);
       expect(myResult1.update_count).toBe(2);
+    });
+  });
+
+  it('should not call importwithfilter for initialImport', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      const importSpy = jest
+        .spyOn(importService, 'importWithFilter')
+        .mockImplementation();
+
+      const code1 = randomCode();
+      const code2 = randomCode();
+      let idCount = 0;
+      const nextId = () => `${Date.now()}-${idCount++}`;
+      const messages = [
+        {
+          id: nextId(),
+          message: {
+            code: code1,
+          },
+        },
+        {
+          id: nextId(),
+          message: {
+            code: code2,
+          },
+        },
+      ];
+
+      const messagesService = app.get(MessagesService);
+      await messagesService.create(messages, true);
+
+      // Then the import is not called
+      expect(importSpy).not.toHaveBeenCalled();
+
+      // Update events are created for all codes
+      const events =
+        await sql`SELECT * FROM product_update_event WHERE message->>'code' IN ${sql(
+          [code1, code2],
+        )}`;
+
+      expect(events).toHaveLength(2);
+    });
+  });
+
+  it('should call importwithfilter for normal imports', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      const importSpy = jest
+        .spyOn(importService, 'importWithFilter')
+        .mockImplementation();
+
+      const code1 = randomCode();
+      const code2 = randomCode();
+      let idCount = 0;
+      const nextId = () => `${Date.now()}-${idCount++}`;
+      const messages = [
+        {
+          id: nextId(),
+          message: {
+            code: code1,
+          },
+        },
+        {
+          id: nextId(),
+          message: {
+            code: code2,
+          },
+        },
+      ];
+
+      const messagesService = app.get(MessagesService);
+      await messagesService.create(messages);
+
+      // Then the import is called
+      expect(importSpy).toHaveBeenCalled();
+
+      // Update events are created for all codes
+      const events =
+        await sql`SELECT * FROM product_update_event WHERE message->>'code' IN ${sql(
+          [code1, code2],
+        )}`;
+
+      expect(events).toHaveLength(2);
     });
   });
 });

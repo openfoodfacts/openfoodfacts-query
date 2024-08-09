@@ -47,44 +47,43 @@ describe('product_update', () => {
       // Create some messages
       let idCount = 0;
       const nextId = () => `${Date.now()}-${idCount++}`;
-      await messages.create([
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            action: 'updated',
-            user_id: 'user1',
-            diffs: { initial_import: 1 },
+      await messages.create(
+        [
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: 'updated',
+              user_id: 'user1',
+            },
           },
-        },
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            action: 'updated',
-            user_id: 'user1',
-            diffs: { initial_import: 1 },
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: 'updated',
+              user_id: 'user1',
+            },
           },
-        },
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            action: 'updated',
-            user_id: 'user1',
-            diffs: { initial_import: 1 },
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: 'updated',
+              user_id: 'user1',
+            },
           },
-        },
-        {
-          id: nextId(),
-          message: {
-            code: code2,
-            action: 'updated',
-            user_id: 'user1',
-            diffs: { initial_import: 1 },
+          {
+            id: nextId(),
+            message: {
+              code: code2,
+              action: 'updated',
+              user_id: 'user1',
+            },
           },
-        },
-      ]);
+        ],
+        true,
+      );
 
       // Use viewer user
       await withViewUser(async (viewer) => {
@@ -120,23 +119,24 @@ describe('product_update', () => {
             code: code1,
             action: action1,
             user_id: 'user1',
-            diffs: { initial_import: 1 },
           },
         },
       ]);
 
       // Add another message
-      await messages.create([
-        {
-          id: nextId(),
-          message: {
-            code: code1,
-            action: action1,
-            user_id: 'user1',
-            diffs: { initial_import: 1 },
+      await messages.create(
+        [
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: action1,
+              user_id: 'user1',
+            },
           },
-        },
-      ]);
+        ],
+        true,
+      );
 
       // Use viewer user
       await withViewUser(async (viewer) => {

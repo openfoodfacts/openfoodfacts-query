@@ -26,7 +26,7 @@ export class MessagesService {
     return isNaN(time.getTime()) ? new Date() : time;
   }
 
-  async create(messages: any[]) {
+  async create(messages: any[], initialImport = false) {
     // Strip out any \u0000 characters as PostgresSQL can't cope with them
     const messageJson = JSON.stringify(messages);
     if (messageJson.includes('\\u0000')) {
@@ -57,17 +57,8 @@ export class MessagesService {
       on conflict (code)
       do nothing`;
 
-    const productCodes = [
-      ...new Set(
-        messages
-          .filter((m) => !m.message.diffs?.initial_import) // Don't trigger product updates on initial import
-          .map((m) => m.message.code),
-      ),
-    ];
-    this.logger.log(
-      `Received ${messages.length} events with ${productCodes.length} products to import`,
-    );
-    if (productCodes.length) {
+    if (!initialImport) {
+      const productCodes = [...new Set(messages.map((m) => m.message.code))];
       const filter = { code: { $in: productCodes } };
       await this.importService.importWithFilter(filter, ProductSource.EVENT);
     }
@@ -94,5 +85,7 @@ export class MessagesService {
       	update_count = product_update.update_count + EXCLUDED.update_count`;
 
     await this.settings.setLastMessageId(messages[messages.length - 1].id);
+
+    this.logger.log(`Received ${messages.length} events`);
   }
 }
