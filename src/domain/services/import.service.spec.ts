@@ -22,6 +22,7 @@ function testProducts() {
       code: productIdNew,
       last_modified_t: lastModified,
       ingredients_tags: ['test'],
+      rev: 1,
     },
     {
       // This one will already exist
@@ -126,6 +127,7 @@ describe('importFromMongo', () => {
       });
       expect(ingredientsNew).toHaveLength(1);
       expect(ingredientsNew[0].value).toBe('test');
+      expect(productNew.revision).toBe(1);
 
       const ingredientsExisting = await em.find(ProductIngredientsTag, {
         product: productExisting,

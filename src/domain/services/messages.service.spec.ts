@@ -352,4 +352,43 @@ describe('create', () => {
       expect(events).toHaveLength(2);
     });
   });
+
+  // This is just needed for backward compatibility with PO versions that don't send rev in the event
+  it('should get revision from product if not in message', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const messages = app.get(MessagesService);
+      // Create a product
+      const code1 = randomCode();
+
+      await sql`INSERT INTO product ${sql([
+        {
+          code: code1,
+          revision: 123,
+        },
+      ])}`;
+
+      // Create a message with no rev
+      let idCount = 0;
+      const nextId = () => `${Date.now()}-${idCount++}`;
+      await messages.create(
+        [
+          {
+            id: nextId(),
+            message: {
+              code: code1,
+              action: 'created',
+              user_id: 'test',
+            },
+          },
+        ],
+        true,
+      );
+
+      const results =
+        await sql`SELECT product_update.revision from product_update join product on product.id = product_update.product_id where code = ${code1}`;
+
+      expect(results).toHaveLength(1);
+      expect(results[0].revision).toBe(123);
+    });
+  });
 });

@@ -144,6 +144,15 @@
           "primary": false,
           "nullable": true,
           "mappedType": "string"
+        },
+        "revision": {
+          "name": "revision",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "integer"
         }
       },
       "name": "product",

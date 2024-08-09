@@ -47,6 +47,9 @@ export class Product {
 
   @Property()
   source?: ProductSource;
+
+  @Property()
+  revision?: number;
 }
 
 export const MAPPED_FIELDS = [
@@ -58,4 +61,5 @@ export const MAPPED_FIELDS = [
   'ingredients_n',
   'ingredients_without_ciqual_codes_n',
   'ingredients',
+  'rev',
 ];

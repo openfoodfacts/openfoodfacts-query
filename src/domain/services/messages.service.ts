@@ -64,6 +64,7 @@ export class MessagesService {
     }
 
     // Update counts on product_update after products have been imported
+    // Note coalesce on rev is only needed for transition if an older version of PO is deployed
     await sql`INSERT INTO product_update (
         product_id,
         revision,
@@ -73,7 +74,7 @@ export class MessagesService {
         event_id)
       SELECT 
       	p.id,
-        (pe.message->>'rev')::int,
+        coalesce((pe.message->>'rev')::int, p.revision),
         date(pe.updated_at at time zone 'UTC') updated_day,
         update_type.id,
         contributor.id,

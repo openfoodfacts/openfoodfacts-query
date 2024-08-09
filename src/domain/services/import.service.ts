@@ -221,7 +221,8 @@ export class ImportService {
         last_modified = tp.last_modified,
         last_update_id = ${updateId},
         last_updated = ${new Date()},
-        source = ${source}
+        source = ${source},
+        revision = (tp.data->>'rev')::int
       FROM product_temp tp
       WHERE product.id = tp.id`;
     this.logger.debug(`Updated ${productResults.count} products`);
