@@ -1,36 +1,32 @@
-import { EntityManager } from '@mikro-orm/core';
 import { Injectable } from '@nestjs/common';
-import { Settings } from '../entities/settings';
+import sql from '../../db';
 
 @Injectable()
 export class SettingsService {
-  constructor(private readonly em: EntityManager) {}
-
-  settings: Settings;
-  async find() {
-    this.settings = await this.em.findOne(Settings, 1);
-    if (!this.settings) {
-      this.settings = this.em.create(Settings, {});
+  async updateSetting(settings: any) {
+    const result = await sql`UPDATE settings SET ${sql(settings)}`;
+    if (!result.count) {
+      await sql`INSERT INTO settings ${sql(settings)}`;
     }
-    return this.settings;
   }
 
   async getLastModified() {
-    return (await this.find()).lastModified;
+    return (await sql`SELECT last_modified FROM settings`)[0].last_modified;
   }
 
   async setLastModified(lastModified: Date) {
-    (await this.find()).lastModified = lastModified;
-    await this.em.flush();
+    await this.updateSetting({ last_modified: lastModified });
   }
 
   async getLastMessageId() {
-    return (await this.find()).lastMessageId || '$';
+    return (
+      (await sql`SELECT last_message_id FROM settings`)[0]?.last_message_id ||
+      '$'
+    );
   }
 
   async setLastMessageId(messageId: string) {
-    (await this.find()).lastMessageId = messageId;
-    await this.em.flush();
+    await this.updateSetting({ last_message_id: messageId });
   }
 
   getRedisUrl() {

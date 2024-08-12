@@ -16,6 +16,9 @@ export default async function () {
   // We don't use redis in the tests
   process.env.REDIS_URL = '';
 
+  // Prevent tests from calling directly to MongoDB
+  process.env.MONGO_URI = '';
+
   // Tried running migrations with the API but doesn't work because
   // of the way Jest mocks things. Even importing MikroORM is enough to break things.
   // https://github.com/mikro-orm/mikro-orm/discussions/3795

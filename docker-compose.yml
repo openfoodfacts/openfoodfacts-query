@@ -8,6 +8,9 @@ services:
       - POSTGRES_PASSWORD
       - POSTGRES_DB
     shm_size: ${POSTGRES_SHM_SIZE}
+    # Always expose port for viewer access
+    ports:
+      - "${POSTGRES_PORT:-5512}:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
     networks:

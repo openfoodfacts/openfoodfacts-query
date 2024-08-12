@@ -1,11 +1,6 @@
 services:
   query:
-    build: .
-    image: openfoodfacts-query:dev
     environment:
       # Use shared-services MongoDB and REDIS
       - MONGO_URI=mongodb://mongodb:27017
       - REDIS_URL=redis://redis:6379
-
-    volumes:
-      - ./data:/data
