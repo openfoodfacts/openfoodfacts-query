@@ -18,6 +18,10 @@ endif
 up: run_deps
 	docker compose up --build --wait
 
+# Called by other projects to start this project as a dependency
+run: run_deps
+	COMPOSE_FILE=${COMPOSE_FILE_RUN} docker compose up -d
+
 # This task starts a Postgres database in Docker and then prepares the local environment for development
 dev: run_deps
 	docker compose up --wait query_postgres
