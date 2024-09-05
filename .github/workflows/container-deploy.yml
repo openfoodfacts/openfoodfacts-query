@@ -47,11 +47,11 @@ jobs:
       - name: Set various variable for production deployment
         if: matrix.env == 'off-query-org'
         run: |
-          echo "SSH_PROXY_HOST=off1.openfoodfacts.org" >> $GITHUB_ENV
+          # This is the OSM proxy server, that does have an ipv4 address
+          echo "SSH_PROXY_HOST=45.147.209.254" >> $GITHUB_ENV
           echo "SSH_USERNAME=off" >> $GITHUB_ENV
-
-          # deploy target
-          echo "SSH_HOST=10.1.0.115" >> $GITHUB_ENV
+          echo "SSH_PROXY_USERNAME=off" >> $GITHUB_ENV
+          echo "SSH_HOST=10.3.0.200" >> $GITHUB_ENV
 
           # configurations
           echo "COMMON_NET_NAME=common_net" >> $GITHUB_ENV
@@ -60,11 +60,11 @@ jobs:
           echo "LOG_LEVEL=log" >> $GITHUB_ENV
 
           # mongodb and redis (through stunnel)
-          echo "MONGO_URI=mongodb://10.1.0.102:27017" >> $GITHUB_ENV
-          echo "REDIS_URL=redis://10.1.0.122:6379" >> $GITHUB_ENV
+          echo "MONGO_URI=mongodb://10.3.0.101:27017" >> $GITHUB_ENV
+          echo "REDIS_URL=redis://10.3.0.101:6379" >> $GITHUB_ENV
 
           # Postgres config. We use memory to gain performance on reads and writes
-          echo "POSTGRES_SHM_SIZE=1g" >> $GITHUB_ENV
+          echo "POSTGRES_SHM_SIZE=2g" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
       - name: Wait for container build workflow
