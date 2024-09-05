@@ -107,4 +107,12 @@ There is also an importfromfile endpoint which will import from a file called op
 
 The "count" and "aggregate" POST endpoints accept a MongoDB style filter and aggregate pipeline respectively. Syntax support is only basic and is limted to what Product Opener currently uses. See the tests for some examples of what is supported.
 
+You can test with curl with something like:
+```bash
+# selection
+curl -d '{"categories_tags": "en:teas"}' -H "Content-Type: application/json" https://query.openfoodfacts.org/select
+# aggergation
+curl -d '[{"$match": {"countries_tags": "en:france"}},{"$group":{"_id":"$brands_tags"}}]' -H "Content-Type: application/json" https://query.openfoodfacts.org/aggregate
+```
+
 
