@@ -7,4 +7,4 @@ GitHub Actions:
 
 📚 Documentation:
 - changed-files:
-  - any-glob-to-any-file: 'README.MD'
+  - any-glob-to-any-file: 'README.md'
