@@ -16,5 +16,5 @@ export abstract class BaseProductTag {
   product: Product;
 
   @Property()
-  obsolete = false;
+  obsolete? = false;
 }

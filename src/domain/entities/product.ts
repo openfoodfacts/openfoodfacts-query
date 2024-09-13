@@ -35,9 +35,9 @@ export class Product {
   @Property()
   ingredientsCount?: number;
 
-  // The followign fields are populated by the query service
+  // The following fields are populated by the query service
   @Property()
-  obsolete = false;
+  obsolete? = false;
 
   @Property({ type: 'uuid', index: true })
   lastUpdateId?: string;
