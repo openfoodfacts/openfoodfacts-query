@@ -392,4 +392,35 @@ describe('importWithFilter', () => {
       await Promise.all(imports);
     });
   });
+
+  it('should flag products not in mongodb as deleted', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+
+      // GIVEN: An existing product that doesn't exist in MongoDB
+      const em = app.get(EntityManager);
+      const productIdToDelete = randomCode();
+      em.create(Product, {
+        code: productIdToDelete,
+        source: ProductSource.EVENT,
+        lastUpdated: new Date(2023, 1, 1),
+        lastModified: new Date(lastModified * 1000),
+      });
+      await em.flush();
+
+      // WHEN: Doing an incremental import from MongoDB where the id is mentioned
+      const { products, productIdExisting, productIdNew } = testProducts();
+      mockMongoDB(products);
+      await importService.importWithFilter(
+        { code: { $in: [productIdExisting, productIdNew, productIdToDelete] } },
+        ProductSource.EVENT,
+      );
+
+      // THEN: Obsolete flag should get set to null
+      const deletedProduct = await em.findOne(Product, {
+        code: productIdToDelete,
+      });
+      expect(deletedProduct.obsolete).toBeNull();
+    });
+  });
 });
