@@ -201,14 +201,10 @@ export class ImportService {
         WHERE code IN ${sql(missingProducts)}
         RETURNING id`;
 
-        const deletedProductIds = deletedProducts.map((p) => p.id);
-        for (const entity of Object.values(ProductTagMap.MAPPED_TAGS)) {
-          const tableName = this.em.getMetadata(entity).tableName;
-          await connection`UPDATE ${sql(tableName)} SET obsolete = NULL
-          where product_id in ${sql(deletedProductIds)}`;
-        }
-        await connection`UPDATE product_ingredient SET obsolete = NULL
-          where product_id in ${sql(deletedProductIds)}`;
+        await this.deleteProductTags(
+          connection,
+          deletedProducts.map((p) => p.id),
+        );
       }
     }
 
@@ -360,9 +356,32 @@ export class ImportService {
   }
 
   async deleteOtherProducts(connection: ReservedSql, updateId: string) {
-    const deleted =
-      await connection`delete from product where last_update_id != ${updateId} OR last_update_id IS NULL`;
-    this.logger.debug(`${deleted.count} Products deleted`);
+    const deletedProducts = await connection`UPDATE product SET 
+      obsolete = NULL,
+      last_update_id = ${updateId},
+      last_updated = ${new Date()},
+      source = ${ProductSource.FULL_LOAD}
+    WHERE last_update_id != ${updateId} OR last_update_id IS NULL
+    RETURNING id`;
+    this.logger.debug(`${deletedProducts.count} Products deleted`);
+
+    await this.deleteProductTags(
+      connection,
+      deletedProducts.map((p) => p.id),
+    );
+  }
+
+  private async deleteProductTags(
+    connection: ReservedSql,
+    deletedProductIds: any[],
+  ) {
+    for (const entity of Object.values(ProductTagMap.MAPPED_TAGS)) {
+      const tableName = this.em.getMetadata(entity).tableName;
+      await connection`UPDATE ${sql(tableName)} SET obsolete = NULL
+      where product_id in ${sql(deletedProductIds)}`;
+    }
+    await connection`UPDATE product_ingredient SET obsolete = NULL
+      where product_id in ${sql(deletedProductIds)}`;
   }
 
   // Make sure to pause redis before calling this
