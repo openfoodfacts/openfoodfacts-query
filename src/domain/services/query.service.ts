@@ -237,14 +237,13 @@ export class QueryService {
   }
 
   /** Fetches the entire document record for the filter. Not used by Product Opener */
-  async select(body: any, obsolete = false) {
+  async select(body: any) {
     const start = Date.now();
     this.logger.debug(body);
 
     const entity: EntityName<object> = Product;
     const qb = this.em.createQueryBuilder(entity, 'pt');
     qb.select(`*`);
-    qb.where(this.obsoleteWhere(obsolete));
 
     const whereLog = await this.addMatches(this.parseFilter(body), qb, entity);
 

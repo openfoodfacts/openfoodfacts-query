@@ -44,8 +44,8 @@ export class AppController {
   }
 
   @Post('select')
-  async select(@Body() body: any, @Query('obsolete') obsolete) {
-    return await this.queryService.select(body, this.parseBoolean(obsolete));
+  async select(@Body() body: any) {
+    return await this.queryService.select(body);
   }
 
   // Temporary code for initial import

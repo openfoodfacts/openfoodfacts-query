@@ -188,6 +188,7 @@ export class ImportService {
     await client.close();
 
     // If doing an event import flag all products that weren't found in MongoDB as deleted (obsolete = null)
+    let deleteLog = '';
     if (source === ProductSource.EVENT) {
       const missingProducts = inputCodes.filter(
         (code) => !foundCodes.includes(code),
@@ -205,6 +206,7 @@ export class ImportService {
           connection,
           deletedProducts.map((p) => p.id),
         );
+        deleteLog = `. Deleted ${deletedProducts.count}`;
       }
     }
 
@@ -220,7 +222,7 @@ export class ImportService {
     connection.release();
 
     this.logger.log(
-      `Imported ${collections.normal.count} Products and ${collections.obsolete.count} Obsolete Products from ${source}`,
+      `Imported ${collections.normal.count} Products and ${collections.obsolete.count} Obsolete Products from ${source}${deleteLog}`,
     );
 
     return latestModified;
