@@ -124,7 +124,7 @@ export class ImportService {
           this.logger.debug(`Fetched ${i}`);
         }
 
-        if (source === ProductSource.EVENT) inputCodes.push(data.code);
+        if (source === ProductSource.EVENT) foundCodes.push(data.code);
 
         // Find the product if it exists
         let results =
@@ -193,12 +193,22 @@ export class ImportService {
         (code) => !foundCodes.includes(code),
       );
       if (missingProducts.length) {
-        await connection`UPDATE product SET 
+        const deletedProducts = await connection`UPDATE product SET 
           obsolete = NULL,
           last_update_id = ${updateId},
           last_updated = ${new Date()},
           source = ${source}
-        WHERE code IN ${sql(missingProducts)}`;
+        WHERE code IN ${sql(missingProducts)}
+        RETURNING id`;
+
+        const deletedProductIds = deletedProducts.map((p) => p.id);
+        for (const entity of Object.values(ProductTagMap.MAPPED_TAGS)) {
+          const tableName = this.em.getMetadata(entity).tableName;
+          await connection`UPDATE ${sql(tableName)} SET obsolete = NULL
+          where product_id in ${sql(deletedProductIds)}`;
+        }
+        await connection`UPDATE product_ingredient SET obsolete = NULL
+          where product_id in ${sql(deletedProductIds)}`;
       }
     }
 
