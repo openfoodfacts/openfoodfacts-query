@@ -99,6 +99,9 @@ export class ImportService {
     // Flush mikro-orm before switching to native SQL
     await this.em.flush();
 
+    const inputCodes = filter.code?.$in;
+    const foundCodes = [];
+
     // Now using postgres to help with transactions
     const connection = await sql.reserve();
     await connection`CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_modified timestamptz, data jsonb)`;
@@ -120,6 +123,8 @@ export class ImportService {
         if (!(i % this.importLogInterval)) {
           this.logger.debug(`Fetched ${i}`);
         }
+
+        if (source === ProductSource.EVENT) foundCodes.push(data.code);
 
         // Find the product if it exists
         let results =
@@ -181,6 +186,27 @@ export class ImportService {
       collection.count = i;
     }
     await client.close();
+
+    // If doing an event import flag all products that weren't found in MongoDB as deleted (obsolete = null)
+    if (source === ProductSource.EVENT) {
+      const missingProducts = inputCodes.filter(
+        (code) => !foundCodes.includes(code),
+      );
+      if (missingProducts.length) {
+        const deletedProducts = await connection`UPDATE product SET 
+          obsolete = NULL,
+          last_update_id = ${updateId},
+          last_updated = ${new Date()},
+          source = ${source}
+        WHERE code IN ${sql(missingProducts)}
+        RETURNING id`;
+
+        await this.deleteProductTags(
+          connection,
+          deletedProducts.map((p) => p.id),
+        );
+      }
+    }
 
     // If doing a full import delete all products that weren't updated and flag all tags as imported
     if (source === ProductSource.FULL_LOAD) {
@@ -330,9 +356,32 @@ export class ImportService {
   }
 
   async deleteOtherProducts(connection: ReservedSql, updateId: string) {
-    const deleted =
-      await connection`delete from product where last_update_id != ${updateId} OR last_update_id IS NULL`;
-    this.logger.debug(`${deleted.count} Products deleted`);
+    const deletedProducts = await connection`UPDATE product SET 
+      obsolete = NULL,
+      last_update_id = ${updateId},
+      last_updated = ${new Date()},
+      source = ${ProductSource.FULL_LOAD}
+    WHERE last_update_id != ${updateId} OR last_update_id IS NULL
+    RETURNING id`;
+    this.logger.debug(`${deletedProducts.count} Products deleted`);
+
+    await this.deleteProductTags(
+      connection,
+      deletedProducts.map((p) => p.id),
+    );
+  }
+
+  private async deleteProductTags(
+    connection: ReservedSql,
+    deletedProductIds: any[],
+  ) {
+    for (const entity of Object.values(ProductTagMap.MAPPED_TAGS)) {
+      const tableName = this.em.getMetadata(entity).tableName;
+      await connection`UPDATE ${sql(tableName)} SET obsolete = NULL
+      where product_id in ${sql(deletedProductIds)}`;
+    }
+    await connection`UPDATE product_ingredient SET obsolete = NULL
+      where product_id in ${sql(deletedProductIds)}`;
   }
 
   // Make sure to pause redis before calling this

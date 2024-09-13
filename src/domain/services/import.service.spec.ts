@@ -41,21 +41,25 @@ jest.mock('mongodb', () => {
     MongoClient: jest.fn(() => ({
       connect: jest.fn(),
       db: () => {
-        let index = 0;
         return {
-          collection: () => ({
-            find: (...args: any) => {
-              findCalls.push(args);
-              return {
-                next: async () => {
-                  return index++ <= mockedProducts.length
-                    ? mockedProducts[index - 1]
-                    : null;
-                },
-                close: jest.fn(),
-              };
-            },
-          }),
+          collection: (collectionName) => {
+            let index = 0;
+            const productList =
+              collectionName === 'products' ? mockedProducts : [];
+            return {
+              find: (...args: any) => {
+                findCalls.push(args);
+                return {
+                  next: async () => {
+                    return index++ <= productList.length
+                      ? productList[index - 1]
+                      : null;
+                  },
+                  close: jest.fn(),
+                };
+              },
+            };
+          },
         };
       },
       close: jest.fn(),
@@ -390,6 +394,55 @@ describe('importWithFilter', () => {
         );
       }
       await Promise.all(imports);
+    });
+  });
+
+  it('should flag products not in mongodb as deleted', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+
+      // GIVEN: An existing product that doesn't exist in MongoDB
+      const em = app.get(EntityManager);
+      const productIdToDelete = randomCode();
+      const productToDelete = em.create(Product, {
+        code: productIdToDelete,
+        source: ProductSource.FULL_LOAD,
+        lastUpdated: new Date(2023, 1, 1),
+        lastModified: new Date(lastModified * 1000),
+      });
+      em.create(ProductIngredientsTag, {
+        product: productToDelete,
+        value: 'old_ingredient',
+      });
+      await em.flush();
+
+      const beforeImport = Date.now();
+      // WHEN: Doing an incremental import from MongoDB where the id is mentioned
+      const { products, productIdExisting, productIdNew } = testProducts();
+      mockMongoDB(products);
+      await importService.importWithFilter(
+        { code: { $in: [productIdExisting, productIdNew, productIdToDelete] } },
+        ProductSource.EVENT,
+      );
+
+      // THEN: Obsolete flag should get set to null
+      const deletedProduct = await em.findOne(Product, {
+        code: productIdToDelete,
+      });
+      const updatedProduct = await em.findOne(Product, {
+        code: productIdExisting,
+      });
+      expect(deletedProduct.lastUpdateId).toBe(updatedProduct.lastUpdateId);
+      expect(deletedProduct.lastUpdated.getTime()).toBeGreaterThanOrEqual(
+        beforeImport,
+      );
+      expect(deletedProduct.source).toBe(ProductSource.EVENT);
+      expect(updatedProduct.obsolete).toBe(false);
+
+      const deletedTag = await em.findOne(ProductIngredientsTag, {
+        product: deletedProduct,
+      });
+      expect(deletedTag.obsolete).toBeNull();
     });
   });
 });

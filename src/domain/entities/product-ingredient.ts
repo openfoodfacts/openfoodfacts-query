@@ -47,5 +47,5 @@ export class ProductIngredient {
   ingredients = new Collection<ProductIngredient>(this);
 
   @Property()
-  obsolete = false;
+  obsolete? = false;
 }
