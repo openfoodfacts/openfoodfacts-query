@@ -193,9 +193,12 @@ export class ImportService {
         (code) => !foundCodes.includes(code),
       );
       if (missingProducts.length) {
-        await connection`UPDATE product SET obsolete = NULL WHERE code IN ${sql(
-          missingProducts,
-        )}`;
+        await connection`UPDATE product SET 
+          obsolete = NULL,
+          last_update_id = ${updateId},
+          last_updated = ${new Date()},
+          source = ${source}
+        WHERE code IN ${sql(missingProducts)}`;
       }
     }
 

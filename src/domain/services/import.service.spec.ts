@@ -402,12 +402,13 @@ describe('importWithFilter', () => {
       const productIdToDelete = randomCode();
       em.create(Product, {
         code: productIdToDelete,
-        source: ProductSource.EVENT,
+        source: ProductSource.FULL_LOAD,
         lastUpdated: new Date(2023, 1, 1),
         lastModified: new Date(lastModified * 1000),
       });
       await em.flush();
 
+      const beforeImport = Date.now();
       // WHEN: Doing an incremental import from MongoDB where the id is mentioned
       const { products, productIdExisting, productIdNew } = testProducts();
       mockMongoDB(products);
@@ -420,7 +421,14 @@ describe('importWithFilter', () => {
       const deletedProduct = await em.findOne(Product, {
         code: productIdToDelete,
       });
-      expect(deletedProduct.obsolete).toBeNull();
+      const updatedProduct = await em.findOne(Product, {
+        code: productIdExisting,
+      });
+      expect(deletedProduct.lastUpdateId).toBe(updatedProduct.lastUpdateId);
+      expect(deletedProduct.lastUpdated.getTime()).toBeGreaterThanOrEqual(
+        beforeImport,
+      );
+      expect(deletedProduct.source).toBe(ProductSource.EVENT);
     });
   });
 });
