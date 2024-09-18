@@ -408,30 +408,19 @@ describe('aggregate', () => {
 describe('select', () => {
   it('should return matching products', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      const { aminoValue, product1 } = await createTestTags(app);
+      const { aminoValue, product1, product4 } = await createTestTags(app);
       const queryService = app.get(QueryService);
       const response = await queryService.select({
         amino_acids_tags: aminoValue,
       });
-      expect(response).toHaveLength(2);
+      expect(response).toHaveLength(3); // Includes obsolete
       const p1 = response.find((r) => r.code === product1.code);
       expect(p1).toBeTruthy();
-    });
-  });
+      expect(p1.obsolete).toBe(false);
 
-  it('should return obsolete matching products', async () => {
-    await createTestingModule([DomainModule], async (app) => {
-      const { aminoValue, product4 } = await createTestTags(app);
-      const queryService = app.get(QueryService);
-      const response = await queryService.select(
-        {
-          amino_acids_tags: aminoValue,
-        },
-        true,
-      );
-      expect(response).toHaveLength(1);
       const p4 = response.find((r) => r.code === product4.code);
       expect(p4).toBeTruthy();
+      expect(p4.obsolete).toBe(true);
     });
   });
 
