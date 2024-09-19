@@ -28,7 +28,7 @@
     "@mikro-orm/migrations": "^5.7.13",
     "@mikro-orm/nestjs": "^5.2.0",
     "@mikro-orm/postgresql": "^5.7.13",
-    "@mikro-orm/reflection": "^5.7.13",
+    "@mikro-orm/reflection": "^6.0.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
