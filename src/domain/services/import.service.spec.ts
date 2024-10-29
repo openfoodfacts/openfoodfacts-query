@@ -331,6 +331,38 @@ describe('importFromMongo', () => {
       expect(ingredientsNew[0].ingredientText).toBe('test');
     });
   });
+
+  it('import from redis should always update product', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      // GIVEN: Product with data that matches MongoDB
+      const em = app.get(EntityManager);
+      const lastUpdated = new Date(2023, 1, 1);
+      const { products, productIdExisting } = testProducts();
+      em.create(Product, {
+        code: productIdExisting,
+        source: ProductSource.INCREMENTAL_LOAD,
+        lastUpdated: lastUpdated,
+        lastModified: new Date(lastModified * 1000),
+      });
+      await em.flush();
+      const importService = app.get(ImportService);
+
+      // WHEN: Doing an event import
+      mockMongoDB(products);
+      await importService.importWithFilter(
+        { code: { $in: [productIdExisting] } },
+        ProductSource.EVENT,
+      );
+
+      // THEN: Source is updated
+      const productExisting = await em.findOne(Product, {
+        code: productIdExisting,
+      });
+      expect(productExisting).toBeTruthy();
+      expect(productExisting.source).toBe(ProductSource.EVENT);
+      expect(productExisting.lastUpdated).not.toStrictEqual(lastUpdated);
+    });
+  });
 });
 
 describe('scheduledImportFromMongo', () => {
