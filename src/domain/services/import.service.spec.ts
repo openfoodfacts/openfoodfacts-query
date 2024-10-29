@@ -11,7 +11,7 @@ import { ProductSource } from '../enums/product-source';
 import { SettingsService } from './settings.service';
 import { ProductIngredient } from '../entities/product-ingredient';
 
-const lastModified = 1692032161;
+const lastUpdated = 1692032161;
 
 function testProducts() {
   const productIdNew = randomCode();
@@ -20,14 +20,14 @@ function testProducts() {
     {
       // This one will be new
       code: productIdNew,
-      last_modified_t: lastModified,
+      last_updated_t: lastUpdated,
       ingredients_tags: ['test'],
       rev: 1,
     },
     {
       // This one will already exist
       code: productIdExisting,
-      last_modified_t: lastModified,
+      last_updated_t: lastUpdated,
       ingredients_tags: ['new_ingredient', 'old_ingredient'],
     },
   ];
@@ -125,7 +125,7 @@ describe('importFromMongo', () => {
       expect(productNew).toBeTruthy();
       expect(productNew.lastUpdateId).toBe(updateId);
       expect(productNew.source).toBe(ProductSource.FULL_LOAD);
-      expect(productNew.lastUpdated.getTime()).toBeGreaterThanOrEqual(start);
+      expect(productNew.lastProcessed.getTime()).toBeGreaterThanOrEqual(start);
       const ingredientsNew = await em.find(ProductIngredientsTag, {
         product: productNew,
       });
@@ -186,13 +186,13 @@ describe('importFromMongo', () => {
     await createTestingModule([DomainModule], async (app) => {
       // GIVEN: Product with data that matches MongoDB
       const em = app.get(EntityManager);
-      const lastUpdated = new Date(2023, 1, 1);
+      const lastProcessed = new Date(2023, 1, 1);
       const { products, productIdExisting } = testProducts();
       em.create(Product, {
         code: productIdExisting,
         source: ProductSource.EVENT,
-        lastUpdated: lastUpdated,
-        lastModified: new Date(lastModified * 1000),
+        lastProcessed: lastProcessed,
+        lastUpdated: new Date(lastUpdated * 1000),
       });
       await em.flush();
       const importService = app.get(ImportService);
@@ -207,13 +207,13 @@ describe('importFromMongo', () => {
       });
       expect(productExisting).toBeTruthy();
       expect(productExisting.source).toBe(ProductSource.EVENT);
-      expect(productExisting.lastUpdated).toStrictEqual(lastUpdated);
+      expect(productExisting.lastProcessed).toStrictEqual(lastProcessed);
     });
   });
 
   it('should start importing from the last import', async () => {
     await createTestingModule([DomainModule], async (app) => {
-      // GIVEN: lastModified setting already set
+      // GIVEN: lastUpdated setting already set
       const settings = app.get(SettingsService);
       const startFrom = new Date(2023, 1, 1);
       await settings.setLastModified(startFrom);
@@ -227,12 +227,12 @@ describe('importFromMongo', () => {
 
       // THEN: Mongo find is called with the setting as a parameter
       expect(findCalls).toHaveLength(2); // Called for normal an obsolete prodocuts
-      expect(findCalls[0][0].last_modified_t.$gt).toBe(
+      expect(findCalls[0][0].last_updated_t.$gt).toBe(
         Math.floor(startFrom.getTime() / 1000),
       );
 
       expect(await settings.getLastModified()).toStrictEqual(
-        new Date(lastModified * 1000),
+        new Date(lastUpdated * 1000),
       );
     });
   });
@@ -245,7 +245,7 @@ describe('importFromMongo', () => {
         {
           // This one will be new
           code: productIdNew,
-          last_modified_t: 1692032161,
+          last_updated_t: 1692032161,
           ingredients_tags: ['test \u0000 test2 \u0000 end'],
         },
       ]);
@@ -263,7 +263,7 @@ describe('importFromMongo', () => {
     });
   });
 
-  it('should set last_modified correctly if one product has an invalid date', async () => {
+  it('should set last_updated correctly if one product has an invalid date', async () => {
     await createTestingModule([DomainModule], async (app) => {
       // GIVEN: products with invalid date
       const settings = app.get(SettingsService);
@@ -272,7 +272,7 @@ describe('importFromMongo', () => {
       const { products } = testProducts();
       const testData = [
         products[0],
-        { ...products[1], last_modified_t: 'invalid' },
+        { ...products[1], last_updated_t: 'invalid' },
       ];
       const importService = app.get(ImportService);
 
@@ -282,7 +282,7 @@ describe('importFromMongo', () => {
 
       // THEN: The last modified date is set correctly
       expect(await settings.getLastModified()).toStrictEqual(
-        new Date(lastModified * 1000),
+        new Date(lastUpdated * 1000),
       );
     });
   });
@@ -336,13 +336,13 @@ describe('importFromMongo', () => {
     await createTestingModule([DomainModule], async (app) => {
       // GIVEN: Product with data that matches MongoDB
       const em = app.get(EntityManager);
-      const lastUpdated = new Date(2023, 1, 1);
+      const lastProcessed = new Date(2023, 1, 1);
       const { products, productIdExisting } = testProducts();
       em.create(Product, {
         code: productIdExisting,
         source: ProductSource.INCREMENTAL_LOAD,
-        lastUpdated: lastUpdated,
-        lastModified: new Date(lastModified * 1000),
+        lastProcessed: lastProcessed,
+        lastUpdated: new Date(lastUpdated * 1000),
       });
       await em.flush();
       const importService = app.get(ImportService);
@@ -360,7 +360,7 @@ describe('importFromMongo', () => {
       });
       expect(productExisting).toBeTruthy();
       expect(productExisting.source).toBe(ProductSource.EVENT);
-      expect(productExisting.lastUpdated).not.toStrictEqual(lastUpdated);
+      expect(productExisting.lastProcessed).not.toStrictEqual(lastProcessed);
     });
   });
 });
@@ -439,8 +439,8 @@ describe('importWithFilter', () => {
       const productToDelete = em.create(Product, {
         code: productIdToDelete,
         source: ProductSource.FULL_LOAD,
-        lastUpdated: new Date(2023, 1, 1),
-        lastModified: new Date(lastModified * 1000),
+        lastProcessed: new Date(2023, 1, 1),
+        lastUpdated: new Date(lastUpdated * 1000),
       });
       em.create(ProductIngredientsTag, {
         product: productToDelete,
@@ -465,7 +465,7 @@ describe('importWithFilter', () => {
         code: productIdExisting,
       });
       expect(deletedProduct.lastUpdateId).toBe(updatedProduct.lastUpdateId);
-      expect(deletedProduct.lastUpdated.getTime()).toBeGreaterThanOrEqual(
+      expect(deletedProduct.lastProcessed.getTime()).toBeGreaterThanOrEqual(
         beforeImport,
       );
       expect(deletedProduct.source).toBe(ProductSource.EVENT);

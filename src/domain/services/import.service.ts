@@ -49,7 +49,7 @@ export class ImportService {
       const filter = {};
       if (from) {
         const fromTime = Math.floor(new Date(from).getTime() / 1000);
-        filter['last_modified_t'] = { $gt: fromTime };
+        filter['last_updated_t'] = { $gt: fromTime };
         this.logger.debug(`Starting import from ${from}`);
       }
 
@@ -63,7 +63,7 @@ export class ImportService {
   }
 
   async importWithFilter(filter: any, source: ProductSource, skip?: number) {
-    let latestModified = 0;
+    let latestUpdated = 0;
 
     // The update id is unique to this run and is used later to run other
     // queries that should only affect products loaded in this import
@@ -104,7 +104,7 @@ export class ImportService {
 
     // Now using postgres to help with transactions
     const connection = await sql.reserve();
-    await connection`CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_modified timestamptz, data jsonb)`;
+    await connection`CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)`;
     // let sql: string;
     // const vars = [];
     for (const collection of Object.values(collections)) {
@@ -128,25 +128,29 @@ export class ImportService {
 
         // Find the product if it exists
         let results =
-          await connection`select id, last_modified from product where code = ${data.code}`;
+          await connection`select id, last_updated from product where code = ${data.code}`;
         if (!results.length) {
           results =
             await connection`insert into product (code) values (${data.code}) returning id`;
         }
         const id = results[0].id;
-        const previousLastModified = results[0].last_modified;
+        const previousLastUpdated = results[0].last_updated;
 
-        let lastModified = new Date(data.last_modified_t * 1000);
-        if (isNaN(+lastModified)) {
+        let lastUpdated = new Date(data.last_updated_t * 1000);
+        if (isNaN(+lastUpdated)) {
+          // Fall back to last_modified_t if last_updated_t is not available
+          lastUpdated = new Date(data.last_modified_t * 1000);
+        }
+        if (isNaN(+lastUpdated)) {
           this.logger.warn(
-            `Product: ${data.code}. Invalid last_modified_t: ${data.last_modified_t}.`,
+            `Product: ${data.code}. Invalid last_updated_t: ${data.last_updated_t}, or last_modified_t: ${data.last_modified_t}.`,
           );
-          lastModified = null;
+          lastUpdated = null;
         }
         // Skip product if nothing has changed and doing an incremental load
         if (
           source === ProductSource.INCREMENTAL_LOAD &&
-          lastModified?.getTime() === previousLastModified?.getTime()
+          lastUpdated?.getTime() === previousLastUpdated?.getTime()
         )
           continue;
 
@@ -170,11 +174,11 @@ export class ImportService {
         }
 
         results =
-          await connection`insert into product_temp (id, last_modified, data) values (${id}, ${lastModified}, ${
+          await connection`insert into product_temp (id, last_updated, data) values (${id}, ${lastUpdated}, ${
             data as unknown as SerializableParameter
           }) ON CONFLICT DO NOTHING`;
 
-        latestModified = Math.max(latestModified, lastModified?.getTime() ?? 0);
+        latestUpdated = Math.max(latestUpdated, lastUpdated?.getTime() ?? 0);
 
         if (!(i % this.importBatchSize)) {
           await this.applyProductChange(connection, obsolete, source, updateId);
@@ -197,7 +201,7 @@ export class ImportService {
         const deletedProducts = await connection`UPDATE product SET 
           obsolete = NULL,
           last_update_id = ${updateId},
-          last_updated = ${new Date()},
+          last_processed = ${new Date()},
           source = ${source}
         WHERE code IN ${sql(missingProducts)}
         RETURNING id`;
@@ -225,7 +229,7 @@ export class ImportService {
       `Imported ${collections.normal.count} Products and ${collections.obsolete.count} Obsolete Products from ${source}${deleteLog}`,
     );
 
-    return latestModified;
+    return latestUpdated;
   }
 
   async applyProductChange(
@@ -246,9 +250,9 @@ export class ImportService {
         obsolete = ${obsolete},
         ingredients_count = (tp.data->>'ingredients_n')::numeric,
         ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
-        last_modified = tp.last_modified,
+        last_updated = tp.last_updated,
         last_update_id = ${updateId},
-        last_updated = ${new Date()},
+        last_processed = ${new Date()},
         source = ${source},
         revision = (tp.data->>'rev')::int
       FROM product_temp tp
@@ -361,7 +365,7 @@ export class ImportService {
     const deletedProducts = await connection`UPDATE product SET 
       obsolete = NULL,
       last_update_id = ${updateId},
-      last_updated = ${new Date()},
+      last_processed = ${new Date()},
       source = ${ProductSource.FULL_LOAD}
     WHERE last_update_id != ${updateId} OR last_update_id IS NULL
     RETURNING id`;
