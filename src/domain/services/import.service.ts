@@ -143,9 +143,9 @@ export class ImportService {
           );
           lastModified = null;
         }
-        // Skip product if nothing has changed and doing an incremental load
+        // Skip product if nothing has changed and not doing a full load
         if (
-          source === ProductSource.INCREMENTAL_LOAD &&
+          source !== ProductSource.FULL_LOAD &&
           lastModified?.getTime() === previousLastModified?.getTime()
         )
           continue;
