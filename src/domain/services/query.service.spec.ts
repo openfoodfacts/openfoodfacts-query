@@ -24,11 +24,11 @@ describe('count', () => {
       // Create some dummy products with a specific tag
       const tagValue = randomCode();
       em.create(ProductIngredientsTag, {
-        product: em.create(Product, { code: randomCode(), processId: 100n }),
+        product: em.create(Product, { code: randomCode() }),
         value: tagValue,
       });
       em.create(ProductIngredientsTag, {
-        product: em.create(Product, { code: randomCode(), processId: 100n }),
+        product: em.create(Product, { code: randomCode() }),
         value: tagValue,
       });
       await em.flush();
@@ -46,10 +46,7 @@ describe('count', () => {
       // Create some dummy products with a specific tag
       const tagValue = randomCode();
       const notTagValue = randomCode();
-      const productWithNotTag = em.create(Product, {
-        code: randomCode(),
-        processId: 100n,
-      });
+      const productWithNotTag = em.create(Product, { code: randomCode() });
       em.create(ProductBrandsTag, {
         product: productWithNotTag,
         value: tagValue,
@@ -60,7 +57,7 @@ describe('count', () => {
       });
 
       em.create(ProductBrandsTag, {
-        product: em.create(Product, { code: randomCode(), processId: 100n }),
+        product: em.create(Product, { code: randomCode() }),
         value: tagValue,
       });
       await em.flush();
@@ -452,22 +449,16 @@ async function createTestTags(app) {
   const creatorValue = randomCode();
 
   // Create some dummy products with a specific tag
-  const product1 = em.create(Product, { code: randomCode(), processId: 100n });
+  const product1 = em.create(Product, { code: randomCode() });
   const product2 = em.create(Product, {
     code: randomCode(),
     creator: creatorValue,
-    processId: 100n,
   });
   const product3 = em.create(Product, {
     code: randomCode(),
     creator: creatorValue,
-    processId: 100n,
   });
-  const product4 = em.create(Product, {
-    code: randomCode(),
-    processId: 100n,
-    obsolete: true,
-  });
+  const product4 = em.create(Product, { code: randomCode(), obsolete: true });
 
   // Matrix for testing
   // Product  | Origin | AminoAcid | AminoAcid2 | Neucleotide | Obsolete | Creator
