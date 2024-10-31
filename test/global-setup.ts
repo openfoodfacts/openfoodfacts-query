@@ -5,7 +5,8 @@ import child_process from 'child_process';
 const exec = util.promisify(child_process.exec);
 
 export default async function () {
-  const container = await new PostgreSqlContainer().start();
+  // Use same image as docker-compose.yml to ensure we don't use unsupported features
+  const container = await new PostgreSqlContainer('postgres:12-alpine').start();
   process.env.POSTGRES_HOST = container.getHost();
   process.env.POSTGRES_PORT = container.getPort().toString();
   process.env.POSTGRES_DB = container.getDatabase();

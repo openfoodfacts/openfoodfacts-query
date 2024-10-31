@@ -61,8 +61,8 @@
           "nullable": true,
           "mappedType": "text"
         },
-        "last_modified": {
-          "name": "last_modified",
+        "last_updated": {
+          "name": "last_updated",
           "type": "timestamptz",
           "unsigned": false,
           "autoincrement": false,
@@ -117,17 +117,17 @@
           "default": "false",
           "mappedType": "boolean"
         },
-        "last_update_id": {
-          "name": "last_update_id",
-          "type": "uuid",
+        "process_id": {
+          "name": "process_id",
+          "type": "bigint",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "mappedType": "uuid"
+          "mappedType": "unknown"
         },
-        "last_updated": {
-          "name": "last_updated",
+        "last_processed": {
+          "name": "last_processed",
           "type": "timestamptz",
           "unsigned": false,
           "autoincrement": false,
@@ -187,10 +187,10 @@
         },
         {
           "columnNames": [
-            "last_update_id"
+            "process_id"
           ],
           "composite": false,
-          "keyName": "product_last_update_id_index",
+          "keyName": "product_process_id_index",
           "primary": false,
           "unique": false
         },
