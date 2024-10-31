@@ -39,8 +39,8 @@ export class Product {
   @Property()
   obsolete? = false;
 
-  @Property({ type: 'uuid', index: true })
-  lastUpdateId?: string;
+  @Property({ columnType: 'xid8', index: true })
+  processId?: bigint;
 
   // This is the last time off-query received the data
   @Property({ columnType: 'timestamptz' })

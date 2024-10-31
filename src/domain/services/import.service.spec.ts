@@ -10,6 +10,7 @@ import { ProductTagMap } from '../entities/product-tag-map';
 import { ProductSource } from '../enums/product-source';
 import { SettingsService } from './settings.service';
 import { ProductIngredient } from '../entities/product-ingredient';
+import sql from '../../db';
 
 const lastUpdated = 1692032161;
 
@@ -83,7 +84,11 @@ describe('importFromMongo', () => {
       // app.useLogger(new Logger());
 
       const importService = app.get(ImportService);
-      const deleteMock = (importService.deleteOtherProducts = jest.fn());
+      // Mock the process id so it doesn't delete records from other tests
+      let currentProcessId = 99999999999999999n;
+      importService.getProcessId = jest
+        .fn()
+        .mockImplementation(() => ++currentProcessId);
 
       // GIVEN: Two existing products, one of which is in Mongo plus one new one in Mongo
       const em = app.get(EntityManager);
@@ -111,19 +116,9 @@ describe('importFromMongo', () => {
       await importService.importFromMongo();
 
       // THEN: New product is added, updated product is updated and other product is unchanged
-      expect(deleteMock).toHaveBeenCalledTimes(1);
-      let updateId = deleteMock.mock.calls[0][1];
-      // Re-format updateId the way Postgres provides it
-      updateId = `${updateId.substring(0, 8)}-${updateId.substring(
-        8,
-        12,
-      )}-${updateId.substring(12, 16)}-${updateId.substring(
-        16,
-        20,
-      )}-${updateId.substring(20)}`.toLowerCase();
       const productNew = await em.findOne(Product, { code: productIdNew });
       expect(productNew).toBeTruthy();
-      expect(productNew.lastUpdateId).toBe(updateId);
+      expect(productNew.processId).toBe(currentProcessId.toString());
       expect(productNew.source).toBe(ProductSource.FULL_LOAD);
       expect(productNew.lastProcessed.getTime()).toBeGreaterThanOrEqual(start);
       const ingredientsNew = await em.find(ProductIngredientsTag, {
@@ -144,12 +139,15 @@ describe('importFromMongo', () => {
         ingredientsExisting.find((i) => i.value === 'new_ingredient'),
       ).toBeTruthy();
 
-      // We have mocked the delete of other products so just check the other product
-      // does not have the same update id as those imported
+      // Check unchanged product has been "deleted"
       const foundOldProduct = await em.findOne(Product, {
         code: productIdUnchanged,
       });
-      expect(foundOldProduct.lastUpdateId).not.toBe(updateId);
+      expect(foundOldProduct.obsolete).toBeNull();
+      const ingredientsUnchanged = await em.find(ProductIngredientsTag, {
+        product: foundOldProduct,
+      });
+      expect(ingredientsUnchanged[0].obsolete).toBeNull();
 
       const loadedTags = await app.get(TagService).getLoadedTags();
       expect(loadedTags).toHaveLength(
@@ -464,7 +462,7 @@ describe('importWithFilter', () => {
       const updatedProduct = await em.findOne(Product, {
         code: productIdExisting,
       });
-      expect(deletedProduct.lastUpdateId).toBe(updatedProduct.lastUpdateId);
+      expect(deletedProduct.processId).toBe(updatedProduct.processId);
       expect(deletedProduct.lastProcessed.getTime()).toBeGreaterThanOrEqual(
         beforeImport,
       );
@@ -475,6 +473,17 @@ describe('importWithFilter', () => {
         product: deletedProduct,
       });
       expect(deletedTag.obsolete).toBeNull();
+    });
+  });
+});
+
+describe('getProcessId', () => {
+  it('should return monotonically increasing numbers', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      const transactionId = await importService.getProcessId();
+
+      expect(await importService.getProcessId()).toBeGreaterThan(transactionId);
     });
   });
 });
