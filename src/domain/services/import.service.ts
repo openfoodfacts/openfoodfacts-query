@@ -63,8 +63,9 @@ export class ImportService {
   }
 
   async getProcessId() {
+    // Note need to switch to pg_current_xact_id when we upgrade PostgreSQL
     return BigInt(
-      (await sql`SELECT pg_current_xact_id() transaction_id`)[0].transaction_id,
+      (await sql`SELECT txid_current() transaction_id`)[0].transaction_id,
     );
   }
 

@@ -119,7 +119,7 @@
         },
         "process_id": {
           "name": "process_id",
-          "type": "xid8",
+          "type": "bigint",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,

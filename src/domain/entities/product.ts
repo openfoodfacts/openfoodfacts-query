@@ -39,7 +39,8 @@ export class Product {
   @Property()
   obsolete? = false;
 
-  @Property({ columnType: 'xid8', index: true })
+  // Note need to switch to xid8 when we upgrade PostgreSQL
+  @Property({ columnType: 'bigint', index: true })
   processId?: bigint;
 
   // This is the last time off-query received the data
