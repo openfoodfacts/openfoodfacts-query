@@ -9,7 +9,7 @@ import { ProductSource } from '../enums/product-source';
 import equal from 'fast-deep-equal';
 import { SettingsService } from './settings.service';
 import sql from '../../db';
-import { Fragment, Helper, Parameter, ReservedSql } from 'postgres';
+import { ReservedSql } from 'postgres';
 import { SerializableParameter } from 'postgres';
 
 @Injectable()
@@ -62,18 +62,12 @@ export class ImportService {
     }
   }
 
-  async getProcessId() {
-    return BigInt(
-      (await sql`SELECT pg_current_xact_id() transaction_id`)[0].transaction_id,
-    );
-  }
-
   async importWithFilter(filter: any, source: ProductSource, skip?: number) {
     let latestUpdated = 0;
 
     // The update id is unique to this run and is used later to run other
     // queries that should only affect products loaded in this import
-    const processId = await this.getProcessId();
+    const updateId = Ulid.generate().toRaw();
 
     this.logger.debug('Connecting to MongoDB');
     const client = new MongoClient(process.env.MONGO_URI);
@@ -187,16 +181,11 @@ export class ImportService {
         latestUpdated = Math.max(latestUpdated, lastUpdated?.getTime() ?? 0);
 
         if (!(i % this.importBatchSize)) {
-          await this.applyProductChange(
-            connection,
-            obsolete,
-            source,
-            processId,
-          );
+          await this.applyProductChange(connection, obsolete, source, updateId);
           await connection`begin`;
         }
       }
-      await this.applyProductChange(connection, obsolete, source, processId);
+      await this.applyProductChange(connection, obsolete, source, updateId);
       await cursor.close();
       collection.count = i;
     }
@@ -211,7 +200,7 @@ export class ImportService {
       if (missingProducts.length) {
         const deletedProducts = await connection`UPDATE product SET 
           obsolete = NULL,
-          process_id = ${processId.toString()},
+          last_update_id = ${updateId},
           last_processed = ${new Date()},
           source = ${source}
         WHERE code IN ${sql(missingProducts)}
@@ -219,7 +208,7 @@ export class ImportService {
 
         await this.deleteProductTags(
           connection,
-          sql(deletedProducts.map((p) => p.id)),
+          deletedProducts.map((p) => p.id),
         );
         deleteLog = `. Deleted ${deletedProducts.count}`;
       }
@@ -230,7 +219,7 @@ export class ImportService {
       await this.tagService.addLoadedTags(
         Object.keys(ProductTagMap.MAPPED_TAGS),
       );
-      await this.deleteOtherProducts(connection, processId);
+      await this.deleteOtherProducts(connection, updateId);
     }
 
     await connection`DROP TABLE product_temp`;
@@ -247,7 +236,7 @@ export class ImportService {
     connection: ReservedSql,
     obsolete: boolean,
     source: string,
-    processId: bigint,
+    updateId: string,
   ) {
     // Analyze table for best query performance
     await connection`ANALYZE product_temp`;
@@ -262,7 +251,7 @@ export class ImportService {
         ingredients_count = (tp.data->>'ingredients_n')::numeric,
         ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
         last_updated = tp.last_updated,
-        process_id = ${processId.toString()},
+        last_update_id = ${updateId},
         last_processed = ${new Date()},
         source = ${source},
         revision = (tp.data->>'rev')::int
@@ -372,37 +361,33 @@ export class ImportService {
     await connection`commit`;
   }
 
-  async deleteOtherProducts(connection: ReservedSql, processId: bigint) {
-    // Note use < here to avoid deleting products from events that were received since a full
-    // import was started.
-    const filter = connection`process_id < ${processId.toString()} OR process_id IS NULL`;
-
-    // Need to use a fragment here rather than a list of ids as could be a long list
-    await this.deleteProductTags(
-      connection,
-      sql`(SELECT id FROM product WHERE ${filter})`,
-    );
-
+  async deleteOtherProducts(connection: ReservedSql, updateId: string) {
     const deletedProducts = await connection`UPDATE product SET 
       obsolete = NULL,
-      process_id = ${processId.toString()},
+      last_update_id = ${updateId},
       last_processed = ${new Date()},
       source = ${ProductSource.FULL_LOAD}
-    WHERE ${filter}`;
+    WHERE last_update_id != ${updateId} OR last_update_id IS NULL
+    RETURNING id`;
     this.logger.debug(`${deletedProducts.count} Products deleted`);
+
+    await this.deleteProductTags(
+      connection,
+      deletedProducts.map((p) => p.id),
+    );
   }
 
   private async deleteProductTags(
     connection: ReservedSql,
-    deletedProductIds: Helper<any, any[]> | Fragment,
+    deletedProductIds: any[],
   ) {
     for (const entity of Object.values(ProductTagMap.MAPPED_TAGS)) {
       const tableName = this.em.getMetadata(entity).tableName;
       await connection`UPDATE ${sql(tableName)} SET obsolete = NULL
-      where product_id in ${deletedProductIds}`;
+      where product_id in ${sql(deletedProductIds)}`;
     }
     await connection`UPDATE product_ingredient SET obsolete = NULL
-      where product_id in ${deletedProductIds}`;
+      where product_id in ${sql(deletedProductIds)}`;
   }
 
   // Make sure to pause redis before calling this
