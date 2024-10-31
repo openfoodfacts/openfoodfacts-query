@@ -93,18 +93,31 @@ describe('importFromMongo', () => {
       // GIVEN: Two existing products, one of which is in Mongo plus one new one in Mongo
       const em = app.get(EntityManager);
       const { products, productIdExisting, productIdNew } = testProducts();
-      const productExisting = em.create(Product, { code: productIdExisting });
+      const productExisting = em.create(Product, {
+        code: productIdExisting,
+        processId: 0n,
+      });
       em.create(ProductIngredientsTag, {
         product: productExisting,
         value: 'old_ingredient',
       });
 
       const productIdUnchanged = randomCode();
-      const productUnchanged = em.create(Product, { code: productIdUnchanged });
+      const productUnchanged = em.create(Product, {
+        code: productIdUnchanged,
+        processId: 0n,
+      });
       em.create(ProductIngredientsTag, {
         product: productUnchanged,
         value: 'unchanged_ingredient',
       });
+
+      const productIdLater = randomCode();
+      em.create(Product, {
+        code: productIdLater,
+        processId: 100n, // Simulate a product that was added after the full load started
+      });
+
       // Delete a tag to prove it is re-created
       await em.nativeDelete(LoadedTag, { id: 'teams_tags' });
       await em.flush();
@@ -148,6 +161,11 @@ describe('importFromMongo', () => {
         product: foundOldProduct,
       });
       expect(ingredientsUnchanged[0].obsolete).toBeNull();
+
+      const foundLaterProduct = await em.findOne(Product, {
+        code: productIdLater,
+      });
+      expect(foundLaterProduct.obsolete).toBe(false);
 
       const loadedTags = await app.get(TagService).getLoadedTags();
       expect(loadedTags).toHaveLength(
@@ -339,6 +357,7 @@ describe('importFromMongo', () => {
       em.create(Product, {
         code: productIdExisting,
         source: ProductSource.INCREMENTAL_LOAD,
+        processId: 10n,
         lastProcessed: lastProcessed,
         lastUpdated: new Date(lastUpdated * 1000),
       });
@@ -358,6 +377,7 @@ describe('importFromMongo', () => {
       });
       expect(productExisting).toBeTruthy();
       expect(productExisting.source).toBe(ProductSource.EVENT);
+      expect(productExisting.processId).not.toBe(10n.toString());
       expect(productExisting.lastProcessed).not.toStrictEqual(lastProcessed);
     });
   });
@@ -437,6 +457,7 @@ describe('importWithFilter', () => {
       const productToDelete = em.create(Product, {
         code: productIdToDelete,
         source: ProductSource.FULL_LOAD,
+        processId: 10n,
         lastProcessed: new Date(2023, 1, 1),
         lastUpdated: new Date(lastUpdated * 1000),
       });
