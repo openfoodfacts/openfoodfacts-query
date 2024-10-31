@@ -85,7 +85,7 @@ describe('importFromMongo', () => {
 
       const importService = app.get(ImportService);
       // Mock the process id so it doesn't delete records from other tests
-      let currentProcessId = 99999999999999999n;
+      let currentProcessId = 0n;
       importService.getProcessId = jest
         .fn()
         .mockImplementation(() => ++currentProcessId);
