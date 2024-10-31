@@ -21,7 +21,7 @@ export class Product {
   code?: string;
 
   @Property({ columnType: 'timestamptz' })
-  lastUpdated?: Date;
+  lastModified?: Date;
 
   @Property({ index: true })
   creator?: string;
@@ -42,9 +42,8 @@ export class Product {
   @Property({ type: 'uuid', index: true })
   lastUpdateId?: string;
 
-  // This is the last time off-query received the data
   @Property({ columnType: 'timestamptz' })
-  lastProcessed?: Date;
+  lastUpdated?: Date;
 
   @Property()
   source?: ProductSource;
@@ -58,8 +57,7 @@ export const MAPPED_FIELDS = [
   'product_name',
   'creator',
   'owners_tags',
-  'last_modified_t', // Note we actually use last_updated_t for checks but not all products may have this
-  'last_updated_t',
+  'last_modified_t',
   'ingredients_n',
   'ingredients_without_ciqual_codes_n',
   'ingredients',

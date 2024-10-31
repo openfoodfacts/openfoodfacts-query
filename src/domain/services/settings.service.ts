@@ -11,11 +11,11 @@ export class SettingsService {
   }
 
   async getLastModified() {
-    return (await sql`SELECT last_updated FROM settings`)[0].last_updated;
+    return (await sql`SELECT last_modified FROM settings`)[0].last_modified;
   }
 
-  async setLastModified(lastUpdated: Date) {
-    await this.updateSetting({ last_updated: lastUpdated });
+  async setLastModified(lastModified: Date) {
+    await this.updateSetting({ last_modified: lastModified });
   }
 
   async getLastMessageId() {
