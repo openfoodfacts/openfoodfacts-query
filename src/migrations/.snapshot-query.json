@@ -117,14 +117,14 @@
           "default": "false",
           "mappedType": "boolean"
         },
-        "last_update_id": {
-          "name": "last_update_id",
-          "type": "uuid",
+        "process_id": {
+          "name": "process_id",
+          "type": "xid8",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "mappedType": "uuid"
+          "mappedType": "unknown"
         },
         "last_processed": {
           "name": "last_processed",
@@ -187,10 +187,10 @@
         },
         {
           "columnNames": [
-            "last_update_id"
+            "process_id"
           ],
           "composite": false,
-          "keyName": "product_last_update_id_index",
+          "keyName": "product_process_id_index",
           "primary": false,
           "unique": false
         },
