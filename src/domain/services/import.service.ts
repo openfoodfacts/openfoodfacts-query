@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MAPPED_FIELDS } from '../entities/product';
-import { Ulid } from 'id128';
 import { MongoClient } from 'mongodb';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { TagService } from './tag.service';
@@ -9,7 +8,7 @@ import { ProductSource } from '../enums/product-source';
 import equal from 'fast-deep-equal';
 import { SettingsService } from './settings.service';
 import sql from '../../db';
-import { Fragment, Helper, Parameter, ReservedSql } from 'postgres';
+import { Fragment, Helper, ReservedSql } from 'postgres';
 import { SerializableParameter } from 'postgres';
 
 @Injectable()

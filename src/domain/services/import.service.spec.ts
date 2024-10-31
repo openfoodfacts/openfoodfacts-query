@@ -10,7 +10,6 @@ import { ProductTagMap } from '../entities/product-tag-map';
 import { ProductSource } from '../enums/product-source';
 import { SettingsService } from './settings.service';
 import { ProductIngredient } from '../entities/product-ingredient';
-import sql from '../../db';
 
 const lastUpdated = 1692032161;
 
