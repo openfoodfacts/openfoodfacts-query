@@ -269,7 +269,7 @@ describe('create', () => {
     });
   });
 
-  it('should not call importwithfilter for initialImport', async () => {
+  it('should not call importWithFilter for initialImport', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const importService = app.get(ImportService);
       const importSpy = jest
@@ -311,7 +311,7 @@ describe('create', () => {
     });
   });
 
-  it('should call importwithfilter for normal imports', async () => {
+  it('should not include non-food products in call to importWithFilter', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const importService = app.get(ImportService);
       const importSpy = jest
@@ -327,12 +327,91 @@ describe('create', () => {
           id: nextId(),
           message: {
             code: code1,
+            product_type: 'food',
           },
         },
         {
           id: nextId(),
           message: {
             code: code2,
+            product_type: 'beauty',
+          },
+        },
+      ];
+
+      const messagesService = app.get(MessagesService);
+      await messagesService.create(messages);
+
+      // Then the import is called
+      expect(importSpy).toHaveBeenCalledTimes(1);
+
+      // Update events are created for all codes
+      const events =
+        await sql`SELECT * FROM product_update_event WHERE message->>'code' IN ${sql(
+          [code1, code2],
+        )}`;
+
+      expect(events).toHaveLength(2);
+
+      // Import with filter only called for the food product
+      const importWithFilterIn = importSpy.mock.calls[0][0].code.$in;
+      expect(importWithFilterIn).toHaveLength(1);
+      expect(importWithFilterIn[0]).toBe(code1);
+    });
+  });
+
+  it('should not call importWithFilter for updates to only non-food products', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      const importSpy = jest
+        .spyOn(importService, 'importWithFilter')
+        .mockImplementation();
+
+      const code1 = randomCode();
+      let idCount = 0;
+      const nextId = () => `${Date.now()}-${idCount++}`;
+      const messages = [
+        {
+          id: nextId(),
+          message: {
+            code: code1,
+            product_type: 'beauty',
+          },
+        },
+      ];
+
+      const messagesService = app.get(MessagesService);
+      await messagesService.create(messages);
+
+      // Then the import is not called
+      expect(importSpy).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  it('should call importWithFilter for normal imports', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const importService = app.get(ImportService);
+      const importSpy = jest
+        .spyOn(importService, 'importWithFilter')
+        .mockImplementation();
+
+      const code1 = randomCode();
+      const code2 = randomCode();
+      let idCount = 0;
+      const nextId = () => `${Date.now()}-${idCount++}`;
+      const messages = [
+        {
+          id: nextId(),
+          message: {
+            code: code1,
+            product_type: 'food',
+          },
+        },
+        {
+          id: nextId(),
+          message: {
+            code: code2,
+            product_type: 'food',
           },
         },
       ];
