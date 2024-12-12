@@ -58,9 +58,18 @@ export class MessagesService {
       do nothing`;
 
     if (!initialImport) {
-      const productCodes = [...new Set(messages.map((m) => m.message.code))];
-      const filter = { code: { $in: productCodes } };
-      await this.importService.importWithFilter(filter, ProductSource.EVENT);
+      const productCodes = [
+        ...new Set(
+          messages
+            // At the moment we only import food products. This can be removed when we import all flavours
+            .filter((m) => m.message.product_type === 'food')
+            .map((m) => m.message.code),
+        ),
+      ];
+      if (productCodes.length) {
+        const filter = { code: { $in: productCodes } };
+        await this.importService.importWithFilter(filter, ProductSource.EVENT);
+      }
     }
 
     // Update counts on product_update after products have been imported

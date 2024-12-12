@@ -38,6 +38,13 @@ export class RedisListener {
           // XREAD can read from multiple streams, starting at a
           // different ID for each...
           {
+            key: 'product_updates',
+            id: lastMessageId,
+          },
+          // Following can be deleted after PO is updated to use generic stream name
+          // Note should strictly have a different message id but PO will take more than one millisecond to switch
+          // so shouldn't be an issue
+          {
             key: 'product_updates_off',
             id: lastMessageId,
           },
@@ -53,8 +60,11 @@ export class RedisListener {
         if (messages?.length) {
           /** Message looks like this:
                 {
+                  timestamp: 123456789,
                   code: "0850026029062",
+                  rev: 2,
                   flavor: "off",
+                  product_type: "food",
                   user_id: "stephane",
                   action: "updated",
                   comment: "Modification : Remove changes",
