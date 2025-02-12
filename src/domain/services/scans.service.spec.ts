@@ -26,15 +26,17 @@ describe('create', () => {
             scans_n: 7,
             unique_scans_n: 3,
             unique_scans_n_by_country: {
-              en: 3,
+              uk: 3,
+              world: 3,
             },
           },
           '2024': {
             scans_n: 10,
             unique_scans_n: 7,
             unique_scans_n_by_country: {
-              en: 2,
+              uk: 2,
               fr: 5,
+              world: 7,
             },
           },
         },
@@ -45,14 +47,14 @@ describe('create', () => {
             unique_scans_n_by_country: {
               ru: 1,
               fr: 4,
-              world: 3,
+              world: 5,
             },
           },
         },
       });
       const result =
         await sql`SELECT * FROM product_scans_by_country WHERE product_id = (SELECT id from product where code = ${code1})`;
-      expect(result).toHaveLength(3);
+      expect(result).toHaveLength(5);
     });
   });
 });
