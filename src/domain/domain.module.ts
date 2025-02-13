@@ -9,6 +9,7 @@ import { Cron, ScheduleModule } from '@nestjs/schedule';
 import { MessagesService } from './services/messages.service';
 import { RedisListener } from './services/redis.listener';
 import { ScansService } from './services/scans.service';
+import { addAllCountries } from './entities/country';
 
 @Module({
   imports: [MikroOrmModule.forRoot(), ScheduleModule.forRoot()],
@@ -39,8 +40,14 @@ export class DomainModule implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    RequestContext.create(this.em, () => {
-      this.redisListener.startRedisConsumer();
+    // Refresh country table
+    await addAllCountries();
+
+    await new Promise<void>((resolve) => {
+      RequestContext.create(this.em, async () => {
+        await this.redisListener.startRedisConsumer();
+        resolve();
+      });
     });
   }
 

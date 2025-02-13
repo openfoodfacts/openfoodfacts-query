@@ -51,15 +51,6 @@ export class ScansService {
       )
       .flat();
 
-    // Create any missing countries
-    const countries = [...new Set(scansByCountry.map((scan) => scan[2]))].map(
-      (country) => [country],
-    );
-    await sql`INSERT INTO country (code) SELECT code 
-        FROM (values ${sql(countries)}) as source (code)
-        WHERE NOT EXISTS (SELECT * FROM country WHERE code = source.code)
-        ON CONFLICT (code) DO NOTHING`;
-
     await sql`INSERT INTO product_scans_by_country (product_id, year, country_id, unique_scans) 
         SELECT product.id, source.year::int, country.id, source.scans::int 
         FROM (values ${sql(

@@ -34,6 +34,10 @@ tests:
 lint:
 	npm run lint
 
+# Refresh the countries.json file from the ProductOwner taxonomy
+refresh_countries:
+	node scripts/refresh_countries.mjs
+
 # Run dependent projects
 run_deps: clone_deps
 	@for dep in ${DEPS} ; do \

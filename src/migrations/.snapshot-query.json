@@ -21,6 +21,15 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "tag": {
+          "name": "tag",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
           "nullable": false,
           "mappedType": "text"
         }
@@ -34,6 +43,15 @@
           ],
           "composite": false,
           "keyName": "country_code_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "tag"
+          ],
+          "composite": false,
+          "keyName": "country_tag_unique",
           "primary": false,
           "unique": true
         },
