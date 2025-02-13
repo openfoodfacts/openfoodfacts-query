@@ -18,8 +18,8 @@ export default defineConfig({
   dbName: process.env.POSTGRES_DB,
   user: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
-  host: process.env.POSTGRES_HOST,
-  port: parseInt(process.env.POSTGRES_PORT.split(':').pop()),
+  host: process.env.POSTGRES_HOST.split(':')[0],
+  port: parseInt(process.env.POSTGRES_HOST.split(':')?.[1] ?? '5432'),
   schema: SCHEMA,
   driverOptions: {
     searchPath: [SCHEMA, 'public'],
