@@ -18,27 +18,6 @@ export class ScansService {
   private logger = new Logger(ScansService.name);
 
   async create(scans: ProductScanList) {
-    const scansByYear = Object.entries(scans)
-      .map(([code, years]) =>
-        Object.entries(years).map(([year, scanCounts]) => [
-          code,
-          year,
-          scanCounts.scans_n,
-          scanCounts.unique_scans_n,
-        ]),
-      )
-      .flat();
-
-    await sql`INSERT INTO product_scans (product_id, year, scans, unique_scans) 
-      SELECT product.id, source.year::int, source.scans::int, source.unique_scans::int 
-      FROM (values ${sql(
-        scansByYear,
-      )}) as source (code, year, scans, unique_scans)
-      JOIN product ON product.code = source.code
-      ON CONFLICT (product_id, year) 
-        DO UPDATE SET scans = EXCLUDED.scans,
-          unique_scans = EXCLUDED.unique_scans`;
-
     const scansByCountry = Object.entries(scans)
       .map(([code, years]) =>
         Object.entries(years)
