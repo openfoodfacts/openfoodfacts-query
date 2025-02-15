@@ -11,6 +11,8 @@ import { ProductSource } from '../enums/product-source';
 import { SettingsService } from './settings.service';
 import { ProductIngredient } from '../entities/product-ingredient';
 import sql from '../../db';
+import { ProductCountry } from '../entities/product-country';
+import { Country } from '../entities/country';
 
 const lastUpdated = 1692032161;
 
@@ -102,6 +104,12 @@ describe('importFromMongo', () => {
         product: productExisting,
         value: 'old_ingredient',
       });
+      em.create(ProductCountry, {
+        product: productExisting,
+        country: await em.findOne(Country, { tag: 'en:world' }),
+        recentScans: 10,
+        totalScans: 100,
+      });
 
       const productIdUnchanged = randomCode();
       const productUnchanged = em.create(Product, {
@@ -169,7 +177,9 @@ describe('importFromMongo', () => {
           JOIN product p ON p.id = pc.product_id
           WHERE p.code = ${productIdExisting}`;
       expect(countriesExisting).toHaveLength(3);
-      expect(countriesExisting.find((c) => c.tag === 'en:world')).toBeTruthy();
+      const existingWorld = countriesExisting.find((c) => c.tag === 'en:world');
+      expect(existingWorld).toBeTruthy();
+      expect(existingWorld.recent_scans).toBe(10);
       expect(countriesExisting.find((c) => c.tag === 'en:france')).toBeTruthy();
       // Creates the new country on-the-fly
       expect(
