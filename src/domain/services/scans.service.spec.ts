@@ -1,11 +1,15 @@
 import { createTestingModule, randomCode } from '../../../test/test.helper';
 import sql from '../../db';
 import { DomainModule } from '../domain.module';
+import { addAllCountries } from '../entities/country';
 import { ScansService } from './scans.service';
 
 describe('create', () => {
   it('should create product scans', async () => {
     await createTestingModule([DomainModule], async (app) => {
+      // Refresh country table
+      await addAllCountries();
+
       const scansService = app.get(ScansService);
 
       // Create some products
