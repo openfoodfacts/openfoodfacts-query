@@ -30,7 +30,7 @@ function testProducts() {
       code: productIdExisting,
       last_updated_t: lastUpdated,
       ingredients_tags: ['new_ingredient', 'old_ingredient'],
-      countries_tags: ['en:france'],
+      countries_tags: ['en:france', 'en:new-country'],
     },
   ];
   return { products, productIdExisting, productIdNew };
@@ -168,9 +168,13 @@ describe('importFromMongo', () => {
           JOIN country c ON c.id = pc.country_id
           JOIN product p ON p.id = pc.product_id
           WHERE p.code = ${productIdExisting}`;
-      expect(countriesExisting).toHaveLength(2);
+      expect(countriesExisting).toHaveLength(3);
       expect(countriesExisting.find((c) => c.tag === 'en:world')).toBeTruthy();
       expect(countriesExisting.find((c) => c.tag === 'en:france')).toBeTruthy();
+      // Creates the new country on-the-fly
+      expect(
+        countriesExisting.find((c) => c.tag === 'en:new-country'),
+      ).toBeTruthy();
 
       // Check unchanged product has been "deleted"
       const foundOldProduct = await em.findOne(Product, {

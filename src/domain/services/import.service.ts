@@ -374,6 +374,14 @@ export class ImportService {
         WHERE c.tag = 'en:world'
         ON CONFLICT (product_id, country_id) DO NOTHING`;
 
+      // Add country entries for all countries referenced
+      await connection`INSERT INTO country (tag)
+        SELECT DISTINCT pct.value
+        FROM product_temp pt
+        JOIN product_countries_tag pct ON pct.product_id = pt.id
+        WHERE NOT EXISTS (SELECT * FROM country WHERE tag = pct.value)
+        ON CONFLICT (tag) DO NOTHING`;
+
       // Add product_country entries for all countries referenced
       await connection`INSERT INTO product_country (product_id, country_id, recent_scans, total_scans)
         SELECT pct.product_id, c.id, 0, 0

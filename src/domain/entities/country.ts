@@ -32,6 +32,7 @@ export async function addAllCountries() {
 
   await sql`INSERT INTO country (tag, code) SELECT tag, code 
       FROM (values ${sql(countryCodes)}) as source (tag, code)
-      WHERE NOT EXISTS (SELECT * FROM country WHERE tag = source.tag)
-      ON CONFLICT (tag) DO NOTHING`;
+      WHERE NOT EXISTS (SELECT * FROM country WHERE tag = source.tag AND code = source.code)
+      ON CONFLICT (tag) 
+      DO UPDATE SET code = EXCLUDED.code`;
 }
