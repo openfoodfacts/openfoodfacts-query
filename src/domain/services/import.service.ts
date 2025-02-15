@@ -366,6 +366,21 @@ export class ImportService {
 
         this.logger.debug(logText);
       }
+
+      // Add product_country world entries
+      await connection`INSERT INTO product_country (product_id, country_id, recent_scans, total_scans)
+        SELECT pt.id, c.id, 0, 0
+        FROM product_temp pt, country c
+        WHERE c.tag = 'en:world'
+        ON CONFLICT (product_id, country_id) DO NOTHING`;
+
+      // Add product_country entries for all countries referenced
+      await connection`INSERT INTO product_country (product_id, country_id, recent_scans, total_scans)
+        SELECT pct.product_id, c.id, 0, 0
+        FROM product_temp pt
+        JOIN product_countries_tag pct ON pct.product_id = pt.id
+        JOIN country c ON c.tag = pct.value
+        ON CONFLICT (product_id, country_id) DO NOTHING`;
     }
 
     await connection`truncate table product_temp`;
