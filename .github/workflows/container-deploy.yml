@@ -23,7 +23,6 @@ jobs:
       - name: Set various common variables for deployment
         run: |
           echo "PROJECT_DIR=${{ matrix.env }}" >> $GITHUB_ENV
-          echo "POSTGRES_IMAGE=pgautoupgrade/pgautoupgrade:16-alpine" >> $GITHUB_ENV
       - name: Set various variable for staging deployment
         if: matrix.env == 'off-query-net'
         run: |
@@ -140,6 +139,7 @@ jobs:
             echo "TAG=sha-${{ github.sha }}" >> .env
 
             # App environment variables
+            echo "POSTGRES_IMAGE=pgautoupgrade/pgautoupgrade:16-alpine" >> .env
             echo "POSTGRES_USER=postgres" >> .env
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
             echo "POSTGRES_DB=query" >> .env
