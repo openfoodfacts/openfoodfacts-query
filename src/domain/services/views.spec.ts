@@ -10,11 +10,11 @@ async function withViewUser(
 ) {
   // Use viewer user
   const viewer = postgres({
-    host: process.env.POSTGRES_HOST,
+    host: process.env.POSTGRES_HOST.split(':')[0],
     database: process.env.POSTGRES_DB,
     user: VIEW_USER,
     password: VIEW_PASSWORD,
-    port: parseInt(process.env.POSTGRES_PORT.split(':').pop()),
+    port: parseInt(process.env.POSTGRES_HOST.split(':')?.[1] ?? '5432'),
   });
 
   try {

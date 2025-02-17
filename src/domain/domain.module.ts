@@ -8,6 +8,7 @@ import { EntityManager, RequestContext } from '@mikro-orm/core';
 import { Cron, ScheduleModule } from '@nestjs/schedule';
 import { MessagesService } from './services/messages.service';
 import { RedisListener } from './services/redis.listener';
+import { ScansService } from './services/scans.service';
 
 @Module({
   imports: [MikroOrmModule.forRoot(), ScheduleModule.forRoot()],
@@ -18,6 +19,7 @@ import { RedisListener } from './services/redis.listener';
     SettingsService,
     MessagesService,
     RedisListener,
+    ScansService,
   ],
   exports: [
     ImportService,
@@ -26,6 +28,7 @@ import { RedisListener } from './services/redis.listener';
     SettingsService,
     RedisListener,
     MessagesService,
+    ScansService,
   ],
 })
 export class DomainModule implements OnModuleInit, OnModuleDestroy {
@@ -36,8 +39,11 @@ export class DomainModule implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    RequestContext.create(this.em, () => {
-      this.redisListener.startRedisConsumer();
+    await new Promise<void>((resolve) => {
+      RequestContext.create(this.em, async () => {
+        await this.redisListener.startRedisConsumer();
+        resolve();
+      });
     });
   }
 

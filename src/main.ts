@@ -6,6 +6,7 @@ import { AppModule } from './app.module';
 import { MikroORM } from '@mikro-orm/core';
 import { LogLevel } from '@nestjs/common';
 import { json, urlencoded } from 'express';
+import { addAllCountries } from './domain/entities/country';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -19,6 +20,9 @@ async function bootstrap() {
   // Run migrations if needed. Note may need to change this if multiple containers are used for scaling
   const migrator = app.get(MikroORM).getMigrator();
   await migrator.up();
+
+  // Refresh country table
+  await addAllCountries();
 
   // Start the service. IP 0.0.0.0 ensure it is available to Docker
   await app.listen(5510, '0.0.0.0');

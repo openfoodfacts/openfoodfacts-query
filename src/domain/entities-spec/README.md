@@ -1,0 +1,1 @@
+Need to put entity test files here to prevent the tests from being discovered by Mikro-ORM as entities

@@ -3,6 +3,7 @@ import { ImportService } from './domain/services/import.service';
 import { QueryService } from './domain/services/query.service';
 import { RedisListener } from './domain/services/redis.listener';
 import { MessagesService } from './domain/services/messages.service';
+import { ProductScanList, ScansService } from './domain/services/scans.service';
 
 @Controller()
 export class AppController {
@@ -11,6 +12,7 @@ export class AppController {
     private readonly queryService: QueryService,
     private readonly redisListener: RedisListener,
     private readonly messagesService: MessagesService,
+    private readonly scansService: ScansService,
   ) {}
 
   @Get('importfrommongo')
@@ -57,5 +59,10 @@ export class AppController {
       messages.push({ id: `0-${this.messageId++}`, message: update });
     }
     await this.messagesService.create(messages, true);
+  }
+
+  @Post('scans')
+  async addProductScans(@Body() scans: ProductScanList) {
+    await this.scansService.create(scans);
   }
 }
