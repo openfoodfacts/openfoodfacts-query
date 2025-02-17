@@ -1,13 +1,19 @@
 services:
   query_postgres:
-    image: postgres:12-alpine
+    image: ${POSTGRES_IMAGE}
     command: postgres -c shared_buffers=${QUERY_POSTGRES_SHARED_BUFFERS} -c work_mem=${QUERY_POSTGRES_WORK_MEM} -c listen_addresses='*'
     restart: ${RESTART_POLICY:-always}
     environment:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - POSTGRES_DB
+      - PGAUTO_REINDEX=no
     shm_size: ${POSTGRES_SHM_SIZE}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     # Always expose port for viewer access
     ports:
       - "${POSTGRES_PORT:-5512}:5432"
@@ -34,7 +40,7 @@ services:
       - "${QUERY_PORT:-5511}:5510"
     depends_on:
       query_postgres:
-        condition: service_started
+        condition: service_healthy
     networks:
       - common_net
 

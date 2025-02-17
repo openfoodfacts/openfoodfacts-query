@@ -20,9 +20,10 @@ jobs:
     environment: ${{ matrix.env }}
     concurrency: ${{ matrix.env }}
     steps:
-      - name: Set various common variable for deployment
+      - name: Set various common variables for deployment
         run: |
           echo "PROJECT_DIR=${{ matrix.env }}" >> $GITHUB_ENV
+          echo "POSTGRES_IMAGE=pgautoupgrade/pgautoupgrade:16-alpine" >> $GITHUB_ENV
       - name: Set various variable for staging deployment
         if: matrix.env == 'off-query-net'
         run: |
