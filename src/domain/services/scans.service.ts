@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import sql from '../../db';
+import { normalizeCode } from '../entities/product';
 
 export type ProductScanList = {
   [code: string]: {
@@ -20,12 +21,14 @@ export class ScansService {
   public static oldestYear = 2019;
 
   async create(scans: ProductScanList) {
+    const start = Date.now();
+
     const scansByCountry = Object.entries(scans)
       .map(([code, years]) =>
         Object.entries(years)
           .map(([year, scanCounts]) =>
             Object.entries(scanCounts.unique_scans_n_by_country).map(
-              ([country, count]) => [code, year, country, count],
+              ([country, count]) => [normalizeCode(code), year, country, count],
             ),
           )
           .flat(),
@@ -47,6 +50,8 @@ export class ScansService {
     const idsUpdated = [...new Set(inserted.map((i) => i.product_id))];
     // TODO: Remove country entries that are not referenced by a counties_tag
 
+    // TODO: Need to reset recent_scans and total_scans to zero if there are none in the
+    // relevant time-frame
     await sql`INSERT INTO product_country (product_id, country_id, recent_scans, total_scans)
       SELECT product_id, country_id, unique_scans, unique_scans
       FROM product_scans_by_country
@@ -64,6 +69,10 @@ export class ScansService {
       ON CONFLICT (product_id, country_id)
       DO UPDATE SET total_scans = EXCLUDED.total_scans`;
 
-    this.logger.log(`Received scans for ${Object.keys(scans).length} products`);
+    this.logger.log(
+      `Processed scans for ${Object.keys(scans).length} products in ${
+        Date.now() - start
+      } ms.`,
+    );
   }
 }

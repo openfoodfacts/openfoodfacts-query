@@ -66,3 +66,20 @@ export const MAPPED_FIELDS = [
   'ingredients',
   'rev',
 ];
+
+export function normalizeCode(code: string) {
+  // Logic re-created from https://github.com/openfoodfacts/openfoodfacts-server/blob/main/lib/ProductOpener/Products.pm#L313
+  // Return the code as-is if it is not all digits
+  if (!/^\d+$/.test(code)) return code;
+
+  // Remove leading zeroes
+  code = code.replace(/^0+/, '');
+
+  // Add leading zeroes to have at least 13 digits
+  if (code.length < 13) code = code.padStart(13, '0');
+
+  // Remove leading zeroes for EAN8s to keep only 8 digits
+  if (code.length === 13 && code.startsWith('00000')) code = code.substring(5);
+
+  return code;
+}
