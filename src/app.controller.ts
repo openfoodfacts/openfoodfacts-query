@@ -50,6 +50,11 @@ export class AppController {
     return await this.queryService.select(body);
   }
 
+  @Post('find')
+  async find(@Body() body: any) {
+    return await this.queryService.find(body);
+  }
+
   // Temporary code for initial import
   messageId = 0;
   @Post('productupdates')

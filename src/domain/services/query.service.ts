@@ -8,6 +8,9 @@ import {
 import { MAPPED_FIELDS, Product } from '../entities/product';
 import { TagService } from './tag.service';
 import { ProductTagMap } from '../entities/product-tag-map';
+import { MongoClient } from 'mongodb';
+import sql from '../../db';
+import { ProductCountry } from '../entities/product-country';
 
 @Injectable()
 export class QueryService {
@@ -257,13 +260,157 @@ export class QueryService {
     return results;
   }
 
+  async find(body: any): Promise<any[]> {
+    const start = Date.now();
+    const mainSort = body.sort?.[0][0];
+    const productCodes = [];
+    // Currently only do the filtering on off-query if we are sorting by popularity
+    if (mainSort === 'popularity_key') {
+      const countryTag = body.filter.countries_tags ?? 'en:world';
+      delete body.filter.countries_tags;
+      const filters = this.parseFilter(body.filter ?? {});
+      const countryId = (
+        await sql`SELECT id FROM country WHERE tag = ${countryTag}`
+      )[0].id;
+      const limit = body.limit ? sql`LIMIT ${body.limit}` : sql``;
+      const offset = body.skip ? sql`OFFSET ${body.skip}` : sql``;
+      const results = await sql`SELECT p.code 
+          FROM product_country pt
+          JOIN product p on p.id = pt.product_id
+          WHERE pt.country_id = ${countryId} 
+          AND NOT p.obsolete
+          ${(await this.getFilterSql(filters, ProductCountry)).whereClause}
+          ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id
+          ${limit} ${offset}`;
+      this.logger.debug(results.statement.string);
+      productCodes.push(...results.map((r) => r.code));
+      body.filter = { _id: { $in: productCodes } };
+      delete body.sort;
+      delete body.limit;
+      delete body.skip;
+    }
+
+    const sqlTime = Date.now();
+    this.logger.debug(body);
+    const client = new MongoClient(process.env.MONGO_URI);
+    await client.connect();
+    const db = client.db('off');
+    const products = db.collection(`products`);
+    const cursor = products.find(body.filter, {
+      projection: body.projection,
+      sort: body.sort,
+      limit: body.limit,
+      skip: body.skip,
+    });
+    const results = [];
+    while (true) {
+      const data = await cursor.next();
+      if (!data) break;
+      const sortIndex = productCodes.indexOf(data.code);
+      if (sortIndex >= 0) results[sortIndex] = data;
+      else results.push(data);
+    }
+
+    await cursor.close();
+    await client.close();
+    this.logger.debug(
+      `Retrieved ${results.length} records. ${
+        productCodes.length ? `Sql: ${sqlTime - start}  ms, ` : ``
+      }MongoDB: ${Date.now() - start} ms`,
+    );
+
+    return results;
+    // this.throwUnprocessableException(`Query not supported`);
+  }
+
+  /**
+   * Iterates over the list of tag / value pairs and returns a WHERE clause
+   * @param filters The list of tag / value pairs
+   * @param parentEntity Determines the column in which the product id is found in the parent
+   * @returns array of sql fragment
+   */
+  private async getFilterSql(filters: [string, any][], parentEntity) {
+    let whereClause = sql``;
+    for (const [matchTag, matchValue] of filters) {
+      const { entity: matchEntity, column: matchColumn } =
+        await this.getEntityAndColumn(matchTag);
+
+      let whereValue = matchValue;
+      // If $ne is specified then a not equal query is needed, e.g.
+      // additives_tags: { $ne: "value1" }
+      let not = matchValue?.['$ne'];
+      if (not) {
+        whereValue = not;
+      }
+      // If the value is still an object then we can't handle it
+      if (whereValue === Object(whereValue)) {
+        // Unless it is an $in
+        const keys = Object.keys(whereValue);
+        let operator = keys[0];
+        if (
+          keys.length != 1 ||
+          !['$in', '$nin'].includes(operator) ||
+          !whereValue[operator].length
+        )
+          this.throwUnprocessableException(
+            `Unable to process ${JSON.stringify(whereValue)}`,
+          );
+
+        // Do a NOT EXISTS WHERE IN () for $nin. Should work for Product as well as tags
+        if (operator === '$nin') {
+          whereValue = { $in: whereValue['$nin'] };
+          operator = '$in';
+          not = !not;
+        }
+
+        // $in contents must all be scalars
+        for (const value of whereValue[operator]) {
+          if (value == null || value.length === 0) {
+            // For MongoDB $in: [null, []] is used as an "IS NULL" / "NOT EXISTS"
+            // If the query is on the product table we want an is null where, otherwise we want a not exists
+            if (matchEntity === Product) {
+              whereValue = null;
+            } else {
+              not = !not;
+              whereValue = undefined;
+            }
+            // only use case for having null or [] is this one, exit
+            break;
+          }
+          if (value === Object(value))
+            this.throwUnprocessableException(
+              `Unable to process ${JSON.stringify(whereValue)}`,
+            );
+        }
+      }
+
+      // The following creates an EXISTS / NOT EXISTS sub-query for the specified tag
+      const matchTable = this.em.getMetadata(matchEntity).tableName;
+      let innerWhere = sql`pt2.${sql(this.productId(matchEntity))} = pt.${sql(
+        this.productId(parentEntity),
+      )}`;
+
+      // Add the specific criteria. whereValue will be undefined for a full exists / not exists
+      if (whereValue !== undefined)
+        innerWhere = sql`${innerWhere} AND pt2.${sql(
+          matchColumn,
+        )} = ${whereValue}`;
+
+      whereClause = sql`${whereClause} AND ${not ? sql`NOT` : sql``}
+        EXISTS (SELECT * FROM ${sql(matchTable)} pt2 WHERE ${innerWhere})`;
+    }
+    // Wrap in an object as otherwise it looks like a promise
+    return { whereClause };
+  }
+
   /** Determines the entity to use for the query. */
   private async getEntityAndColumn(tag: any) {
     let entity: EntityName<object>;
     let column = 'value';
     if (!tag || MAPPED_FIELDS.includes(tag)) {
-      // The field is a signle value stored on the Product itself
+      // The field is a single value stored on the Product itself
       entity = Product;
+      // TODO: This won't work where the column name does not match the tag name
       column = tag;
     } else {
       entity = ProductTagMap.MAPPED_TAGS[tag];
