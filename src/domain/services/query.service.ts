@@ -260,7 +260,7 @@ export class QueryService {
     return results;
   }
 
-  async find(body: any): Promise<any[]> {
+  async find(body: any, obsolete = false): Promise<any[]> {
     const start = Date.now();
     const mainSort = body.sort?.[0][0];
     const productCodes = [];
@@ -282,7 +282,7 @@ export class QueryService {
           WHERE p.id IN (SELECT pt.product_id
             FROM product_country pt
             WHERE pt.country_id = ${countryId} 
-            AND NOT pt.obsolete
+            AND ${obsolete ? sql`` : sql`NOT `}pt.obsolete
             ${(await this.getFilterSql(filters, ProductCountry)).whereClause}
             ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id
             ${limit} ${offset})

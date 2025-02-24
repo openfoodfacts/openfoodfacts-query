@@ -51,8 +51,8 @@ export class AppController {
   }
 
   @Post('find')
-  async find(@Body() body: any) {
-    return await this.queryService.find(body);
+  async find(@Body() body: any, @Query('obsolete') obsolete) {
+    return await this.queryService.find(body, obsolete);
   }
 
   // Temporary code for initial import
