@@ -16,7 +16,7 @@ services:
       retries: 5
     # Always expose port for viewer access
     ports:
-      - "${POSTGRES_PORT:-5512}:5432"
+      - "${POSTGRES_EXPOSE:-5512}:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
     networks:
