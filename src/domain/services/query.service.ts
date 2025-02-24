@@ -274,14 +274,16 @@ export class QueryService {
       )[0].id;
       const limit = body.limit ? sql`LIMIT ${body.limit}` : sql``;
       const offset = body.skip ? sql`OFFSET ${body.skip}` : sql``;
-      const results = await sql`SELECT p.code 
-          FROM product_country pt
-          JOIN product p on p.id = pt.product_id
-          WHERE pt.country_id = ${countryId} 
-          AND NOT p.obsolete
-          ${(await this.getFilterSql(filters, ProductCountry)).whereClause}
-          ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id
-          ${limit} ${offset}`;
+      const results = await sql`SELECT p.code FROM product p 
+          JOIN product_country pt ON pt.product_id = p.id AND pt.country_id =  ${countryId}
+          WHERE p.id IN (SELECT pt.product_id
+            FROM product_country pt
+            WHERE pt.country_id = ${countryId} 
+            AND NOT pt.obsolete
+            ${(await this.getFilterSql(filters, ProductCountry)).whereClause}
+            ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id
+            ${limit} ${offset})
+          ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id`;
       this.logger.debug(results.statement.string);
       productCodes.push(...results.map((r) => r.code));
       body.filter = { _id: { $in: productCodes } };
