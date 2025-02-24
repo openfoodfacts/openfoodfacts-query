@@ -67,7 +67,10 @@ export class AppController {
   }
 
   @Post('scans')
-  async addProductScans(@Body() scans: ProductScanList) {
-    await this.scansService.create(scans);
+  async addProductScans(
+    @Body() scans: ProductScanList,
+    @Query('fullyloaded') fullyLoaded = false,
+  ) {
+    await this.scansService.create(scans, fullyLoaded);
   }
 }

@@ -2,7 +2,9 @@ import { createTestingModule, randomCode } from '../../../test/test.helper';
 import sql from '../../db';
 import { DomainModule } from '../domain.module';
 import { addAllCountries } from '../entities/country';
+import { PRODUCT_COUNTRY_TAG } from '../entities/product-country';
 import { ScansService } from './scans.service';
+import { TagService } from './tag.service';
 
 describe('create', () => {
   it('should create product scans', async () => {
@@ -77,6 +79,39 @@ describe('create', () => {
       expect(productCountries[0].recent_scans).toBe(2);
       expect(productCountries[0].total_scans).toBe(5);
       expect(productCountries[0].obsolete).toBe(false);
+    });
+  });
+
+  it('should update tags when all loaded', async () => {
+    await createTestingModule([DomainModule], async (app) => {
+      const scansService = app.get(ScansService);
+
+      // Create a product
+      const code1 = randomCode();
+      await sql`INSERT INTO product ${sql([
+        {
+          code: code1,
+        },
+      ])}`;
+
+      await scansService.create(
+        {
+          [code1]: {
+            [ScansService.currentYear]: {
+              scans_n: 10,
+              unique_scans_n: 7,
+              unique_scans_n_by_country: {
+                uk: 2,
+                fr: 5,
+                world: 7,
+              },
+            },
+          },
+        },
+        true,
+      );
+      const loadedTags = await app.get(TagService).getLoadedTags();
+      expect(loadedTags).toContain(PRODUCT_COUNTRY_TAG);
     });
   });
 });

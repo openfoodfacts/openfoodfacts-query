@@ -10,7 +10,7 @@ import { TagService } from './tag.service';
 import { ProductTagMap } from '../entities/product-tag-map';
 import { MongoClient } from 'mongodb';
 import sql from '../../db';
-import { ProductCountry } from '../entities/product-country';
+import { PRODUCT_COUNTRY_TAG, ProductCountry } from '../entities/product-country';
 
 @Injectable()
 export class QueryService {
@@ -265,7 +265,10 @@ export class QueryService {
     const mainSort = body.sort?.[0][0];
     const productCodes = [];
     // Currently only do the filtering on off-query if we are sorting by popularity
-    if (mainSort === 'popularity_key') {
+    if (
+      mainSort === 'popularity_key' &&
+      (await this.tagService.getLoadedTags()).includes(PRODUCT_COUNTRY_TAG)
+    ) {
       const countryTag = body.filter.countries_tags ?? 'en:world';
       delete body.filter.countries_tags;
       const filters = this.parseFilter(body.filter ?? {});

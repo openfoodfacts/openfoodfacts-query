@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import sql from '../../db';
 import { normalizeCode } from '../entities/product';
+import { TagService } from './tag.service';
+import { PRODUCT_COUNTRY_TAG } from '../entities/product-country';
 
 export type ProductScanList = {
   [code: string]: {
@@ -20,7 +22,9 @@ export class ScansService {
   public static currentYear = 2024;
   public static oldestYear = 2019;
 
-  async create(scans: ProductScanList) {
+  constructor(private readonly tagService: TagService) {}
+
+  async create(scans: ProductScanList, fullyLoaded = false) {
     const start = Date.now();
 
     const scansByCountry = Object.entries(scans)
@@ -35,46 +39,50 @@ export class ScansService {
       )
       .flat();
 
-    const inserted =
-      await sql`INSERT INTO product_scans_by_country (product_id, year, country_id, unique_scans) 
-        SELECT product.id, source.year::int, country.id, source.scans::int 
-        FROM (values ${sql(
-          scansByCountry,
-        )}) as source (code, year, country, scans)
-        JOIN product ON product.code = source.code
-        JOIN country ON country.code = source.country
-        ON CONFLICT (product_id, year, country_id) 
-        DO UPDATE SET unique_scans = EXCLUDED.unique_scans
-        RETURNING product_id`;
+    if (scansByCountry.length) {
+      const inserted =
+        await sql`INSERT INTO product_scans_by_country (product_id, year, country_id, unique_scans) 
+          SELECT product.id, source.year::int, country.id, source.scans::int 
+          FROM (values ${sql(
+            scansByCountry,
+          )}) as source (code, year, country, scans)
+          JOIN product ON product.code = source.code
+          JOIN country ON country.code = source.country
+          ON CONFLICT (product_id, year, country_id) 
+          DO UPDATE SET unique_scans = EXCLUDED.unique_scans
+          RETURNING product_id`;
 
-    const idsUpdated = [...new Set(inserted.map((i) => i.product_id))];
-    // TODO: Remove country entries that are not referenced by a counties_tag
+      const idsUpdated = [...new Set(inserted.map((i) => i.product_id))];
+      // TODO: Remove country entries that are not referenced by a counties_tag
 
-    // TODO: Need to reset recent_scans and total_scans to zero if there are none in the
-    // relevant time-frame
-    await sql`INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
-      SELECT product_id, p.obsolete, country_id, unique_scans, unique_scans
-      FROM product_scans_by_country
-      JOIN product p ON p.id = product_id
-      WHERE product_id in ${sql(idsUpdated)}
-      AND year = ${ScansService.currentYear}
-      ON CONFLICT (product_id, country_id)
-      DO UPDATE SET recent_scans = EXCLUDED.recent_scans, obsolete = EXCLUDED.obsolete`;
+      // TODO: Need to reset recent_scans and total_scans to zero if there are none in the
+      // relevant time-frame
+      await sql`INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+        SELECT product_id, p.obsolete, country_id, unique_scans, unique_scans
+        FROM product_scans_by_country
+        JOIN product p ON p.id = product_id
+        WHERE product_id in ${sql(idsUpdated)}
+        AND year = ${ScansService.currentYear}
+        ON CONFLICT (product_id, country_id)
+        DO UPDATE SET recent_scans = EXCLUDED.recent_scans, obsolete = EXCLUDED.obsolete`;
 
-    await sql`INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
-      SELECT product_id, p.obsolete, country_id, 0, sum(unique_scans)
-      FROM product_scans_by_country
-      JOIN product p ON p.id = product_id
-      WHERE product_id in ${sql(idsUpdated)}
-      AND year >= ${ScansService.oldestYear}
-      GROUP BY product_id, p.obsolete, country_id
-      ON CONFLICT (product_id, country_id)
-      DO UPDATE SET total_scans = EXCLUDED.total_scans, obsolete = EXCLUDED.obsolete`;
+      await sql`INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+        SELECT product_id, p.obsolete, country_id, 0, sum(unique_scans)
+        FROM product_scans_by_country
+        JOIN product p ON p.id = product_id
+        WHERE product_id in ${sql(idsUpdated)}
+        AND year >= ${ScansService.oldestYear}
+        GROUP BY product_id, p.obsolete, country_id
+        ON CONFLICT (product_id, country_id)
+        DO UPDATE SET total_scans = EXCLUDED.total_scans, obsolete = EXCLUDED.obsolete`;
+    }
+
+    if (fullyLoaded) await this.tagService.addLoadedTags([PRODUCT_COUNTRY_TAG]);
 
     this.logger.log(
       `Processed scans for ${Object.keys(scans).length} products in ${
         Date.now() - start
-      } ms.`,
+      } ms.${fullyLoaded ? '. All scans now loaded.' : ''}`,
     );
   }
 }

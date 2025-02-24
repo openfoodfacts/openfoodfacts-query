@@ -24,3 +24,5 @@ export class ProductCountry {
   @Property()
   totalScans: number;
 }
+
+export const PRODUCT_COUNTRY_TAG = 'product_country';
