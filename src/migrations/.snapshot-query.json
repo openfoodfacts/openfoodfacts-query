@@ -1072,6 +1072,16 @@
           "nullable": false,
           "mappedType": "integer"
         },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "default": "false",
+          "mappedType": "boolean"
+        },
         "recent_scans": {
           "name": "recent_scans",
           "type": "int",
@@ -1100,7 +1110,7 @@
           "composite": false,
           "primary": false,
           "unique": false,
-          "expression": "create index product_country_ix1 on product_country (country_id, recent_scans DESC, total_scans DESC, product_id)"
+          "expression": "create index product_country_ix1 on product_country (obsolete, country_id, recent_scans DESC, total_scans DESC, product_id)"
         },
         {
           "keyName": "product_country_pkey",

@@ -6,11 +6,14 @@ import { Country } from './country';
 @Index({
   name: 'product_country_ix1',
   expression:
-    'create index product_country_ix1 on product_country (country_id, recent_scans DESC, total_scans DESC, product_id)',
+    'create index product_country_ix1 on product_country (obsolete, country_id, recent_scans DESC, total_scans DESC, product_id)',
 })
 export class ProductCountry {
   @ManyToOne({ primary: true, onDelete: 'cascade' })
   product: Product;
+
+  @Property()
+  obsolete? = false;
 
   @ManyToOne({ primary: true, onDelete: 'cascade' })
   country: Country;

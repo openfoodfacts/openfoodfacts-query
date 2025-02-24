@@ -52,22 +52,24 @@ export class ScansService {
 
     // TODO: Need to reset recent_scans and total_scans to zero if there are none in the
     // relevant time-frame
-    await sql`INSERT INTO product_country (product_id, country_id, recent_scans, total_scans)
-      SELECT product_id, country_id, unique_scans, unique_scans
+    await sql`INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+      SELECT product_id, p.obsolete, country_id, unique_scans, unique_scans
       FROM product_scans_by_country
+      JOIN product p ON p.id = product_id
       WHERE product_id in ${sql(idsUpdated)}
       AND year = ${ScansService.currentYear}
       ON CONFLICT (product_id, country_id)
-      DO UPDATE SET recent_scans = EXCLUDED.recent_scans`;
+      DO UPDATE SET recent_scans = EXCLUDED.recent_scans, obsolete = EXCLUDED.obsolete`;
 
-    await sql`INSERT INTO product_country (product_id, country_id, recent_scans, total_scans)
-      SELECT product_id, country_id, 0, sum(unique_scans)
+    await sql`INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+      SELECT product_id, p.obsolete, country_id, 0, sum(unique_scans)
       FROM product_scans_by_country
+      JOIN product p ON p.id = product_id
       WHERE product_id in ${sql(idsUpdated)}
       AND year >= ${ScansService.oldestYear}
-      GROUP BY product_id, country_id
+      GROUP BY product_id, p.obsolete, country_id
       ON CONFLICT (product_id, country_id)
-      DO UPDATE SET total_scans = EXCLUDED.total_scans`;
+      DO UPDATE SET total_scans = EXCLUDED.total_scans, obsolete = EXCLUDED.obsolete`;
 
     this.logger.log(
       `Processed scans for ${Object.keys(scans).length} products in ${

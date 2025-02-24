@@ -152,12 +152,13 @@ describe('importFromMongo', () => {
 
       // Should create at least a world entry in the product_country table
       const countries =
-        await sql`SELECT c.tag, pc.recent_scans, pc.total_scans FROM product_country pc
+        await sql`SELECT c.tag, pc.recent_scans, pc.total_scans, pc.obsolete FROM product_country pc
           JOIN country c ON c.id = pc.country_id
           JOIN product p ON p.id = pc.product_id
           WHERE p.code = ${productIdNew}`;
       expect(countries).toHaveLength(1);
       expect(countries[0].tag).toBe('en:world');
+      expect(countries[0].obsolete).toBe(false);
 
       const ingredientsExisting = await em.find(ProductIngredientsTag, {
         product: productExisting,

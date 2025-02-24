@@ -76,6 +76,7 @@ describe('create', () => {
       expect(productCountries).toHaveLength(1);
       expect(productCountries[0].recent_scans).toBe(2);
       expect(productCountries[0].total_scans).toBe(5);
+      expect(productCountries[0].obsolete).toBe(false);
     });
   });
 });

@@ -296,6 +296,8 @@ export class QueryService {
     await client.connect();
     const db = client.db('off');
     const products = db.collection(`products`);
+    // TODO: We are exposing MongoDB directly to the internet here so may need to
+    // do some sanitization
     const cursor = products.find(body.filter, {
       projection: body.projection,
       sort: body.sort,
