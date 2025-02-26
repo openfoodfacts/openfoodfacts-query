@@ -263,72 +263,77 @@ export class QueryService {
 
   async find(body: FindQuery, obsolete = false): Promise<any[]> {
     const start = Date.now();
-    const mainSort = body.sort?.[0][0];
     const productCodes = [];
     // Currently only do the filtering on off-query if we are sorting by popularity
     if (
-      mainSort === 'popularity_key' &&
-      (await this.tagService.getLoadedTags()).includes(ProductCountry.TAG)
-    ) {
-      const countryTag = (body.filter.countries_tags as string) ?? 'en:world';
-      delete body.filter.countries_tags;
-      const filters = this.parseFilter(body.filter ?? {});
-      const countryId = (
-        await sql`SELECT id FROM country WHERE tag = ${countryTag}`
-      )[0].id;
-      const limit = body.limit ? sql`LIMIT ${body.limit}` : sql``;
-      const offset = body.skip ? sql`OFFSET ${body.skip}` : sql``;
-      const results = await sql`SELECT p.code FROM product p 
-          JOIN product_country pt ON pt.product_id = p.id AND pt.country_id =  ${countryId}
-          WHERE p.id IN (SELECT pt.product_id
-            FROM product_country pt
-            WHERE pt.country_id = ${countryId} 
-            AND ${obsolete ? sql`` : sql`NOT `}pt.obsolete
-            ${(await this.getFilterSql(filters, ProductCountry)).whereClause}
-            ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id
-            ${limit} ${offset})
-          ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id`;
-      this.logger.debug(results.statement.string);
-      productCodes.push(...results.map((r) => r.code));
-      body.filter = { _id: { $in: productCodes } };
-      delete body.sort;
-      delete body.limit;
-      delete body.skip;
-    }
+      body.sort?.length !== 1 ||
+      body.sort?.[0][0] !== 'popularity_key' ||
+      body.sort?.[0][1] !== -1
+    )
+      this.throwUnprocessableException(
+        `Only currently implement descending popularity_key sort`,
+      );
 
+    if (!(await this.tagService.getLoadedTags()).includes(ProductCountry.TAG))
+      this.throwUnprocessableException(`Scans have not yet been fully loaded`);
+
+    // TODO: Need to handle multiple countries
+    const countryTag = body.filter.countries_tags;
+    if (typeof countryTag !== 'string')
+      this.throwUnprocessableException(
+        `Can't support multiple country queries`,
+      );
+
+    const countryTagValue = (countryTag as string) ?? 'en:world';
+    delete body.filter.countries_tags;
+    const filters = this.parseFilter(body.filter ?? {});
+    const countryId = (
+      await sql`SELECT id FROM country WHERE tag = ${countryTagValue}`
+    )[0].id;
+    const limit = body.limit ? sql`LIMIT ${body.limit}` : sql``;
+    const offset = body.skip ? sql`OFFSET ${body.skip}` : sql``;
+    const sqlResults = await sql`SELECT p.code FROM product p 
+        JOIN product_country pt ON pt.product_id = p.id AND pt.country_id =  ${countryId}
+        WHERE p.id IN (SELECT pt.product_id
+          FROM product_country pt
+          WHERE pt.country_id = ${countryId} 
+          AND ${obsolete ? sql`` : sql`NOT `}pt.obsolete
+          ${(await this.getFilterSql(filters, ProductCountry)).whereClause}
+          ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id
+          ${limit} ${offset})
+        ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id`;
+    this.logger.debug(sqlResults.statement.string);
+    productCodes.push(...sqlResults.map((r) => r.code));
     const sqlTime = Date.now();
-    this.logger.debug(body);
+
     const client = new MongoClient(process.env.MONGO_URI);
     await client.connect();
     const db = client.db('off');
     const products = db.collection(`products`);
-    // TODO: We are exposing MongoDB directly to the internet here so may need to
-    // do some sanitization
-    const cursor = products.find(body.filter, {
-      projection: body.projection,
-      sort: body.sort,
-      limit: body.limit,
-      skip: body.skip,
-    });
-    const results = [];
+    const cursor = products.find(
+      { _id: { $in: productCodes } },
+      {
+        projection: body.projection,
+      },
+    );
+    const mongodbResults = [];
     while (true) {
       const data = await cursor.next();
       if (!data) break;
       const sortIndex = productCodes.indexOf(data.code);
-      if (sortIndex >= 0) results[sortIndex] = data;
-      else results.push(data);
+      if (sortIndex >= 0) mongodbResults[sortIndex] = data;
+      else mongodbResults.push(data);
     }
 
     await cursor.close();
     await client.close();
     this.logger.debug(
-      `Retrieved ${results.length} records. ${
+      `Retrieved ${mongodbResults.length} records. ${
         productCodes.length ? `Sql: ${sqlTime - start}  ms, ` : ``
       }MongoDB: ${Date.now() - start} ms`,
     );
 
-    return results;
-    // this.throwUnprocessableException(`Query not supported`);
+    return mongodbResults;
   }
 
   /**
