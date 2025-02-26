@@ -10,6 +10,9 @@ import { ProductTagMap } from '../entities/product-tag-map';
 import { ProductSource } from '../enums/product-source';
 import { SettingsService } from './settings.service';
 import { ProductIngredient } from '../entities/product-ingredient';
+import sql from '../../db';
+import { ProductCountry } from '../entities/product-country';
+import { Country } from '../entities/country';
 
 const lastUpdated = 1692032161;
 
@@ -29,6 +32,7 @@ function testProducts() {
       code: productIdExisting,
       last_updated_t: lastUpdated,
       ingredients_tags: ['new_ingredient', 'old_ingredient'],
+      countries_tags: ['en:france', 'en:new-country'],
     },
   ];
   return { products, productIdExisting, productIdNew };
@@ -100,6 +104,12 @@ describe('importFromMongo', () => {
         product: productExisting,
         value: 'old_ingredient',
       });
+      em.create(ProductCountry, {
+        product: productExisting,
+        country: await em.findOne(Country, { tag: 'en:world' }),
+        recentScans: 10,
+        totalScans: 100,
+      });
 
       const productIdUnchanged = randomCode();
       const productUnchanged = em.create(Product, {
@@ -140,6 +150,16 @@ describe('importFromMongo', () => {
       expect(ingredientsNew[0].value).toBe('test');
       expect(productNew.revision).toBe(1);
 
+      // Should create at least a world entry in the product_country table
+      const countries =
+        await sql`SELECT c.tag, pc.recent_scans, pc.total_scans, pc.obsolete FROM product_country pc
+          JOIN country c ON c.id = pc.country_id
+          JOIN product p ON p.id = pc.product_id
+          WHERE p.code = ${productIdNew}`;
+      expect(countries).toHaveLength(1);
+      expect(countries[0].tag).toBe('en:world');
+      expect(countries[0].obsolete).toBe(false);
+
       const ingredientsExisting = await em.find(ProductIngredientsTag, {
         product: productExisting,
       });
@@ -149,6 +169,22 @@ describe('importFromMongo', () => {
       ).toBeTruthy();
       expect(
         ingredientsExisting.find((i) => i.value === 'new_ingredient'),
+      ).toBeTruthy();
+
+      // Should create an entry for each country plus world
+      const countriesExisting =
+        await sql`SELECT c.tag, pc.recent_scans, pc.total_scans FROM product_country pc
+          JOIN country c ON c.id = pc.country_id
+          JOIN product p ON p.id = pc.product_id
+          WHERE p.code = ${productIdExisting}`;
+      expect(countriesExisting).toHaveLength(3);
+      const existingWorld = countriesExisting.find((c) => c.tag === 'en:world');
+      expect(existingWorld).toBeTruthy();
+      expect(existingWorld.recent_scans).toBe(10);
+      expect(countriesExisting.find((c) => c.tag === 'en:france')).toBeTruthy();
+      // Creates the new country on-the-fly
+      expect(
+        countriesExisting.find((c) => c.tag === 'en:new-country'),
       ).toBeTruthy();
 
       // Check unchanged product has been "deleted"

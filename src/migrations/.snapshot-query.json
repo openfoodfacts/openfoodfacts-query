@@ -8,6 +8,70 @@
       "columns": {
         "id": {
           "name": "id",
+          "type": "serial",
+          "unsigned": true,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "tag": {
+          "name": "tag",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "text"
+        }
+      },
+      "name": "country",
+      "schema": "query",
+      "indexes": [
+        {
+          "columnNames": [
+            "code"
+          ],
+          "composite": false,
+          "keyName": "country_code_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "tag"
+          ],
+          "composite": false,
+          "keyName": "country_tag_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "keyName": "country_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -124,7 +188,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": true,
-          "mappedType": "unknown"
+          "mappedType": "bigint"
         },
         "last_processed": {
           "name": "last_processed",
@@ -983,6 +1047,107 @@
             "id"
           ],
           "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "country_id": {
+          "name": "country_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "obsolete": {
+          "name": "obsolete",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "default": "false",
+          "mappedType": "boolean"
+        },
+        "recent_scans": {
+          "name": "recent_scans",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "total_scans": {
+          "name": "total_scans",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        }
+      },
+      "name": "product_country",
+      "schema": "query",
+      "indexes": [
+        {
+          "keyName": "product_country_ix1",
+          "columnNames": [],
+          "composite": false,
+          "primary": false,
+          "unique": false,
+          "expression": "create index product_country_ix1 on product_country (obsolete, country_id, recent_scans DESC, total_scans DESC, product_id)"
+        },
+        {
+          "keyName": "product_country_pkey",
+          "columnNames": [
+            "product_id",
+            "country_id"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_country_product_id_foreign": {
+          "constraintName": "product_country_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_country",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        },
+        "product_country_country_id_foreign": {
+          "constraintName": "product_country_country_id_foreign",
+          "columnNames": [
+            "country_id"
+          ],
+          "localTableName": "query.product_country",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.country",
           "deleteRule": "cascade",
           "updateRule": "cascade"
         }
@@ -4426,6 +4591,90 @@
             "id"
           ],
           "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      }
+    },
+    {
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "year": {
+          "name": "year",
+          "type": "smallint",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "smallint"
+        },
+        "country_id": {
+          "name": "country_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "unique_scans": {
+          "name": "unique_scans",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        }
+      },
+      "name": "product_scans_by_country",
+      "schema": "query",
+      "indexes": [
+        {
+          "keyName": "product_scans_by_country_pkey",
+          "columnNames": [
+            "product_id",
+            "year",
+            "country_id"
+          ],
+          "composite": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "product_scans_by_country_product_id_foreign": {
+          "constraintName": "product_scans_by_country_product_id_foreign",
+          "columnNames": [
+            "product_id"
+          ],
+          "localTableName": "query.product_scans_by_country",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.product",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        },
+        "product_scans_by_country_country_id_foreign": {
+          "constraintName": "product_scans_by_country_country_id_foreign",
+          "columnNames": [
+            "country_id"
+          ],
+          "localTableName": "query.product_scans_by_country",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "query.country",
           "deleteRule": "cascade",
           "updateRule": "cascade"
         }

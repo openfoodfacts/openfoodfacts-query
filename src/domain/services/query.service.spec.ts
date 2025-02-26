@@ -13,6 +13,7 @@ import { QueryService } from './query.service';
 import { createTestingModule, randomCode } from '../../../test/test.helper';
 import { UnprocessableEntityException } from '@nestjs/common';
 import { LoadedTag } from '../entities/loaded-tag';
+import { AggregateQuery } from '../dto/query-interface';
 
 // Tests can sometimes take a little time in GitHub
 jest.setTimeout(10000);
@@ -114,6 +115,7 @@ describe('count', () => {
   it('should throw and unprocessable exception for an unrecognised value object', async () => {
     await createTestingModule([DomainModule], async (app) => {
       try {
+        // @ts-expect-error Only certain operators are supported
         await app.get(QueryService).count({ origins_tags: { $unknown: 'x' } });
         fail('should not get here');
       } catch (e) {
@@ -214,6 +216,7 @@ describe('count', () => {
       try {
         await app
           .get(QueryService)
+          // @ts-expect-error $in should only include simple type
           .count({ origins_tags: { $in: ['a', ['b', 'c']] } });
         fail('should not get here');
       } catch (e) {
@@ -359,7 +362,7 @@ describe('aggregate', () => {
   it('should be able to just count', async () => {
     await createTestingModule([DomainModule], async (app) => {
       const queryService = app.get(QueryService);
-      const query = [
+      const query: AggregateQuery = [
         { $match: {} },
         { $group: { _id: '$origins_tags' } },
         { $count: 1 },

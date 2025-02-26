@@ -16,7 +16,7 @@ services:
       retries: 5
     # Always expose port for viewer access
     ports:
-      - "${POSTGRES_PORT:-5512}:5432"
+      - "${POSTGRES_EXPOSE:-5512}:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
     networks:
@@ -26,9 +26,8 @@ services:
     image: ghcr.io/openfoodfacts/openfoodfacts-query:${TAG}
     restart: ${RESTART_POLICY:-always}
     environment:
-      - POSTGRES_HOST=query_postgres
       # When we are running inside docker we use the internal port
-      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=query_postgres:5432
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD

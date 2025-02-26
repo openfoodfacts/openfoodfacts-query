@@ -366,6 +366,32 @@ export class ImportService {
 
         this.logger.debug(logText);
       }
+
+      // Add product_country world entries
+      await connection`INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+        SELECT pt.id, ${obsolete}, c.id, 0, 0
+        FROM product_temp pt, country c
+        WHERE c.tag = 'en:world'
+        ON CONFLICT (product_id, country_id) DO UPDATE SET obsolete = ${obsolete}`;
+
+      // Add country entries for all countries referenced
+      await connection`INSERT INTO country (tag)
+        SELECT DISTINCT pct.value
+        FROM product_temp pt
+        JOIN product_countries_tag pct ON pct.product_id = pt.id
+        WHERE NOT EXISTS (SELECT * FROM country WHERE tag = pct.value)
+        ON CONFLICT (tag) DO NOTHING`;
+
+      // Add product_country entries for all countries referenced
+      await connection`INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+        SELECT pct.product_id, ${obsolete}, c.id, 0, 0
+        FROM product_temp pt
+        JOIN product_countries_tag pct ON pct.product_id = pt.id
+        JOIN country c ON c.tag = pct.value
+        ON CONFLICT (product_id, country_id) DO UPDATE SET obsolete = ${obsolete}`;
+
+      // May want to delete product_country entries where countries_tags are removed from the product but this would
+      // remove the scan totals which wouldn't be restored if the country was added back in until the scans were re-processed
     }
 
     await connection`truncate table product_temp`;

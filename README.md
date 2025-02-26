@@ -20,7 +20,11 @@ docker compose up -d query_postgres
 
 ### Use an existing Postgres database
 
-Update the POSTGRES_HOST (and other necessary) environment variables to reference your existing database. Please don't commit any changes to the .env file if this is edited.
+Update the POSTGRES_HOST (and other necessary) environment variables to reference your existing database.
+
+Please use the `.envrc` file to override settings so that edits are not committed to the repo.
+
+When connecting to a PostgreSQL database running on a Windows host from a WSL2 instance you will need to enable the PostgreSQL port (5432) in Windows Firewall.
 
 ### Prepare for development
 
