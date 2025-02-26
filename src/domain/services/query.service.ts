@@ -279,7 +279,7 @@ export class QueryService {
 
     // TODO: Need to handle multiple countries
     const countryTag = body.filter.countries_tags;
-    if (typeof countryTag !== 'string')
+    if (countryTag !== undefined && typeof countryTag !== 'string')
       this.throwUnprocessableException(
         `Can't support multiple country queries`,
       );
@@ -330,7 +330,7 @@ export class QueryService {
     this.logger.debug(
       `Retrieved ${mongodbResults.length} records. ${
         productCodes.length ? `Sql: ${sqlTime - start}  ms, ` : ``
-      }MongoDB: ${Date.now() - start} ms`,
+      }MongoDB: ${Date.now() - sqlTime} ms`,
     );
 
     return mongodbResults;
