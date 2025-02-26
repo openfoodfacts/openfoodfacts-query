@@ -4,6 +4,11 @@ import { QueryService } from './domain/services/query.service';
 import { RedisListener } from './domain/services/redis.listener';
 import { MessagesService } from './domain/services/messages.service';
 import { ProductScanList, ScansService } from './domain/services/scans.service';
+import {
+  AggregateQuery,
+  Filter,
+  FindQuery,
+} from './domain/dto/query-interface';
 
 @Controller()
 export class AppController {
@@ -36,22 +41,22 @@ export class AppController {
   }
 
   @Post('aggregate')
-  async aggregate(@Body() body: any[], @Query('obsolete') obsolete) {
+  async aggregate(@Body() body: AggregateQuery, @Query('obsolete') obsolete) {
     return await this.queryService.aggregate(body, this.parseBoolean(obsolete));
   }
 
   @All('count')
-  async count(@Body() body: any, @Query('obsolete') obsolete) {
+  async count(@Body() body: Filter, @Query('obsolete') obsolete) {
     return await this.queryService.count(body, this.parseBoolean(obsolete));
   }
 
   @Post('select')
-  async select(@Body() body: any) {
+  async select(@Body() body: Filter) {
     return await this.queryService.select(body);
   }
 
   @Post('find')
-  async find(@Body() body: any, @Query('obsolete') obsolete) {
+  async find(@Body() body: FindQuery, @Query('obsolete') obsolete) {
     return await this.queryService.find(body, obsolete);
   }
 

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import sql from '../../db';
 import { normalizeCode } from '../entities/product';
 import { TagService } from './tag.service';
-import { PRODUCT_COUNTRY_TAG } from '../entities/product-country';
+import { ProductCountry } from '../entities/product-country';
 
 export type ProductScanList = {
   [code: string]: {
@@ -77,7 +77,7 @@ export class ScansService {
         DO UPDATE SET total_scans = EXCLUDED.total_scans, obsolete = EXCLUDED.obsolete`;
     }
 
-    if (fullyLoaded) await this.tagService.addLoadedTags([PRODUCT_COUNTRY_TAG]);
+    if (fullyLoaded) await this.tagService.addLoadedTags([ProductCountry.TAG]);
 
     this.logger.log(
       `Processed scans for ${Object.keys(scans).length} products in ${

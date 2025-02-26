@@ -10,7 +10,8 @@ import { TagService } from './tag.service';
 import { ProductTagMap } from '../entities/product-tag-map';
 import { MongoClient } from 'mongodb';
 import sql from '../../db';
-import { PRODUCT_COUNTRY_TAG, ProductCountry } from '../entities/product-country';
+import { ProductCountry } from '../entities/product-country';
+import { AggregateQuery, Filter, FindQuery } from '../dto/query-interface';
 
 @Injectable()
 export class QueryService {
@@ -21,22 +22,22 @@ export class QueryService {
   ) {}
 
   /** Uses the MongoDB aggregate pipeline style query to return counts grouped by a specified facet */
-  async aggregate(body: any[], obsolete = false) {
+  async aggregate(body: AggregateQuery, obsolete = false) {
     const start = Date.now();
     this.logger.debug(body);
 
     // Match includes any filter criteria
-    const match = body.find((o: any) => o['$match'])?.['$match'];
+    const match = (body as any[]).find((o) => o['$match'])?.['$match'];
 
     // Group indicates what field to group results by
-    const group = body.find((o: any) => o['$group'])?.['$group'];
+    const group = (body as any[]).find((o) => o['$group'])?.['$group'];
 
     // If count is specified then this just counts the number of distinct facet values
-    const count = body.some((o: any) => o['$count']);
+    const count = (body as any[]).some((o) => o['$count']);
 
     // Limit and skip support paging of large results (like ingredients)
-    const limit = body.find((o: any) => o['$limit'])?.['$limit'];
-    const skip = body.find((o: any) => o['$skip'])?.['$skip'];
+    const limit = (body as any[]).find((o) => o['$limit'])?.['$limit'];
+    const skip = (body as any[]).find((o) => o['$skip'])?.['$skip'];
 
     let tag = group['_id'].substring(1);
     if (tag === 'users_tags') tag = 'creator';
@@ -84,7 +85,7 @@ export class QueryService {
    * Turns the filter into a simple list of tags and values that can be "anded" together
    * note this doesn't currently support "or" operations
    */
-  private parseFilter(matches): [string, any][] {
+  private parseFilter(matches: Filter): [string, any][] {
     const filters = [];
     for (const filter of Object.entries(matches)) {
       if (filter[0] === '$and') {
@@ -213,7 +214,7 @@ export class QueryService {
   }
 
   /** Counts the number of document meeting the specified criteria */
-  async count(body: any, obsolete = false) {
+  async count(body: Filter, obsolete = false) {
     const start = Date.now();
     this.logger.debug(body);
 
@@ -240,7 +241,7 @@ export class QueryService {
   }
 
   /** Fetches the entire document record for the filter. Not used by Product Opener */
-  async select(body: any) {
+  async select(body: Filter) {
     const start = Date.now();
     this.logger.debug(body);
 
@@ -260,16 +261,16 @@ export class QueryService {
     return results;
   }
 
-  async find(body: any, obsolete = false): Promise<any[]> {
+  async find(body: FindQuery, obsolete = false): Promise<any[]> {
     const start = Date.now();
     const mainSort = body.sort?.[0][0];
     const productCodes = [];
     // Currently only do the filtering on off-query if we are sorting by popularity
     if (
       mainSort === 'popularity_key' &&
-      (await this.tagService.getLoadedTags()).includes(PRODUCT_COUNTRY_TAG)
+      (await this.tagService.getLoadedTags()).includes(ProductCountry.TAG)
     ) {
-      const countryTag = body.filter.countries_tags ?? 'en:world';
+      const countryTag = (body.filter.countries_tags as string) ?? 'en:world';
       delete body.filter.countries_tags;
       const filters = this.parseFilter(body.filter ?? {});
       const countryId = (

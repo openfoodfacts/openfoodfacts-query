@@ -2,7 +2,7 @@ import { createTestingModule, randomCode } from '../../../test/test.helper';
 import sql from '../../db';
 import { DomainModule } from '../domain.module';
 import { addAllCountries } from '../entities/country';
-import { PRODUCT_COUNTRY_TAG } from '../entities/product-country';
+import { ProductCountry } from '../entities/product-country';
 import { ScansService } from './scans.service';
 import { TagService } from './tag.service';
 
@@ -111,7 +111,7 @@ describe('create', () => {
         true,
       );
       const loadedTags = await app.get(TagService).getLoadedTags();
-      expect(loadedTags).toContain(PRODUCT_COUNTRY_TAG);
+      expect(loadedTags).toContain(ProductCountry.TAG);
     });
   });
 });
