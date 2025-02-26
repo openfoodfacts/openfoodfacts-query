@@ -330,7 +330,7 @@ export class QueryService {
     this.logger.debug(
       `Retrieved ${mongodbResults.length} records. ${
         productCodes.length ? `Sql: ${sqlTime - start}  ms, ` : ``
-      }MongoDB: ${Date.now() - start} ms`,
+      }MongoDB: ${Date.now() - sqlTime} ms`,
     );
 
     return mongodbResults;
