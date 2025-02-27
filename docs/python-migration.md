@@ -49,3 +49,6 @@ Tried using pre-built one from: https://github.com/jtom38/fastapi_healthcheck_sq
 
 In the end started with a vary basic bit of code using the `asyncpg` driver.
 
+### MongoDB
+
+Using motor

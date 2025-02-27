@@ -3,6 +3,7 @@ from typing import Union
 import asyncpg
 from fastapi import FastAPI
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from motor.motor_asyncio import AsyncIOMotorClient
 
 app = FastAPI()
 
@@ -14,6 +15,8 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
+    
+    MONGO_URI: str
 
 settings = Settings()
 
@@ -37,5 +40,12 @@ async def health():
         await conn.close()
     except Exception as e:
         return {"health": e}
+    
+    try:
+        client = AsyncIOMotorClient(settings.MONGO_URI, serverSelectionTimeoutMS=1000)
+        await client.admin.command('ping')
+    except Exception as e:
+        return {"health": e}
     return {"health": 1}
    
+
