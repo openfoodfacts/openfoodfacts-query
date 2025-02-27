@@ -41,3 +41,11 @@ poetry run fastapi dev --port 5513 query/main.py
 ```
 Addded `**/__pycache__/` to .gitignore and .dockerignore
 
+## Health Check
+
+### PostgreSQL
+
+Tried using pre-built one from: https://github.com/jtom38/fastapi_healthcheck_sqlalchemy but got into a bit of a rabbit hole with middleware and async support.
+
+In the end started with a vary basic bit of code using the `asyncpg` driver.
+
