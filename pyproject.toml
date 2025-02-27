@@ -1,0 +1,18 @@
+[project]
+name = "query"
+version = "0.1.0"
+description = "This project extracts key product data from MongoDB into a Postgres database in order to support faster aggregate calculations"
+authors = [
+    {name = "Open Food Facts Team"}
+]
+license = {text = "GNU Affero General Public License v3"}
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi[standard] (>=0.115.8,<0.116.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
