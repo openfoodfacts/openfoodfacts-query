@@ -52,3 +52,28 @@ In the end started with a vary basic bit of code using the `asyncpg` driver.
 ### MongoDB
 
 Using motor
+
+## Debugging in VSCode
+
+Added the following configuration to launch.json:
+
+```json
+        {
+            "name": "Python Debugger: FastAPI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "fastapi",
+            "args": [
+                "dev",
+                "--port",
+                "5513",
+                "query/main.py"
+            ],
+            "env": {
+                "VAR": "Note need to set environment overrides here as .envrc is not read"
+            },
+            "jinja": true
+        }
+```
+
+Note VSCode doesn't read `.envrc` but it does read `.env` into the environment which means you can't even load `.envrc` in main.py as the environment variables are already set and take precedence.
