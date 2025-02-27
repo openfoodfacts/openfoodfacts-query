@@ -5,3 +5,6 @@ node_modules
 data
 dist
 temp
+
+**/__pycache__/
+
