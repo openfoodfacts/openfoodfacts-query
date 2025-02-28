@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from enum import Enum
+import logging
 from typing import Dict, Union
 
 from fastapi import FastAPI
@@ -10,6 +11,7 @@ import redis.asyncio as redis
 from query.db import Database, settings
 from query.migrator import migrate_database
 
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

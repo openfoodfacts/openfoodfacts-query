@@ -100,7 +100,5 @@ Main complication was mocking the health check to return an OK response for Mong
 
 # TODO
 
- - redis healthcheck
- - testcontainers for redis
  - consolidate migrations
- - logging
+ - build docker image

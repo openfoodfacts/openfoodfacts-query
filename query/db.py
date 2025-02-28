@@ -1,6 +1,6 @@
 import asyncpg
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+import logging
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -17,8 +17,24 @@ class Settings(BaseSettings):
 
     REDIS_URL: str
 
+    LOG_LEVEL: str
+
 
 settings = Settings()
+
+# Make the log levels match the current ones from NestJS
+log_name_to_level = {
+    'debug': logging.DEBUG,
+    'verbose': logging.INFO,
+    'log': logging.INFO,
+    'warn': logging.WARNING,
+    'error': logging.ERROR
+}
+
+# TODO: Could add coloured logging here
+# TODO: Fiogure out how to use the same logger as FastAPI / uvicorn
+logging.basicConfig(format='%(asctime)s %(levelname)s [%(name)s] %(message)s', level=log_name_to_level[settings.LOG_LEVEL])
+
 
 
 class Database:

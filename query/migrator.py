@@ -1,9 +1,11 @@
+import logging
 import os
 from asyncpg import Connection
 from query.db import settings
-
 MIGRATIONS_TABLE = 'mikro_orm_migrations'
 MIGRATIONS_FOLDER = 'migrations'
+
+logger = logging.getLogger(__name__)
 
 async def ensure_migration_table(connection: Connection):
     await connection.execute(f'create schema if not exists {settings.SCHEMA};')
@@ -27,7 +29,7 @@ async def migrate_database(connection: Connection):
         if fname.endswith('.py') and not fname.startswith('__'):
             migration_name = fname.split('.')[0]
             if migration_name not in existing_migrations:
-                print(f'Applying {fname}')
+                logger.info(f'Applying {fname}')
                 module_name = '.'.join(fname.split('.')[:-1])
                 m = __import__(f'{MIGRATIONS_FOLDER}.{module_name}')
                 module = getattr(m, module_name)

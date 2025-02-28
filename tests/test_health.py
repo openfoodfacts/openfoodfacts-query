@@ -10,13 +10,14 @@ from testcontainers.redis import RedisContainer
 from query.migrator import migrate_database
 
 
-class TestSettings(BaseSettings):
+# Don't prefix with "Test" as otherwise pytest thinks this is a test class
+class SettingsForTests(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     POSTGRES_IMAGE: str
 
 
-test_settings = TestSettings()
+test_settings = SettingsForTests()
 
 postgres = PostgresContainer(test_settings.POSTGRES_IMAGE)
 redis = RedisContainer()
