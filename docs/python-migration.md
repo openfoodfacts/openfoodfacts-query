@@ -77,3 +77,9 @@ Added the following configuration to launch.json:
 ```
 
 Note VSCode doesn't read `.envrc` but it does read `.env` into the environment which means you can't even load `.envrc` in main.py as the environment variables are already set and take precedence.
+
+## Adding tests
+
+Needed to install pytest-asyncio to test async methods
+
+Note that again tests don't read `.envrc` but this is probably a good thing as they need to not be tied to the local environment.

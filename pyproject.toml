@@ -19,3 +19,11 @@ dependencies = [
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+pytest-asyncio = "^0.25.3"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
