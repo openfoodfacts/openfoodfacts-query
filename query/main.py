@@ -58,7 +58,7 @@ async def health() -> Health:
 
     try:
         conn = await asyncpg.connect(user=settings.POSTGRES_USER, password=settings.POSTGRES_PASSWORD,
-                                 database=settings.POSTGRES_DB, host=settings.POSTGRES_HOST)
+                                 database=settings.POSTGRES_DB, host=settings.POSTGRES_HOST.split(':')[0], port=settings.POSTGRES_HOST.split(':')[-1])
         await conn.fetch('SELECT 1 FROM product LIMIT 1')
         await conn.close()
         health.add('postgres', HealthItemStatusEnum.up)
