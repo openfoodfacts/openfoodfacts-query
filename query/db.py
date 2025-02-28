@@ -9,12 +9,13 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
-
-    MONGO_URI: str
     SCHEMA: str = "query"
-
     VIEW_USER: str = "viewer"
     VIEW_PASSWORD: str = "off"
+
+    MONGO_URI: str
+
+    REDIS_URL: str
 
 
 settings = Settings()

@@ -80,22 +80,27 @@ Note VSCode doesn't read `.envrc` but it does read `.env` into the environment w
 
 ## Adding tests
 
-Needed to install pytest-asyncio to test async methods
+Needed to install `pytest-asyncio` to test async methods
 
 Note that again tests don't read `.envrc` but this is probably a good thing as they need to not be tied to the local environment.
 
 ## Tidy up dependencies
 
-Remove fastapi[standard] and then re-added just fastapi. Added uvicorn[standard] and then fastapi-cli as a dev-only dependency.
+Remove `fastapi[standard]` and then re-added just `fastapi`. Added `uvicorn[standard]` as a normal dependency and then `fastapi-cli` as a dev-only dependency.
 
 ## Migrations
 
 Decided to roll own to keep simple. Stick with same mikro_orm table.
 
+## Testcontainers
+
+This was relatively simple. Followed the docs: https://testcontainers.com/guides/getting-started-with-testcontainers-for-python/
+
+Main complication was mocking the health check to return an OK response for MongoDB but also had to change the fixture event loop to use session scope:https://github.com/pytest-dev/pytest-asyncio/blob/main/docs/how-to-guides/change_default_fixture_loop.rst
+
 # TODO
 
  - redis healthcheck
  - testcontainers for redis
- - testcontainers for postgres
  - consolidate migrations
  - logging
