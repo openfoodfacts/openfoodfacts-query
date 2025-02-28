@@ -1,26 +1,23 @@
+from contextlib import asynccontextmanager
 from enum import Enum
 from typing import Dict, Union
 
-import asyncpg
 from fastapi import FastAPI
 from pydantic import BaseModel
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from motor.motor_asyncio import AsyncIOMotorClient
 
-app = FastAPI()
+from query.db import Database, settings
+from query.migrator import migrate_database
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Run migrations
+    async with Database() as conn:
+        await migrate_database(conn)
+    yield
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file='.env', extra='ignore')
-    
-    POSTGRES_HOST: str
-    POSTGRES_DB: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    
-    MONGO_URI: str
+app = FastAPI(lifespan=lifespan)
 
-settings = Settings()
 
 class HealthStatusEnum(str, Enum):
     ok = 'ok'
@@ -57,10 +54,8 @@ async def health() -> Health:
     health = Health()
 
     try:
-        conn = await asyncpg.connect(user=settings.POSTGRES_USER, password=settings.POSTGRES_PASSWORD,
-                                 database=settings.POSTGRES_DB, host=settings.POSTGRES_HOST.split(':')[0], port=settings.POSTGRES_HOST.split(':')[-1])
-        await conn.fetch('SELECT 1 FROM product LIMIT 1')
-        await conn.close()
+        async with Database() as conn:
+            await conn.fetch('SELECT 1 FROM product LIMIT 1')
         health.add('postgres', HealthItemStatusEnum.up)
     except Exception as e:
         health.add('postgres', HealthItemStatusEnum.down, str(e))

@@ -88,8 +88,14 @@ Note that again tests don't read `.envrc` but this is probably a good thing as t
 
 Remove fastapi[standard] and then re-added just fastapi. Added uvicorn[standard] and then fastapi-cli as a dev-only dependency.
 
+## Migrations
+
+Decided to roll own to keep simple. Stick with same mikro_orm table.
+
 # TODO
 
- - migrations (need to do before testcontainers for postgres)
+ - redis healthcheck
  - testcontainers for redis
  - testcontainers for postgres
+ - consolidate migrations
+ - logging
