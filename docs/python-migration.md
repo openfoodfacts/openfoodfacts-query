@@ -83,3 +83,13 @@ Note VSCode doesn't read `.envrc` but it does read `.env` into the environment w
 Needed to install pytest-asyncio to test async methods
 
 Note that again tests don't read `.envrc` but this is probably a good thing as they need to not be tied to the local environment.
+
+## Tidy up dependencies
+
+Remove fastapi[standard] and then re-added just fastapi. Added uvicorn[standard] and then fastapi-cli as a dev-only dependency.
+
+# TODO
+
+ - migrations (need to do before testcontainers for postgres)
+ - testcontainers for redis
+ - testcontainers for postgres
