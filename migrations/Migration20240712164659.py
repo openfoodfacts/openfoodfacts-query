@@ -1,4 +1,4 @@
-import query.repositories.product as product
+import query.repositories.products as products
 
 async def up(connection):
     await connection.execute(
