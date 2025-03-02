@@ -1,8 +1,8 @@
-import query.repositories.product as product
-import query.repositories.product_tags as product_tags
-import query.repositories.loaded_tag as loaded_tag
-import query.repositories.product_ingredient as product_ingredient
-import query.repositories.settings as settings
+import query.tables.product as product
+import query.tables.product_tags as product_tags
+import query.tables.loaded_tag as loaded_tag
+import query.tables.product_ingredient as product_ingredient
+import query.tables.settings as settings
 
 async def up(connection):
     await product.create_table(connection)
