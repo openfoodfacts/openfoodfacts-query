@@ -68,47 +68,13 @@ tag_tables = {
 async def create_tables(connection):
     for table_name in tag_tables.values():
         await connection.execute(
-            f'create table {table_name} (product_id uuid not null, value text not null, obsolete boolean null default false, constraint {table_name}_pkey primary key (product_id, value));',
-        )
-        await connection.execute(
-            f'create index {table_name}_value_index on {table_name} (value);',
-        )
-        await connection.execute(
-            f'alter table {table_name} add constraint {table_name}_product_id_foreign foreign key (product_id) references product (id) on update cascade on delete cascade;',
-        )
-
-async def drop_old_id(connection):
-    for table_name in tag_tables.values():
-        await connection.execute(
-            f'alter table {table_name} DROP CONSTRAINT {table_name}_pkey CASCADE'
-        )
-        await connection.execute(f'drop index {table_name}_value_index')
-        await connection.execute(
-            f'alter table {table_name} RENAME COLUMN product_id TO old_product_id'
-        )
-        await connection.execute(
-            f'alter table {table_name} ADD COLUMN product_id int NULL'
-        )
-
-async def populate_new_product_id(connection):
-    for table_name in tag_tables.values():
-        await connection.execute(
-            f'update {table_name} set product_id = id from product WHERE old_id = old_product_id AND product_id IS NULL'
-        )
-        await connection.execute(
-            f'alter table {table_name} alter column product_id SET NOT NULL'
-        )
-        await connection.execute(
-            f'alter table {table_name} add constraint {table_name}_pkey primary key (value, product_id)'
+            f'create table {table_name} (product_id int not null, value text not null, obsolete boolean null default false, constraint {table_name}_pkey primary key (value, product_id));',
         )
         await connection.execute(
             f'create index {table_name}_product_id_index on {table_name} (product_id);'
         )
         await connection.execute(
-            f'alter table {table_name} add constraint {table_name}_product_id_foreign FOREIGN KEY (product_id) references product (id) on update cascade on delete cascade;'
-        )
-        await connection.execute(
-            f'alter table {table_name} drop column old_product_id'
+            f'alter table {table_name} add constraint {table_name}_product_id_foreign foreign key (product_id) references product (id) on update cascade on delete cascade;',
         )
 
 
