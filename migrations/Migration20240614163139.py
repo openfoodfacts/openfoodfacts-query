@@ -1,7 +1,6 @@
-async def up(connection):
-    # Merged in from a later migration
-    await connection.execute('alter table "product" drop column "data";')
+import query.repositories.product as product
 
+async def up(connection):
     # Changing product id from a UUID to an integer. Migration steps are as follows:
     # 1. Drop all existing primary keys that reference product_id (CASCADE removes foreign keys too)
     # 2. Drop old value index
@@ -211,9 +210,7 @@ async def up(connection):
         "alter table query.product_weighers_tag DROP CONSTRAINT product_weighers_tag_pkey CASCADE;"
     )
 
-    await connection.execute(
-        'ALTER TABLE "product" DROP CONSTRAINT product_pkey CASCADE;'
-    )
+    await product.drop_pkey(connection)
 
     # 2. Drop old value index
     await connection.execute('drop index "product_additives_tag_value_index";')
@@ -511,14 +508,7 @@ async def up(connection):
         "alter table query.product_weighers_tag RENAME COLUMN product_id TO old_product_id;"
     )
 
-    await connection.execute('alter table "product" RENAME COLUMN "id" TO "old_id";')
-    await connection.execute(
-        'CREATE UNIQUE INDEX product_old_id ON "product" (old_id);'
-    )
-
     # 4. Add new integer product id column
-    await connection.execute('alter table "product" add column "id" serial NOT NULL;')
-
     await connection.execute(
         "alter table query.product_additives_tag ADD COLUMN product_id int NULL;"
     )
@@ -1116,10 +1106,6 @@ async def up(connection):
     )
 
     # 7. Add back primary keys
-    await connection.execute(
-        'alter table "product" add constraint "product_pkey" primary key ("id");'
-    )
-
     await connection.execute(
         'alter table "product_additives_tag" add constraint "product_additives_tag_pkey" primary key ("value", "product_id");'
     )
@@ -1905,8 +1891,7 @@ async def up(connection):
         "alter table query.product_weighers_tag drop column old_product_id;"
     )
 
-    await connection.execute("DROP INDEX query.product_old_id;")
-    await connection.execute("alter table query.product drop column old_id;")
+    await product.drop_old_id(connection)
 
     await connection.execute(
         'create index "product_ingredient_parent_product_id_parent_sequence_index" on "product_ingredient" ("parent_product_id", "parent_sequence");'

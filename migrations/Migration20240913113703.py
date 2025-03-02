@@ -1,12 +1,5 @@
 async def up(connection):
     await connection.execute(
-        'alter table "product" alter column "obsolete" type boolean using ("obsolete"::boolean);'
-    )
-    await connection.execute(
-        'alter table "product" alter column "obsolete" drop not null;'
-    )
-
-    await connection.execute(
         'alter table "product_additives_tag" alter column "obsolete" type boolean using ("obsolete"::boolean);'
     )
     await connection.execute(

@@ -12,11 +12,3 @@ async def up(connection):
     await connection.execute(
         'alter table "product_ingredient" add constraint "product_ingredient_parent_product_id_parent_sequence_foreign" foreign key ("parent_product_id", "parent_sequence") references "product_ingredient" ("product_id", "sequence") on update cascade on delete set null;',
     )
-
-    await connection.execute(
-        'ALTER TABLE query.product ALTER COLUMN "data" TYPE json USING "data"::text::json;',
-    )
-
-    await connection.execute(
-        'alter table "product" add column "ingredients_without_ciqual_codes_count" int null, add column "ingredients_count" int null;',
-    )

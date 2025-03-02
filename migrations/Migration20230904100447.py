@@ -1,13 +1,7 @@
+import query.repositories.product as product
+
 async def up(connection):
-    await connection.execute(
-        'create table "product" ("id" uuid not null, "data" jsonb null, "name" text null, "code" text null, "last_modified" timestamp null, "creator" text null, "owners_tags" text null, "last_update_id" uuid null, "obsolete" boolean not null default false, constraint "product_pkey" primary key ("id"));',
-    )
-    await connection.execute(
-        'create index "product_code_index" on "product" ("code");',
-    )
-    await connection.execute(
-        'create index "product_last_update_id_index" on "product" ("last_update_id");',
-    )
+    await product.create_table(connection)
 
     await connection.execute(
         'create table "product_additives_tag" ("product_id" uuid not null, "value" text not null, "obsolete" boolean not null default false, constraint "product_additives_tag_pkey" primary key ("product_id", "value"));',
