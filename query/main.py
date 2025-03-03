@@ -2,14 +2,16 @@ from contextlib import asynccontextmanager
 from enum import Enum
 import logging
 from typing import Dict, Union
+import typing
 
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, create_model
 from motor.motor_asyncio import AsyncIOMotorClient
 import redis.asyncio as redis
 
 from query.db import Database, settings
 from query.migrator import migrate_database
+from query.tables.product_tags import tag_tables
 
 logger = logging.getLogger(__name__)
 
@@ -86,3 +88,18 @@ async def health() -> Health:
 
     # TODO: Should maybe throw and exception here and format with a custom exception handler: https://fastapi.tiangolo.com/tutorial/handling-errors/#install-custom-exception-handlers
     return health
+
+# Test to see if we can define a strict model for queries
+# Tried namedtuple but that didn't seem to work
+keys = {key.replace('_', '-'): (str, Field(alias=key, default=None,  exclude=None)) for key in tag_tables.keys()}
+keys['$and'] = (str | None, None)
+# The type checker can't cope with a dynamic model so skip that here
+if typing.TYPE_CHECKING:
+    # TODO: Come up with a more generic model for type checking
+    Find = BaseModel
+else:
+    Find = create_model('Find', **keys)
+
+@app.post("/test", response_model_exclude_none=True)
+async def test(find: Find):
+    return find
