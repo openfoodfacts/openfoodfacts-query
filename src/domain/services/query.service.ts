@@ -284,6 +284,7 @@ export class QueryService {
         `Can't support multiple country queries`,
       );
 
+    this.logger.debug(`Find: MongoDB Filter: ${JSON.stringify(body.filter)}`);
     const countryTagValue = (countryTag as string) ?? 'en:world';
     delete body.filter.countries_tags;
     const filters = this.parseFilter(body.filter ?? {});
@@ -302,7 +303,7 @@ export class QueryService {
           ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id
           ${limit} ${offset})
         ORDER BY pt.recent_scans DESC, pt.total_scans DESC, pt.product_id`;
-    this.logger.debug(sqlResults.statement.string);
+    this.logger.debug(`Find: ${sqlResults.statement.string}`);
     productCodes.push(...sqlResults.map((r) => r.code));
     const sqlTime = Date.now();
 
@@ -317,9 +318,11 @@ export class QueryService {
       },
     );
     const mongodbResults = [];
+    let mongoDbCount = 0;
     while (true) {
       const data = await cursor.next();
       if (!data) break;
+      mongoDbCount++;
       const sortIndex = productCodes.indexOf(data.code);
       if (sortIndex >= 0) mongodbResults[sortIndex] = data;
       else mongodbResults.push(data);
@@ -328,7 +331,7 @@ export class QueryService {
     await cursor.close();
     await client.close();
     this.logger.debug(
-      `Retrieved ${mongodbResults.length} records. ${
+      `Find: Retrieved ${mongoDbCount} records. ${
         productCodes.length ? `Sql: ${sqlTime - start}  ms, ` : ``
       }MongoDB: ${Date.now() - sqlTime} ms`,
     );
