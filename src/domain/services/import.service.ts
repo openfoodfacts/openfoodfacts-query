@@ -433,16 +433,17 @@ export class ImportService {
 
   // Make sure to pause redis before calling this
   async scheduledImportFromMongo() {
+    // Check that all of the mapped tags are included in the loaded tags
+    const loadedTags = await this.tagService.getLoadedTags();
     if (
-      equal(
-        Object.keys(ProductTagMap.MAPPED_TAGS).sort(),
-        (await this.tagService.getLoadedTags()).sort(),
+      Object.keys(ProductTagMap.MAPPED_TAGS).find(
+        (t) => !loadedTags.includes(t),
       )
     ) {
-      // Do an incremental load if all tags are already loaded
-      await this.importFromMongo('');
-    } else {
+      // Do a full import if any of the mapped tags are not loaded
       await this.importFromMongo();
+    } else {
+      await this.importFromMongo('');
     }
   }
 }

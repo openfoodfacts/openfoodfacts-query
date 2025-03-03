@@ -439,9 +439,10 @@ describe('scheduledImportFromMongo', () => {
       const importService = app.get(ImportService);
       jest
         .spyOn(app.get(TagService), 'getLoadedTags')
-        .mockImplementation(async () =>
-          Object.keys(ProductTagMap.MAPPED_TAGS).reverse(),
-        );
+        .mockImplementation(async () => [
+          'dummy_tag', // Add an extra tag to ensure this doesn't break things
+          ...Object.keys(ProductTagMap.MAPPED_TAGS).reverse(),
+        ]);
       const importSpy = jest
         .spyOn(importService, 'importFromMongo')
         .mockImplementation();
