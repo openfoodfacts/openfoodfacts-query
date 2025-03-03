@@ -32,7 +32,7 @@ export class AppController {
   async scheduledImportFromMongo() {
     // Pause redis while doing a scheduled import
     await this.redisListener.pauseAndRun(
-      this.importService.scheduledImportFromMongo,
+      async () => await this.importService.scheduledImportFromMongo(),
     );
   }
 
