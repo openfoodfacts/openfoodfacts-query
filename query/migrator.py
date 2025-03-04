@@ -2,7 +2,7 @@ import logging
 import os
 from importlib import import_module
 from asyncpg import Connection
-from query.db import settings
+from query.config import config_settings
 
 MIGRATIONS_TABLE = 'mikro_orm_migrations'
 MIGRATIONS_FOLDER = 'query/migrations'
@@ -10,10 +10,10 @@ MIGRATIONS_FOLDER = 'query/migrations'
 logger = logging.getLogger(__name__)
 
 async def ensure_migration_table(connection: Connection):
-    await connection.execute(f'create schema if not exists {settings.SCHEMA};')
-    await connection.execute(f"SET search_path={settings.SCHEMA},public")
+    await connection.execute(f'create schema if not exists {config_settings.SCHEMA};')
+    await connection.execute(f"SET search_path={config_settings.SCHEMA},public")
     await connection.execute(
-        f"ALTER ROLE {settings.POSTGRES_USER} SET search_path={settings.SCHEMA},public",
+        f"ALTER ROLE {config_settings.POSTGRES_USER} SET search_path={config_settings.SCHEMA},public",
     )
 
     # Use the Mikro-ORM table to keep database compatibility

@@ -1,26 +1,6 @@
 import asyncpg
-from pydantic_settings import BaseSettings, SettingsConfigDict
 import logging
-
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
-    POSTGRES_HOST: str
-    POSTGRES_DB: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    SCHEMA: str = "query"
-    VIEW_USER: str = "viewer"
-    VIEW_PASSWORD: str = "off"
-
-    MONGO_URI: str
-
-    REDIS_URL: str
-
-    LOG_LEVEL: str
-
-
-settings = Settings()
+from query.config import config_settings
 
 # Make the log levels match the current ones from NestJS
 log_name_to_level = {
@@ -33,18 +13,18 @@ log_name_to_level = {
 
 # TODO: Could add coloured logging here
 # TODO: Fiogure out how to use the same logger as FastAPI / uvicorn
-logging.basicConfig(format='%(asctime)s %(levelname)s [%(name)s] %(message)s', level=log_name_to_level[settings.LOG_LEVEL])
+logging.basicConfig(format='%(asctime)s %(levelname)s [%(name)s] %(message)s', level=log_name_to_level[config_settings.LOG_LEVEL])
 
 
 
 class Database:
     async def __aenter__(self):
         self.connection = await asyncpg.connect(
-            user=settings.POSTGRES_USER,
-            password=settings.POSTGRES_PASSWORD,
-            database=settings.POSTGRES_DB,
-            host=settings.POSTGRES_HOST.split(":")[0],
-            port=settings.POSTGRES_HOST.split(":")[-1],
+            user=config_settings.POSTGRES_USER,
+            password=config_settings.POSTGRES_PASSWORD,
+            database=config_settings.POSTGRES_DB,
+            host=config_settings.POSTGRES_HOST.split(":")[0],
+            port=config_settings.POSTGRES_HOST.split(":")[-1],
         )
         return self.connection
 

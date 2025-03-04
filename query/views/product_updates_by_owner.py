@@ -1,4 +1,4 @@
-from query.db import settings
+from query.db import config_settings
 
 async def create_view(connection):
     await connection.execute(
@@ -16,5 +16,5 @@ async def create_view(connection):
         ut.code"""
     )
     await connection.execute(
-        f"""GRANT SELECT ON views.product_updates_by_owner TO {settings.VIEW_USER}"""
+        f"""GRANT SELECT ON views.product_updates_by_owner TO {config_settings.VIEW_USER}"""
     )

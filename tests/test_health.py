@@ -1,13 +1,13 @@
-import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import pytest
-from unittest.mock import Mock, patch
-from query.main import HealthStatusEnum, health, HealthItemStatusEnum
-from query.db import Database, settings
+from unittest.mock import patch
+from query.db import Database, config_settings
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
 from query.migrator import migrate_database
+from query.models.health import HealthItemStatusEnum, HealthStatusEnum
+from query.services.health import check_health
 
 
 # Don't prefix with "Test" as otherwise pytest thinks this is a test class
@@ -34,14 +34,14 @@ async def setup(request):
         redis.stop()
 
     request.addfinalizer(remove_container)
-    settings.POSTGRES_HOST = (
+    config_settings.POSTGRES_HOST = (
         f"{postgres.get_container_host_ip()}:{postgres.get_exposed_port(5432)}"
     )
-    settings.POSTGRES_DB = postgres.dbname
-    settings.POSTGRES_USER = postgres.username
-    settings.POSTGRES_PASSWORD = postgres.password
+    config_settings.POSTGRES_DB = postgres.dbname
+    config_settings.POSTGRES_USER = postgres.username
+    config_settings.POSTGRES_PASSWORD = postgres.password
 
-    settings.REDIS_URL = f'redis://{redis.get_container_host_ip()}:{redis.get_exposed_port(6379)}';
+    config_settings.REDIS_URL = f'redis://{redis.get_container_host_ip()}:{redis.get_exposed_port(6379)}';
 
     async with Database() as conn:
         await migrate_database(conn)
@@ -55,9 +55,9 @@ class MockMongoClient:
     admin = Admin()
 
 
-@patch("query.main.AsyncIOMotorClient", return_value=MockMongoClient())
+@patch("query.services.health.AsyncIOMotorClient", return_value=MockMongoClient())
 async def test_health_should_return_healthy(mocked_mongo):
-    my_health = await health()
+    my_health = await check_health()
     assert mocked_mongo.called
     assert my_health.status == HealthStatusEnum.ok
     assert my_health.info['postgres'].status == HealthItemStatusEnum.up
@@ -65,9 +65,9 @@ async def test_health_should_return_healthy(mocked_mongo):
     assert my_health.info['redis'].status == HealthItemStatusEnum.up
 
 
-@patch("query.main.AsyncIOMotorClient", side_effect=Exception("mongodb is down"))
+@patch("query.services.health.AsyncIOMotorClient", side_effect=Exception("mongodb is down"))
 async def test_health_should_return_unhealthy_if_mongodb_is_down(mocked_mongo):
-    my_health = await health()
+    my_health = await check_health()
     assert mocked_mongo.called
     assert my_health.status == HealthStatusEnum.error
     assert my_health.info['postgres'].status == HealthItemStatusEnum.up
