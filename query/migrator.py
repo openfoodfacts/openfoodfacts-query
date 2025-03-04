@@ -1,9 +1,11 @@
 import logging
 import os
+from importlib import import_module
 from asyncpg import Connection
 from query.db import settings
+
 MIGRATIONS_TABLE = 'mikro_orm_migrations'
-MIGRATIONS_FOLDER = 'migrations'
+MIGRATIONS_FOLDER = 'query/migrations'
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +32,7 @@ async def migrate_database(connection: Connection):
             migration_name = fname.split('.')[0]
             if migration_name not in existing_migrations:
                 logger.info(f'Applying {fname}')
-                module_name = '.'.join(fname.split('.')[:-1])
-                m = __import__(f'{MIGRATIONS_FOLDER}.{module_name}')
-                module = getattr(m, module_name)
+                module = import_module(f'{MIGRATIONS_FOLDER.replace("/",".")}.{migration_name}')
                 async with connection.transaction():
                     await module.up(connection)
                     await connection.execute(f'INSERT INTO {MIGRATIONS_TABLE} (name) VALUES ($1)', migration_name)
