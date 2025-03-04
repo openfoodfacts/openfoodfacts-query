@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
 from enum import Enum
 import logging
-from typing import Dict, Union
+from typing import Annotated, Any, Dict, Optional, Union
 import typing
 
 from fastapi import FastAPI
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, ConfigDict, Field, RootModel, constr, create_model, model_validator, root_validator
 from motor.motor_asyncio import AsyncIOMotorClient
 import redis.asyncio as redis
 
@@ -91,7 +91,7 @@ async def health() -> Health:
 
 # Test to see if we can define a strict model for queries
 # Tried namedtuple but that didn't seem to work
-keys = {key.replace('_', '-'): (str, Field(alias=key, default=None,  exclude=None)) for key in tag_tables.keys()}
+keys = {key.replace('_', '-'): (Optional[str], Field(alias=key, default=None)) for key in tag_tables.keys()}
 keys['$and'] = (str | None, None)
 # The type checker can't cope with a dynamic model so skip that here
 if typing.TYPE_CHECKING:
@@ -102,4 +102,19 @@ else:
 
 @app.post("/test", response_model_exclude_none=True)
 async def test(find: Find):
+    return find.model_dump()
+
+class Foo(BaseModel):
+    a: int
+
+
+class Bar(BaseModel):
+    and_express: Annotated[str, Field(alias='$and', default=None)]
+
+    model_config = ConfigDict(extra='allow')
+
+    __pydantic_extra__: Dict[str, int] = Field(init=False)
+        
+@app.post("/test2")
+async def test2(find: Bar):
     return find
