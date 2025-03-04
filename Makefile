@@ -28,6 +28,10 @@ dev: run_deps
 	npm install
 	npm run migration:up
 
+watch: run_deps
+	docker compose up --wait query_postgres
+	uvicorn query.main:app --reload --port 5513 --reload-dir query
+
 tests:
 	npm test
 

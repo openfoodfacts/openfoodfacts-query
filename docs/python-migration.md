@@ -98,9 +98,15 @@ This was relatively simple. Followed the docs: https://testcontainers.com/guides
 
 Main complication was mocking the health check to return an OK response for MongoDB but also had to change the fixture event loop to use session scope:https://github.com/pytest-dev/pytest-asyncio/blob/main/docs/how-to-guides/change_default_fixture_loop.rst
 
+
+# Docker
+
+Created a simple Dockerfile_python to run side-by-side with existing off-query.
+
+Copied basic structure from taxonomy-editor but without the off user stuff.
+
 # TODO
 
- - build docker image
  - query services
  - redis import
  - incremental / full import
