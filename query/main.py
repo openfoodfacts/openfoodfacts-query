@@ -91,30 +91,21 @@ async def health() -> Health:
 
 # Test to see if we can define a strict model for queries
 # Tried namedtuple but that didn't seem to work
-keys = {key.replace('_', '-'): (Optional[str], Field(alias=key, default=None)) for key in tag_tables.keys()}
-keys['$and'] = (str | None, None)
-# The type checker can't cope with a dynamic model so skip that here
-if typing.TYPE_CHECKING:
-    # TODO: Come up with a more generic model for type checking
-    Find = BaseModel
-else:
-    Find = create_model('Find', **keys)
 
-@app.post("/test", response_model_exclude_none=True)
-async def test(find: Find):
-    return find.model_dump()
-
-class Foo(BaseModel):
-    a: int
-
-
-class Bar(BaseModel):
-    and_express: Annotated[str, Field(alias='$and', default=None)]
+class Find(BaseModel):
+    and_expression: Annotated[str, Field(alias='$and', default=None)]
 
     model_config = ConfigDict(extra='allow')
 
-    __pydantic_extra__: Dict[str, int] = Field(init=False)
-        
-@app.post("/test2")
-async def test2(find: Bar):
-    return find
+    __pydantic_extra__: Dict[str, Any] = Field(init=False)
+
+# The type checker can't cope with a dynamic model so skip that here
+if not typing.TYPE_CHECKING:
+    keys = {key.replace('_', '-'): (Optional[str], Field(alias=key, default=None)) for key in tag_tables.keys()}
+    keys['model_config'] = (ConfigDict(extra='forbid'))
+    Find = create_model('Find', __base__ = Find, **keys)
+
+@app.post("/test")
+async def test(find: Find):
+    return find.model_dump(exclude_defaults=True)
+
