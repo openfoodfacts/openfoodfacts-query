@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 tag_tables = {
     "countries_tags": "product_countries_tag",
     "nutrition_grades_tags": "product_nutrition_grades_tag",
@@ -78,5 +81,7 @@ async def create_tables(connection):
         )
 
 
-    
+async def create_tag(connection, tag, product_id, value):
+    tag_table = tag_tables[tag]
+    await connection.execute(f'INSERT INTO {tag_table} (product_id, value) VALUES ($1, $2)', product_id, value)
 

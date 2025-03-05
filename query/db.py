@@ -18,6 +18,7 @@ logging.basicConfig(format='%(asctime)s %(levelname)s [%(name)s] %(message)s', l
 
 
 class Database:
+    connection: asyncpg.Connection
     async def __aenter__(self):
         self.connection = await asyncpg.connect(
             user=config_settings.POSTGRES_USER,
