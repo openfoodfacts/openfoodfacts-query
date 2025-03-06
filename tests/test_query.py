@@ -2,7 +2,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from fastapi import HTTPException, status
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 import pytest
 from query.db import Database
 from query.models.filter import Filter, Qualify
@@ -74,6 +74,18 @@ async def test_count_should_count_the_number_of_products_with_a_tag_and_not_anot
     assert response == 1
 
 
+class TestTags(BaseModel):
+    origin_value: str
+    amino_value: str
+    amino_value2: str
+    neucleotide_value: str
+    creator_value: str
+    product1: int
+    product2: int
+    product3: int
+    product4: int
+
+
 async def create_test_tags(connection):
     # Using origins and amino acids as they are smaller than most
     origin_value = random_code()
@@ -108,107 +120,111 @@ async def create_test_tags(connection):
     await create_tag(connection, "nucleotides_tags", product3, neucleotide_value)
     await create_tag(connection, "nucleotides_tags", product4, neucleotide_value, True)
 
-    return (
-        origin_value,
-        amino_value,
-        amino_value2,
-        neucleotide_value,
-        creator_value,
-        product1,
-        product2,
-        product3,
-        product4,
+    return TestTags(
+        origin_value=origin_value,
+        amino_value=amino_value,
+        amino_value2=amino_value2,
+        neucleotide_value=neucleotide_value,
+        creator_value=creator_value,
+        product1=product1,
+        product2=product2,
+        product3=product3,
+        product4=product4,
     )
 
 
 async def test_count_should_count_the_number_of_products_without_a_specified_tag():
     async with Database() as connection:
-        origin_value, amino_value, _, _, _, _, _, _, _ = await create_test_tags(connection)
+        tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
-                amino_acids_tags=Qualify(ne=amino_value),
+                amino_acids_tags=Qualify(ne=tags.amino_value),
                 # need at least one other criteria to avoid products from other tests
-                origins_tags=origin_value,
+                origins_tags=tags.origin_value,
             )
         )
         assert response == 1
 
+
 # TODO: Check this is an HTTP_422_UNPROCESSABLE_ENTITY status in the controller
 async def test_count_should_throw_an_exception_for_an_unknown_tag():
     with pytest.raises(ValidationError) as e:
-        await query.count(Filter(invalid_tags = 'x'))
+        await query.count(Filter(invalid_tags="x"))
     main_error = e.value.errors()[0]
-    assert main_error['type'] == 'extra_forbidden'
-    assert main_error['loc'][0] == 'invalid_tags'
+    assert main_error["type"] == "extra_forbidden"
+    assert main_error["loc"][0] == "invalid_tags"
 
-@patch("query.services.query.get_loaded_tags", return_value=['dummy_tag'])
-async def test_count_should_throw_an_unprocessable_exception_for_a_tag_that_hasnt_been_loaded(get_loaded_tags_mock):
+
+@patch("query.services.query.get_loaded_tags", return_value=["dummy_tag"])
+async def test_count_should_throw_an_unprocessable_exception_for_a_tag_that_hasnt_been_loaded(
+    get_loaded_tags_mock,
+):
     with pytest.raises(HTTPException) as e:
-        await query.count(Filter(ingredients_tags = 'x'))
+        await query.count(Filter(ingredients_tags="x"))
     assert get_loaded_tags_mock.called
     assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    assert 'ingredients_tags' in repr(e.value.detail)
+    assert "ingredients_tags" in repr(e.value.detail)
+
 
 # TODO: Check this is an HTTP_422_UNPROCESSABLE_ENTITY status in the controller
 async def test_count_should_throw_and_unprocessable_exception_for_an_unrecognised_value_object():
     with pytest.raises(ValidationError) as e:
-        await query.count(Filter(ingredients_tags = Qualify(unknown = "x")))
+        await query.count(Filter(ingredients_tags=Qualify(unknown="x")))
     main_error = e.value.errors()[0]
-    assert main_error['type'] == 'missing'
-    assert main_error['loc'][0] == '$ne'
+    assert main_error["type"] == "extra_forbidden"
+    assert main_error["loc"][0] == "unknown"
 
-#   it('should cope with more than two filters', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value, amino_value, neucleotide_value } =
-#         await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count({
-#         origins_tags: origin_value,
-#         amino_acids_tags: amino_value,
-#         nucleotides_tags: neucleotide_value,
-#       });
-#       expect(response).to_be(1);
-#     });
-#   });
 
-#   it('should cope with no filters', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count(null);
-#       expect(response).to_be_greater_than(2);
-#     });
-#   });
+async def test_count_should_cope_with_more_than_two_filters():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(
+                origins_tags=tags.origin_value,
+                amino_acids_tags=tags.amino_value,
+                nucleotides_tags=tags.neucleotide_value,
+            )
+        )
+        assert response == 1
 
-#   it('should be able to count obsolete products', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count(
-#         {
-#           origins_tags: origin_value,
-#         },
-#         true,
-#       );
-#       expect(response).to_be(1);
-#     });
-#   });
 
-#   it('should be able to count not obsolete products', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count(
-#         {
-#           origins_tags: origin_value,
-#         },
-#         false,
-#       );
-#       expect(response).to_be(3);
-#     });
-#   });
+async def test_count_should_cope_with_an_empty_filter():
+    async with Database() as connection:
+        await create_test_tags(connection)
+        response = await query.count(Filter())
+        assert response > 2
 
-#   it('should cope with a $all filter', async () => {
+
+async def test_count_should_cope_with_no_filters():
+    async with Database() as connection:
+        await create_test_tags(connection)
+        response = await query.count()
+        assert response > 2
+
+
+async def test_count_should_be_able_to_count_obsolete_products():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(Filter(origins_tags=tags.origin_value), True)
+        assert response == 1
+
+
+async def test_count_should_be_able_to_count_not_obsolete_products():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(Filter(origins_tags=tags.origin_value), False)
+        assert response == 3
+
+
+async def test_count_should_cope_with_an_all_filter():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(amino_acids_tags=Qualify(all=[tags.amino_value, tags.amino_value2]))
+        )
+        assert response == 1
+
+
 #     await create_testing_module([domain_module], async (app) => {
 #       const { amino_value, amino_value2 } = await create_test_tags(app);
 #       const query_service = app.get(query_service);
