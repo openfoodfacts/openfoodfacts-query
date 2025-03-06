@@ -277,6 +277,44 @@ async def test_count_should_cope_with_an_in_unknown_value():
         assert response == 1
 
 
+# TODO: Add a few more product field tests
+
+async def test_count_should_count_with_a_product_field():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(
+                origins_tags=tags.origin_value,
+                creator=tags.creator_value,
+            )
+        )
+        assert response == 2
+
+
+async def test_count_should_count_with_in_on_a_product_field():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(
+                origins_tags=tags.origin_value,
+                creator=Qualify(qualify_in=[tags.creator_value]),
+            )
+        )
+        assert response == 2
+
+
+async def test_count_should_count_with_nin_on_a_product_field():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(
+                origins_tags=tags.origin_value,
+                creator=Qualify(qualify_nin=[tags.creator_value]),
+            )
+        )
+        assert response == 1
+
+
 async def test_count_should_cope_with_an_in_unknown_value_on_a_product_field():
     async with Database() as connection:
         tags = await create_test_tags(connection)
@@ -287,9 +325,6 @@ async def test_count_should_cope_with_an_in_unknown_value_on_a_product_field():
             )
         )
         assert response == 1
-
-
-# TODO: Add a few more product field tests
 
 
 async def test_count_should_cope_with_nin():

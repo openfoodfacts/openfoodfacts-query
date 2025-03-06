@@ -62,12 +62,15 @@ async def count(filter: Filter = None, obsolete = False):
                             if tag_value == None:
                                 sql_fragments.append( f" AND {field} IS {'' if is_not else 'NOT '}NULL")
                             else:
+                                if is_not:
+                                    value_placeholder = f" AND ({field} IS NULL OR {value_placeholder.replace(' AND ', ' NOT ')})"
                                 sql_fragments.append( f"{value_placeholder}")
                         else:
                             sql_fragments.append( f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {tag_tables[tag]} WHERE product_id = p.id{value_placeholder})")
         
         sql = f"SELECT count(*) count FROM product p WHERE {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)}"
-        logger.debug(f"Count: {sql}")
+        logger.debug(f"Count: SQL:  {sql}")
+        logger.debug(f"Count: Args: {repr(params)}")
         results = await conn.fetchrow(sql, *params)
         return results['count']
     
