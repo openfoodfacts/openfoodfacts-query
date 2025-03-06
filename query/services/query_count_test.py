@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
 import pytest
 from query.db import Database
-from query.models.filter import Filter, Qualify
+from query.models.query import Filter, Qualify
 from query.models.product import Product
 import query.services.query as query
 from query.tables.product import create_product

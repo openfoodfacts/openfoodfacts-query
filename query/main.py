@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from query.db import Database
 from query.migrator import migrate_database
-from query.models.filter import Filter
+from query.models.query import Filter
 from query.models.health import Health
 from query.services import query
 from query.services.health import check_health

@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from fastapi import HTTPException, status
 from query.db import Database
-from query.models.filter import Filter
+from query.models.query import AggregateResult, Filter, GroupStage, Stage
 from query.tables.product import product_filter_fields
 from query.tables.product_tags import tag_tables
 from query.tables.loaded_tag import get_loaded_tags
@@ -74,3 +74,11 @@ async def count(filter: Filter = None, obsolete = False):
         results = await conn.fetchrow(sql, *params)
         return results['count']
     
+async def aggregate(stages: List[Stage]):
+    async with Database() as conn:
+        group = [stage.group for stage in stages if stage.group][0]
+        tag = group.id[1:]
+        table_name = tag_tables[tag]
+        sql = f"SELECT value id, count(*) count FROM {table_name} WHERE NOT obsolete GROUP BY value ORDER BY 2 DESC"
+        results = await conn.fetch(sql)
+        return [AggregateResult(id = row['id'], count = row['count']) for row in results]

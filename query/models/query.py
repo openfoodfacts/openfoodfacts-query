@@ -31,3 +31,14 @@ if not typing.TYPE_CHECKING:
 class Filter(Fragment, populate_by_name=True):
     # $and is only allowed on the root filter
     qualify_and: List[Fragment] | None = Field(alias="$and", default=None)
+
+class GroupStage(BaseModel, populate_by_name=True, extra="forbid"):
+    id: str = Field(alias="_id", default=None)
+
+class Stage(BaseModel, populate_by_name=True, extra="forbid"):
+    match: Filter = Field(alias="$match", default=None)
+    group: GroupStage = Field(alias="$group", default=None)
+
+class AggregateResult(BaseModel, populate_by_name=True):
+    id: str = Field(alias="_id", default=None)
+    count: int
