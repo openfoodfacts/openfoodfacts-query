@@ -127,6 +127,23 @@ Had to install httpx as a dev dependency
 
 Used the synchronous test client initially as that seemed easier
 
+## Test structure
+
+Changed organization of tests so they are adjacent to the code and then made sure that test files weren't included in the coverate with:
+
+```
+[tool.coverage.run]
+omit = [
+    # omit test files
+    "*_test.py",
+    "test_*.py",
+    "query/conftest.py"
+]
+
+```
+
+Tried to use the `source` option to report on modules that were never loaded but couldn't get it to work.
+
 # TODO
 
  - query services

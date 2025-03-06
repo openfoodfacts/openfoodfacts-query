@@ -2,7 +2,7 @@ from uuid import uuid4
 from query.db import Database
 from query.models.product import Product
 from query.tables.product import create_product
-from tests.helper import random_code
+from query.test_helper import random_code
 
 
 async def test_create_product():

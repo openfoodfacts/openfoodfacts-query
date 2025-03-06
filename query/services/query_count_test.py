@@ -10,7 +10,7 @@ from query.models.product import Product
 import query.services.query as query
 from query.tables.product import create_product
 from query.tables.product_tags import create_tag
-from tests.helper import random_code
+from query.test_helper import random_code
 
 
 async def create_random_product(connection, creator=None, obsolete=False):
@@ -19,7 +19,7 @@ async def create_random_product(connection, creator=None, obsolete=False):
     )
 
 
-async def test_count_should_count_the_number_of_products_with_a_tag():
+async def test_count_the_number_of_products_with_a_tag():
     async with Database() as connection:
         ingredient_value = random_code()
         # Create 2 products with the tag we want
@@ -47,7 +47,7 @@ async def test_count_should_count_the_number_of_products_with_a_tag():
     assert count == 2
 
 
-async def test_count_should_count_the_number_of_products_with_a_tag_and_not_another_tag():
+async def test_count_the_number_of_products_with_a_tag_and_not_another_tag():
     async with Database() as connection:
         # Create some dummy products with a specific tag
         tag_value = random_code()
@@ -133,7 +133,7 @@ async def create_test_tags(connection):
     )
 
 
-async def test_count_should_count_the_number_of_products_without_a_specified_tag():
+async def test_count_the_number_of_products_without_a_specified_tag():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -146,8 +146,7 @@ async def test_count_should_count_the_number_of_products_without_a_specified_tag
         assert response == 1
 
 
-# TODO: Check this is an HTTP_422_UNPROCESSABLE_ENTITY status in the controller
-async def test_count_should_throw_an_exception_for_an_unknown_tag():
+async def test_throw_an_exception_for_an_unknown_tag():
     with pytest.raises(ValidationError) as e:
         await query.count(Filter(invalid_tags="x"))
     main_error = e.value.errors()[0]
@@ -156,7 +155,7 @@ async def test_count_should_throw_an_exception_for_an_unknown_tag():
 
 
 @patch("query.services.query.get_loaded_tags", return_value=["dummy_tag"])
-async def test_count_should_throw_an_unprocessable_exception_for_a_tag_that_hasnt_been_loaded(
+async def test_throw_an_unprocessable_exception_for_a_tag_that_has_not_been_loaded(
     get_loaded_tags_mock,
 ):
     with pytest.raises(HTTPException) as e:
@@ -166,8 +165,7 @@ async def test_count_should_throw_an_unprocessable_exception_for_a_tag_that_hasn
     assert "ingredients_tags" in repr(e.value.detail)
 
 
-# TODO: Check this is an HTTP_422_UNPROCESSABLE_ENTITY status in the controller
-async def test_count_should_throw_and_unprocessable_exception_for_an_unrecognised_value_object():
+async def test_throw_and_unprocessable_exception_for_an_unrecognized_value_object():
     with pytest.raises(ValidationError) as e:
         await query.count(Filter(ingredients_tags=Qualify(unknown="x")))
     main_error = e.value.errors()[0]
@@ -175,7 +173,7 @@ async def test_count_should_throw_and_unprocessable_exception_for_an_unrecognise
     assert main_error["loc"][0] == "unknown"
 
 
-async def test_count_should_cope_with_more_than_two_filters():
+async def test_cope_with_more_than_two_filters():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -188,35 +186,35 @@ async def test_count_should_cope_with_more_than_two_filters():
         assert response == 1
 
 
-async def test_count_should_cope_with_an_empty_filter():
+async def test_cope_with_an_empty_filter():
     async with Database() as connection:
         await create_test_tags(connection)
         response = await query.count(Filter())
         assert response > 2
 
 
-async def test_count_should_cope_with_no_filters():
+async def test_cope_with_no_filters():
     async with Database() as connection:
         await create_test_tags(connection)
         response = await query.count()
         assert response > 2
 
 
-async def test_count_should_be_able_to_count_obsolete_products():
+async def test_be_able_to_count_obsolete_products():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(Filter(origins_tags=tags.origin_value), True)
         assert response == 1
 
 
-async def test_count_should_be_able_to_count_not_obsolete_products():
+async def test_be_able_to_count_not_obsolete_products():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(Filter(origins_tags=tags.origin_value), False)
         assert response == 3
 
 
-async def test_count_should_cope_with_an_all_filter():
+async def test_cope_with_an_all_filter():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -229,7 +227,7 @@ async def test_count_should_cope_with_an_all_filter():
         assert response == 1
 
 
-async def test_count_should_cope_with_an_and_filter():
+async def test_cope_with_an_and_filter():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -243,7 +241,7 @@ async def test_count_should_cope_with_an_and_filter():
         assert response == 1
 
 
-async def test_count_should_cope_with_an_in_value():
+async def test_cope_with_an_in_value():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -256,8 +254,7 @@ async def test_count_should_cope_with_an_in_value():
         assert response == 3
 
 
-# TODO: Check this is an HTTP_422_UNPROCESSABLE_ENTITY status in the controller
-async def test_count_should_throw_an_unprocessable_exception_if_an_in_contains_a_sub_array():
+async def test_throw_an_unprocessable_exception_if_an_in_contains_a_sub_array():
     with pytest.raises(ValidationError) as e:
         await query.count(Filter(origins_tags=Qualify(qualify_in=["a", ["b", "c"]])))
     main_error = e.value.errors()[0]
@@ -265,7 +262,7 @@ async def test_count_should_throw_an_unprocessable_exception_if_an_in_contains_a
     assert main_error["loc"][0] == "qualify_in"
 
 
-async def test_count_should_cope_with_an_in_unknown_value():
+async def test_cope_with_an_in_unknown_value():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -277,7 +274,7 @@ async def test_count_should_cope_with_an_in_unknown_value():
         assert response == 1
 
 
-async def test_count_should_count_with_a_product_field():
+async def test_count_with_a_product_field():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -289,7 +286,7 @@ async def test_count_should_count_with_a_product_field():
         assert response == 2
 
 
-async def test_count_should_count_with_in_on_a_product_field():
+async def test_count_with_in_on_a_product_field():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -301,7 +298,7 @@ async def test_count_should_count_with_in_on_a_product_field():
         assert response == 2
 
 
-async def test_count_should_count_with_nin_on_a_product_field():
+async def test_count_with_nin_on_a_product_field():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -313,7 +310,7 @@ async def test_count_should_count_with_nin_on_a_product_field():
         assert response == 1
 
 
-async def test_count_should_cope_with_an_in_unknown_value_on_a_product_field():
+async def test_cope_with_an_in_unknown_value_on_a_product_field():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -325,7 +322,7 @@ async def test_count_should_cope_with_an_in_unknown_value_on_a_product_field():
         assert response == 1
 
 
-async def test_count_should_cope_with_nin():
+async def test_cope_with_nin():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -339,7 +336,7 @@ async def test_count_should_cope_with_nin():
         assert response == 0
 
 
-async def test_count_should_cope_with_nin_unknown():
+async def test_cope_with_nin_unknown():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
@@ -351,7 +348,7 @@ async def test_count_should_cope_with_nin_unknown():
         assert response == 2
 
 
-async def test_count_should_cope_with_nin_unknown_on_a_product_field():
+async def test_cope_with_nin_unknown_on_a_product_field():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
