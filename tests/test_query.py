@@ -74,7 +74,7 @@ async def test_count_should_count_the_number_of_products_with_a_tag_and_not_anot
     assert response == 1
 
 
-class TestTags(BaseModel):
+class TagValues(BaseModel):
     origin_value: str
     amino_value: str
     amino_value2: str
@@ -120,7 +120,7 @@ async def create_test_tags(connection):
     await create_tag(connection, "nucleotides_tags", product3, neucleotide_value)
     await create_tag(connection, "nucleotides_tags", product4, neucleotide_value, True)
 
-    return TestTags(
+    return TagValues(
         origin_value=origin_value,
         amino_value=amino_value,
         amino_value2=amino_value2,

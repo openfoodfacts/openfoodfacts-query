@@ -99,11 +99,27 @@ This was relatively simple. Followed the docs: https://testcontainers.com/guides
 Main complication was mocking the health check to return an OK response for MongoDB but also had to change the fixture event loop to use session scope:https://github.com/pytest-dev/pytest-asyncio/blob/main/docs/how-to-guides/change_default_fixture_loop.rst
 
 
-# Docker
+## Docker
 
 Created a simple Dockerfile_python to run side-by-side with existing off-query.
 
 Copied basic structure from taxonomy-editor but without the off user stuff.
+
+## Test Coverage
+
+Installed pytest-cov with -D
+
+From command line:
+
+```
+pytest --cov=query
+```
+
+Enable in VSCode with the following setting:
+
+```
+    "python.experiments.optInto": ["pythonTestAdapter"]
+```
 
 # TODO
 
