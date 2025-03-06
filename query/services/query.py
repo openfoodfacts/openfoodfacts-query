@@ -1,5 +1,5 @@
 import logging
-from typing import Dict
+from typing import Dict, List
 
 from fastapi import HTTPException, status
 from query.db import Database
@@ -29,11 +29,16 @@ async def count(filter: Filter = None, obsolete = False):
                             values = [value['$ne']]
                         elif '$all' in value:
                             values = value['$all']
+                        elif '$in' in value:
+                            values = [value['$in']]
                         # TODO throw exception if unknown object (although Pydantic may never allow this)
 
                     for tag_value in values:
                         params.append(tag_value)
-                        tag_filters.append( f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {tag_tables[tag]} WHERE product_id = p.id AND value = ${len(params)})")
+                        value_placeholder = f"${len(params)}"
+                        if isinstance(tag_value, List):
+                            value_placeholder = f"ANY({value_placeholder}::text[])"
+                        tag_filters.append( f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {tag_tables[tag]} WHERE product_id = p.id AND value = {value_placeholder})")
         
         sql = f"SELECT count(*) count FROM product p WHERE {'' if obsolete else 'NOT '}obsolete{''.join(tag_filters)}"
         logger.debug(f"Count: {sql}")

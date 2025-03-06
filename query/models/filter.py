@@ -5,8 +5,9 @@ from query.tables.product_tags import tag_tables
 
 
 class Qualify(BaseModel, populate_by_name=True, extra="forbid"):
-    ne: str | None = Field(alias="$ne", default=None)
-    all: List[str] | None = Field(alias="$all", default=None)
+    qualify_ne: str | None = Field(alias="$ne", default=None)
+    qualify_all: List[str] | None = Field(alias="$all", default=None)
+    qualify_in: List[str] | None = Field(alias="$in", default=None)
 
 
 class Fragment(BaseModel, extra="allow"):

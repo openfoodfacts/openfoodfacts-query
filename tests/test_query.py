@@ -69,7 +69,7 @@ async def test_count_should_count_the_number_of_products_with_a_tag_and_not_anot
         )
 
     response = await query.count(
-        Filter(brands_tags=tag_value, additives_tags=Qualify(ne=not_tag_value))
+        Filter(brands_tags=tag_value, additives_tags=Qualify(qualify_ne=not_tag_value))
     )
     assert response == 1
 
@@ -138,7 +138,7 @@ async def test_count_should_count_the_number_of_products_without_a_specified_tag
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
-                amino_acids_tags=Qualify(ne=tags.amino_value),
+                amino_acids_tags=Qualify(qualify_ne=tags.amino_value),
                 # need at least one other criteria to avoid products from other tests
                 origins_tags=tags.origin_value,
             )
@@ -220,7 +220,7 @@ async def test_count_should_cope_with_an_all_filter():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
-            Filter(amino_acids_tags=Qualify(all=[tags.amino_value, tags.amino_value2]))
+            Filter(amino_acids_tags=Qualify(qualify_all=[tags.amino_value, tags.amino_value2]))
         )
         assert response == 1
 
@@ -231,18 +231,14 @@ async def test_count_should_cope_with_an_and_filter():
             Filter(filter_and=[Filter(amino_acids_tags=tags.amino_value), Filter(amino_acids_tags=tags.amino_value2)])
         )
         assert response == 1
-#     await create_testing_module([domain_module], async (app) => {
-#       const { amino_value, amino_value2 } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count({
-#         $and: [
-#           { amino_acids_tags: amino_value },
-#           { amino_acids_tags: amino_value2 },
-#         ],
-#       });
-#       expect(response).to_be(1);
-#     });
-#   });
+
+async def test_count_should_cope_with_an_in_value():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(amino_acids_tags=Qualify(qualify_in=[tags.amino_value, tags.amino_value2]))
+        )
+        assert response == 3
 
 #   it('should cope with an $in value', async () => {
 #     await create_testing_module([domain_module], async (app) => {
