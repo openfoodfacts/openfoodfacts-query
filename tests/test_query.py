@@ -220,110 +220,111 @@ async def test_count_should_cope_with_an_all_filter():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
-            Filter(amino_acids_tags=Qualify(qualify_all=[tags.amino_value, tags.amino_value2]))
+            Filter(
+                amino_acids_tags=Qualify(
+                    qualify_all=[tags.amino_value, tags.amino_value2]
+                )
+            )
         )
         assert response == 1
+
 
 async def test_count_should_cope_with_an_and_filter():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
-            Filter(filter_and=[Filter(amino_acids_tags=tags.amino_value), Filter(amino_acids_tags=tags.amino_value2)])
+            Filter(
+                qualify_and=[
+                    Filter(amino_acids_tags=tags.amino_value),
+                    Filter(amino_acids_tags=tags.amino_value2),
+                ]
+            )
         )
         assert response == 1
+
 
 async def test_count_should_cope_with_an_in_value():
     async with Database() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
-            Filter(amino_acids_tags=Qualify(qualify_in=[tags.amino_value, tags.amino_value2]))
+            Filter(
+                amino_acids_tags=Qualify(
+                    qualify_in=[tags.amino_value, tags.amino_value2]
+                )
+            )
         )
         assert response == 3
 
-#   it('should cope with an $in value', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { amino_value, amino_value2 } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count({
-#         amino_acids_tags: { $in: [amino_value, amino_value2] },
-#       });
-#       expect(response).to_be(3);
-#     });
-#   });
 
-#   it('should throw an unprocessable exception if an $in contains an array', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       try {
-#         await app
-#           .get(query_service)
-#           // @ts-expect-error $in should only include simple type
-#           .count({ origins_tags: { $in: ['a', ['b', 'c']] } });
-#         fail('should not get here');
-#       } catch (e) {
-#         expect(e).to_be_instance_of(unprocessable_entity_exception);
-#       }
-#     });
-#   });
+# TODO: Check this is an HTTP_422_UNPROCESSABLE_ENTITY status in the controller
+async def test_count_should_throw_an_unprocessable_exception_if_an_in_contains_a_sub_array():
+    with pytest.raises(ValidationError) as e:
+        await query.count(Filter(origins_tags=Qualify(qualify_in=["a", ["b", "c"]])))
+    main_error = e.value.errors()[0]
+    assert main_error["type"] == "string_type"
+    assert main_error["loc"][0] == "qualify_in"
 
-#   it('should cope with an $in unknown value', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count({
-#         origins_tags: origin_value,
-#         nucleotides_tags: { $in: [null, []] },
-#       });
-#       expect(response).to_be(1);
-#     });
-#   });
 
-#   it('should cope with an $in unknown value on a product field', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count({
-#         origins_tags: origin_value,
-#         creator: { $in: [null, []] },
-#       });
-#       expect(response).to_be(1);
-#     });
-#   });
+async def test_count_should_cope_with_an_in_unknown_value():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(
+                origins_tags=tags.origin_value,
+                nucleotides_tags=Qualify(qualify_in=[None, []]),
+            )
+        )
+        assert response == 1
 
-#   it('should cope with $nin', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value, amino_value, amino_value2 } = await create_test_tags(
-#         app,
-#       );
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count({
-#         origins_tags: origin_value,
-#         amino_acids_tags: { $nin: [amino_value, amino_value2] },
-#       });
-#       expect(response).to_be(0);
-#     });
-#   });
 
-#   it('should cope with $nin unknown', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count({
-#         origins_tags: origin_value,
-#         nucleotides_tags: { $nin: [null, []] },
-#       });
-#       expect(response).to_be(2);
-#     });
-#   });
+async def test_count_should_cope_with_an_in_unknown_value_on_a_product_field():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(
+                origins_tags=tags.origin_value,
+                creator=Qualify(qualify_in=[None, []]),
+            )
+        )
+        assert response == 1
 
-#   it('should cope with $nin unknown value on a product field', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count({
-#         origins_tags: origin_value,
-#         creator: { $nin: [null, []] },
-#       });
-#       expect(response).to_be(2);
-#     });
-#   });
-# });
+
+# TODO: Add a few more product field tests
+
+
+async def test_count_should_cope_with_nin():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(
+                origins_tags=tags.origin_value,
+                amino_acids_tags=Qualify(
+                    qualify_nin=[tags.amino_value, tags.amino_value2]
+                ),
+            )
+        )
+        assert response == 0
+
+
+async def test_count_should_cope_with_nin_unknown():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(
+                origins_tags=tags.origin_value,
+                nucleotides_tags=Qualify(qualify_nin=[None, []]),
+            )
+        )
+        assert response == 2
+
+
+async def test_count_should_cope_with_nin_unknown_on_a_product_field():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(
+                origins_tags=tags.origin_value,
+                creator=Qualify(qualify_nin=[None, []]),
+            )
+        )
+        assert response == 2
