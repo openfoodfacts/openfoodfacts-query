@@ -224,18 +224,13 @@ async def test_count_should_cope_with_an_all_filter():
         )
         assert response == 1
 
-
-#     await create_testing_module([domain_module], async (app) => {
-#       const { amino_value, amino_value2 } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.count({
-#         amino_acids_tags: { $all: [amino_value, amino_value2] },
-#       });
-#       expect(response).to_be(1);
-#     });
-#   });
-
-#   it('should cope with a $and filter', async () => {
+async def test_count_should_cope_with_an_and_filter():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.count(
+            Filter(filter_and=[Filter(amino_acids_tags=tags.amino_value), Filter(amino_acids_tags=tags.amino_value2)])
+        )
+        assert response == 1
 #     await create_testing_module([domain_module], async (app) => {
 #       const { amino_value, amino_value2 } = await create_test_tags(app);
 #       const query_service = app.get(query_service);

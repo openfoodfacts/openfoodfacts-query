@@ -15,23 +15,25 @@ async def count(filter: Filter = None, obsolete = False):
         params = []
         if filter:
             loaded_tags = await get_loaded_tags(conn)
-            for tag, value in filter.model_dump(exclude_defaults=True, by_alias=True).items():
-                if tag not in loaded_tags:
-                    raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded")
+            fragments = filter.filter_and or [filter]
+            for fragment in fragments:
+                for tag, value in fragment.model_dump(exclude_defaults=True, by_alias=True).items():
+                    if tag not in loaded_tags:
+                        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded")
 
-                is_not = False
-                values = [value]
-                if isinstance(value, Dict):
-                    if '$ne' in value:
-                        is_not = True
-                        values = [value['$ne']]
-                    elif '$all' in value:
-                        values = value['$all']
-                    # TODO throw exception if unknown object (although Pydantic may never allow this)
+                    is_not = False
+                    values = [value]
+                    if isinstance(value, Dict):
+                        if '$ne' in value:
+                            is_not = True
+                            values = [value['$ne']]
+                        elif '$all' in value:
+                            values = value['$all']
+                        # TODO throw exception if unknown object (although Pydantic may never allow this)
 
-                for tag_value in values:
-                    params.append(tag_value)
-                    tag_filters.append( f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {tag_tables[tag]} WHERE product_id = p.id AND value = ${len(params)})")
+                    for tag_value in values:
+                        params.append(tag_value)
+                        tag_filters.append( f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {tag_tables[tag]} WHERE product_id = p.id AND value = ${len(params)})")
         
         sql = f"SELECT count(*) count FROM product p WHERE {'' if obsolete else 'NOT '}obsolete{''.join(tag_filters)}"
         logger.debug(f"Count: {sql}")
