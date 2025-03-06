@@ -65,23 +65,28 @@ tag_tables = {
     "packaging_recycling_tags": "product_packaging_recycling_tag",
     "nutriscore_tags": "product_nutriscore_tag",
     "nutriscore_2021_tags": "product_nutriscore2021tag",
-    "nutriscore_2023_tags": "product_nutriscore2023tag"
+    "nutriscore_2023_tags": "product_nutriscore2023tag",
 }
+
 
 async def create_tables(connection):
     for table_name in tag_tables.values():
         await connection.execute(
-            f'create table {table_name} (product_id int not null, value text not null, obsolete boolean null default false, constraint {table_name}_pkey primary key (value, product_id));',
+            f"create table {table_name} (product_id int not null, value text not null, obsolete boolean null default false, constraint {table_name}_pkey primary key (value, product_id));",
         )
         await connection.execute(
-            f'create index {table_name}_product_id_index on {table_name} (product_id);'
+            f"create index {table_name}_product_id_index on {table_name} (product_id);"
         )
         await connection.execute(
-            f'alter table {table_name} add constraint {table_name}_product_id_foreign foreign key (product_id) references product (id) on update cascade on delete cascade;',
+            f"alter table {table_name} add constraint {table_name}_product_id_foreign foreign key (product_id) references product (id) on update cascade on delete cascade;",
         )
 
 
-async def create_tag(connection, tag, product_id, value):
+async def create_tag(connection, tag, product_id, value, obsolete=False):
     tag_table = tag_tables[tag]
-    await connection.execute(f'INSERT INTO {tag_table} (product_id, value) VALUES ($1, $2)', product_id, value)
-
+    await connection.execute(
+        f"INSERT INTO {tag_table} (product_id, value, obsolete) VALUES ($1, $2, $3)",
+        product_id,
+        value,
+        obsolete,
+    )

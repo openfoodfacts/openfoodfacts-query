@@ -1,24 +1,52 @@
+from unittest.mock import patch
 from uuid import uuid4
+
+from fastapi import HTTPException, status
+from pydantic import ValidationError
+import pytest
 from query.db import Database
 from query.models.filter import Filter, Qualify
+from query.models.product import Product
 import query.services.query as query
 from query.tables.product import create_product
 from query.tables.product_tags import create_tag
 from tests.helper import random_code
 
 
+async def create_random_product(connection, creator=None, obsolete=False):
+    return await create_product(
+        connection, Product(code=random_code(), creator=creator, obsolete=obsolete)
+    )
+
+
 async def test_count_should_count_the_number_of_products_with_a_tag():
     async with Database() as connection:
         ingredient_value = random_code()
         # Create 2 products with the tag we want
-        await create_tag(connection, 'ingredients_tags', await create_product(connection, random_code()), ingredient_value)
-        await create_tag(connection, 'ingredients_tags', await create_product(connection, random_code()), ingredient_value)
+        await create_tag(
+            connection,
+            "ingredients_tags",
+            await create_random_product(connection),
+            ingredient_value,
+        )
+        await create_tag(
+            connection,
+            "ingredients_tags",
+            await create_random_product(connection),
+            ingredient_value,
+        )
         # Create another with a tag we don't want
-        await create_tag(connection, 'ingredients_tags', await create_product(connection, random_code()), random_code())
+        await create_tag(
+            connection,
+            "ingredients_tags",
+            await create_random_product(connection),
+            random_code(),
+        )
 
-    count = await query.count(Filter(ingredients_tags = ingredient_value))
+    count = await query.count(Filter(ingredients_tags=ingredient_value))
     assert count == 2
-                             
+
+
 async def test_count_should_count_the_number_of_products_with_a_tag_and_not_another_tag():
     async with Database() as connection:
         # Create some dummy products with a specific tag
@@ -26,226 +54,269 @@ async def test_count_should_count_the_number_of_products_with_a_tag_and_not_anot
         not_tag_value = random_code()
 
         # Product with the tag we don't want
-        product_with_not_tag = await create_product(connection, random_code())
-        await create_tag(connection, 'brands_tags', product_with_not_tag, tag_value)
-        await create_tag(connection, 'additives_tags', product_with_not_tag, not_tag_value)
-        
+        product_with_not_tag = await create_random_product(connection)
+        await create_tag(connection, "brands_tags", product_with_not_tag, tag_value)
+        await create_tag(
+            connection, "additives_tags", product_with_not_tag, not_tag_value
+        )
+
         # Product with just the tag we want
-        await create_tag(connection, 'brands_tags', await create_product(connection, random_code()), tag_value)
-    
-    response = await query.count(Filter(brands_tags = tag_value, additives_tags = Qualify(ne = not_tag_value)))
+        await create_tag(
+            connection,
+            "brands_tags",
+            await create_random_product(connection),
+            tag_value,
+        )
+
+    response = await query.count(
+        Filter(brands_tags=tag_value, additives_tags=Qualify(ne=not_tag_value))
+    )
     assert response == 1
 
-#   it('should count the number of products without a specified tag', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { aminoValue, originValue } = await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count({
-#         amino_acids_tags: { $ne: aminoValue },
-#         origins_tags: originValue, // Need at least one other criteria to avoid products from other tests
-#       });
-#       expect(response).toBe(1);
-#     });
-#   });
 
-#   it('should throw and unprocessable exception for an unknwon tag', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       try {
-#         await app.get(QueryService).count({ invalid_tag: 'x' });
-#         fail('should not get here');
-#       } catch (e) {
-#         expect(e).toBeInstanceOf(UnprocessableEntityException);
-#       }
-#     });
-#   });
+async def create_test_tags(connection):
+    # Using origins and amino acids as they are smaller than most
+    origin_value = random_code()
+    amino_value = random_code()
+    amino_value2 = random_code()
+    neucleotide_value = random_code()
+    creator_value = random_code()
 
-#   it('should throw and unprocessable exception for a tag that hasnt been loaded', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       try {
-#         const em = app.get(EntityManager);
-#         await em.nativeDelete(LoadedTag, { id: 'ingredients_tags' });
-#         await em.flush();
-#         await app.get(QueryService).count({ ingredients_tags: 'x' });
-#         fail('should not get here');
-#       } catch (e) {
-#         expect(e).toBeInstanceOf(UnprocessableEntityException);
-#       }
-#     });
-#   });
+    # Create some dummy products with a specific tag
+    product1 = await create_random_product(connection)
+    product2 = await create_random_product(connection, creator_value)
+    product3 = await create_random_product(connection, creator_value)
+    product4 = await create_random_product(connection, obsolete=True)
 
-#   it('should throw and unprocessable exception for an unrecognised value object', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       try {
-#         // @ts-expect-error Only certain operators are supported
-#         await app.get(QueryService).count({ origins_tags: { $unknown: 'x' } });
-#         fail('should not get here');
-#       } catch (e) {
-#         expect(e).toBeInstanceOf(UnprocessableEntityException);
-#       }
-#     });
-#   });
+    # Matrix for testing
+    # Product  | Origin | AminoAcid | AminoAcid2 | Neucleotide | Obsolete | Creator
+    # Product1 |   x    |     x     |            |      x      |          |
+    # Product2 |   x    |     x     |     x      |             |          |    x
+    # Product3 |   x    |           |     x      |      x      |          |    x
+    # Product4 |   x    |     x     |            |      x      |    x     |
+
+    await create_tag(connection, "origins_tags", product1, origin_value)
+    await create_tag(connection, "origins_tags", product2, origin_value)
+    await create_tag(connection, "origins_tags", product3, origin_value)
+    await create_tag(connection, "origins_tags", product4, origin_value, True)
+    await create_tag(connection, "amino_acids_tags", product1, amino_value)
+    await create_tag(connection, "amino_acids_tags", product2, amino_value)
+    await create_tag(connection, "amino_acids_tags", product2, amino_value2)
+    await create_tag(connection, "amino_acids_tags", product3, amino_value2)
+    await create_tag(connection, "amino_acids_tags", product4, amino_value, True)
+    await create_tag(connection, "nucleotides_tags", product1, neucleotide_value)
+    await create_tag(connection, "nucleotides_tags", product3, neucleotide_value)
+    await create_tag(connection, "nucleotides_tags", product4, neucleotide_value, True)
+
+    return (
+        origin_value,
+        amino_value,
+        amino_value2,
+        neucleotide_value,
+        creator_value,
+        product1,
+        product2,
+        product3,
+        product4,
+    )
+
+
+async def test_count_should_count_the_number_of_products_without_a_specified_tag():
+    async with Database() as connection:
+        origin_value, amino_value, _, _, _, _, _, _, _ = await create_test_tags(connection)
+        response = await query.count(
+            Filter(
+                amino_acids_tags=Qualify(ne=amino_value),
+                # need at least one other criteria to avoid products from other tests
+                origins_tags=origin_value,
+            )
+        )
+        assert response == 1
+
+# TODO: Check this is an HTTP_422_UNPROCESSABLE_ENTITY status in the controller
+async def test_count_should_throw_an_exception_for_an_unknown_tag():
+    with pytest.raises(ValidationError) as e:
+        await query.count(Filter(invalid_tags = 'x'))
+    main_error = e.value.errors()[0]
+    assert main_error['type'] == 'extra_forbidden'
+    assert main_error['loc'][0] == 'invalid_tags'
+
+@patch("query.services.query.get_loaded_tags", return_value=['dummy_tag'])
+async def test_count_should_throw_an_unprocessable_exception_for_a_tag_that_hasnt_been_loaded(get_loaded_tags_mock):
+    with pytest.raises(HTTPException) as e:
+        await query.count(Filter(ingredients_tags = 'x'))
+    assert get_loaded_tags_mock.called
+    assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert 'ingredients_tags' in repr(e.value.detail)
+
+# TODO: Check this is an HTTP_422_UNPROCESSABLE_ENTITY status in the controller
+async def test_count_should_throw_and_unprocessable_exception_for_an_unrecognised_value_object():
+    with pytest.raises(ValidationError) as e:
+        await query.count(Filter(ingredients_tags = Qualify(unknown = "x")))
+    main_error = e.value.errors()[0]
+    assert main_error['type'] == 'missing'
+    assert main_error['loc'][0] == '$ne'
 
 #   it('should cope with more than two filters', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { originValue, aminoValue, neucleotideValue } =
-#         await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count({
-#         origins_tags: originValue,
-#         amino_acids_tags: aminoValue,
-#         nucleotides_tags: neucleotideValue,
+#     await create_testing_module([domain_module], async (app) => {
+#       const { origin_value, amino_value, neucleotide_value } =
+#         await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count({
+#         origins_tags: origin_value,
+#         amino_acids_tags: amino_value,
+#         nucleotides_tags: neucleotide_value,
 #       });
-#       expect(response).toBe(1);
+#       expect(response).to_be(1);
 #     });
 #   });
 
 #   it('should cope with no filters', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count(null);
-#       expect(response).toBeGreaterThan(2);
+#     await create_testing_module([domain_module], async (app) => {
+#       await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count(null);
+#       expect(response).to_be_greater_than(2);
 #     });
 #   });
 
 #   it('should be able to count obsolete products', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { originValue } = await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count(
+#     await create_testing_module([domain_module], async (app) => {
+#       const { origin_value } = await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count(
 #         {
-#           origins_tags: originValue,
+#           origins_tags: origin_value,
 #         },
 #         true,
 #       );
-#       expect(response).toBe(1);
+#       expect(response).to_be(1);
 #     });
 #   });
 
 #   it('should be able to count not obsolete products', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { originValue } = await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count(
+#     await create_testing_module([domain_module], async (app) => {
+#       const { origin_value } = await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count(
 #         {
-#           origins_tags: originValue,
+#           origins_tags: origin_value,
 #         },
 #         false,
 #       );
-#       expect(response).toBe(3);
+#       expect(response).to_be(3);
 #     });
 #   });
 
 #   it('should cope with a $all filter', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { aminoValue, aminoValue2 } = await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count({
-#         amino_acids_tags: { $all: [aminoValue, aminoValue2] },
+#     await create_testing_module([domain_module], async (app) => {
+#       const { amino_value, amino_value2 } = await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count({
+#         amino_acids_tags: { $all: [amino_value, amino_value2] },
 #       });
-#       expect(response).toBe(1);
+#       expect(response).to_be(1);
 #     });
 #   });
 
 #   it('should cope with a $and filter', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { aminoValue, aminoValue2 } = await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count({
+#     await create_testing_module([domain_module], async (app) => {
+#       const { amino_value, amino_value2 } = await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count({
 #         $and: [
-#           { amino_acids_tags: aminoValue },
-#           { amino_acids_tags: aminoValue2 },
+#           { amino_acids_tags: amino_value },
+#           { amino_acids_tags: amino_value2 },
 #         ],
 #       });
-#       expect(response).toBe(1);
+#       expect(response).to_be(1);
 #     });
 #   });
 
 #   it('should cope with an $in value', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { aminoValue, aminoValue2 } = await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count({
-#         amino_acids_tags: { $in: [aminoValue, aminoValue2] },
+#     await create_testing_module([domain_module], async (app) => {
+#       const { amino_value, amino_value2 } = await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count({
+#         amino_acids_tags: { $in: [amino_value, amino_value2] },
 #       });
-#       expect(response).toBe(3);
+#       expect(response).to_be(3);
 #     });
 #   });
 
 #   it('should throw an unprocessable exception if an $in contains an array', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
+#     await create_testing_module([domain_module], async (app) => {
 #       try {
 #         await app
-#           .get(QueryService)
+#           .get(query_service)
 #           // @ts-expect-error $in should only include simple type
 #           .count({ origins_tags: { $in: ['a', ['b', 'c']] } });
 #         fail('should not get here');
 #       } catch (e) {
-#         expect(e).toBeInstanceOf(UnprocessableEntityException);
+#         expect(e).to_be_instance_of(unprocessable_entity_exception);
 #       }
 #     });
 #   });
 
 #   it('should cope with an $in unknown value', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { originValue } = await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count({
-#         origins_tags: originValue,
+#     await create_testing_module([domain_module], async (app) => {
+#       const { origin_value } = await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count({
+#         origins_tags: origin_value,
 #         nucleotides_tags: { $in: [null, []] },
 #       });
-#       expect(response).toBe(1);
+#       expect(response).to_be(1);
 #     });
 #   });
 
 #   it('should cope with an $in unknown value on a product field', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { originValue } = await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count({
-#         origins_tags: originValue,
+#     await create_testing_module([domain_module], async (app) => {
+#       const { origin_value } = await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count({
+#         origins_tags: origin_value,
 #         creator: { $in: [null, []] },
 #       });
-#       expect(response).toBe(1);
+#       expect(response).to_be(1);
 #     });
 #   });
 
 #   it('should cope with $nin', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { originValue, aminoValue, aminoValue2 } = await createTestTags(
+#     await create_testing_module([domain_module], async (app) => {
+#       const { origin_value, amino_value, amino_value2 } = await create_test_tags(
 #         app,
 #       );
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count({
-#         origins_tags: originValue,
-#         amino_acids_tags: { $nin: [aminoValue, aminoValue2] },
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count({
+#         origins_tags: origin_value,
+#         amino_acids_tags: { $nin: [amino_value, amino_value2] },
 #       });
-#       expect(response).toBe(0);
+#       expect(response).to_be(0);
 #     });
 #   });
 
 #   it('should cope with $nin unknown', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { originValue } = await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count({
-#         origins_tags: originValue,
+#     await create_testing_module([domain_module], async (app) => {
+#       const { origin_value } = await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count({
+#         origins_tags: origin_value,
 #         nucleotides_tags: { $nin: [null, []] },
 #       });
-#       expect(response).toBe(2);
+#       expect(response).to_be(2);
 #     });
 #   });
 
 #   it('should cope with $nin unknown value on a product field', async () => {
-#     await createTestingModule([DomainModule], async (app) => {
-#       const { originValue } = await createTestTags(app);
-#       const queryService = app.get(QueryService);
-#       const response = await queryService.count({
-#         origins_tags: originValue,
+#     await create_testing_module([domain_module], async (app) => {
+#       const { origin_value } = await create_test_tags(app);
+#       const query_service = app.get(query_service);
+#       const response = await query_service.count({
+#         origins_tags: origin_value,
 #         creator: { $nin: [null, []] },
 #       });
-#       expect(response).toBe(2);
+#       expect(response).to_be(2);
 #     });
 #   });
 # });
-
