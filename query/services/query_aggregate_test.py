@@ -7,25 +7,40 @@ from query.services.query_count_test import create_test_tags
 async def test_group_products_with_a_tag():
     async with Database() as connection:
         tags = await create_test_tags(connection)
-        response = await query.aggregate([Stage(match=Filter(), group=GroupStage(id='$origins_tags'))])
+        response = await query.aggregate(
+            [Stage(match=Filter()), Stage(group=GroupStage(id="$origins_tags"))]
+        )
         my_result = [result for result in response if result.id == tags.origin_value]
         assert len(my_result) == 1
         assert my_result[0].count == 3
 
 
-#   it('should filter products when grouping', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value, amino_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.aggregate([
-#         { $match: { amino_acids_tags: amino_value } },
-#         { $group: { _id: '$origins_tags' } },
-#       ]);
-#       const my_tag = response.find((r) => r._id === origin_value);
-#       expect(my_tag).to_be_truthy();
-#       expect(parse_int(my_tag.count)).to_be(2);
-#     });
-#   });
+async def test_filter_products_when_grouping():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.aggregate(
+            [
+                Stage(match=Filter(amino_acids_tags=tags.amino_value)),
+                Stage(group=GroupStage(id="$origins_tags")),
+            ]
+        )
+        my_result = [result for result in response if result.id == tags.origin_value]
+        assert len(my_result) == 1
+        assert my_result[0].count == 2
+
+
+async def test_filter_products_when_grouping_by_a_product_field():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.aggregate(
+            [
+                Stage(match=Filter(amino_acids_tags=tags.amino_value)),
+                Stage(group=GroupStage(id="$creator")),
+            ]
+        )
+        my_result = [result for result in response if result.id == tags.creator_value]
+        assert len(my_result) == 1
+        assert my_result[0].count == 1
 
 #   it('should filter products when grouping by a product field', async () => {
 #     await create_testing_module([domain_module], async (app) => {
