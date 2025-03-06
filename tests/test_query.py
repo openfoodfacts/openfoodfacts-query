@@ -277,8 +277,6 @@ async def test_count_should_cope_with_an_in_unknown_value():
         assert response == 1
 
 
-# TODO: Add a few more product field tests
-
 async def test_count_should_count_with_a_product_field():
     async with Database() as connection:
         tags = await create_test_tags(connection)

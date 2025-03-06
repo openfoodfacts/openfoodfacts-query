@@ -8,7 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from query.db import Database
 from query.migrator import migrate_database
+from query.models.filter import Filter
 from query.models.health import Health
+from query.services import query
 from query.services.health import check_health
 from query.tables.product_tags import tag_tables
 
@@ -28,6 +30,10 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/health", response_model_exclude_none=True)
 async def get_health() -> Health:
     return await check_health()
+
+@app.post("/count")
+async def post_count(filter: Filter, obsolete: bool = False) -> int:
+    return await query.count(filter, obsolete)
 
 # Test to see if we can define a strict model for queries
 # Tried namedtuple but that didn't seem to work

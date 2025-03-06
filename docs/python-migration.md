@@ -121,6 +121,12 @@ Enable in VSCode with the following setting:
     "python.experiments.optInto": ["pythonTestAdapter"]
 ```
 
+## Testing routes
+
+Had to install httpx as a dev dependency
+
+Used the synchronous test client initially as that seemed easier
+
 # TODO
 
  - query services
