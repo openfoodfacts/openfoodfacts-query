@@ -3,6 +3,10 @@ services:
     image: ${POSTGRES_IMAGE}
     command: postgres -c shared_buffers=${QUERY_POSTGRES_SHARED_BUFFERS} -c work_mem=${QUERY_POSTGRES_WORK_MEM} -c listen_addresses='*'
     restart: ${RESTART_POLICY:-always}
+    deploy:
+      resources:
+        limits:
+          memory: ${POSTGRES_MEMORY_LIMIT:-1G}
     environment:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
@@ -25,6 +29,10 @@ services:
   query:
     image: ghcr.io/openfoodfacts/openfoodfacts-query:${TAG}
     restart: ${RESTART_POLICY:-always}
+    deploy:
+      resources:
+        limits:
+          memory: ${QUERY_MEMORY_LIMIT:-512M}
     environment:
       # When we are running inside docker we use the internal port
       - POSTGRES_HOST=query_postgres:5432
