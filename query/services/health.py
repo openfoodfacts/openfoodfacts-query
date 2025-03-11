@@ -1,8 +1,9 @@
-from motor.motor_asyncio import AsyncIOMotorClient
 import redis.asyncio as redis
 from query.database import database_connection
 from query.config import config_settings
 from query.models.health import Health, HealthItemStatusEnum
+from query.models.query import Filter
+from query.mongodb import find_products
 
 
 async def check_health():
@@ -16,8 +17,9 @@ async def check_health():
         health.add("postgres", HealthItemStatusEnum.down, str(e))
 
     try:
-        client = AsyncIOMotorClient(config_settings.MONGO_URI, serverSelectionTimeoutMS=1000)
-        await client.admin.command("ping")
+        async with find_products(Filter(code='0'), {"_id": True}) as cursor:
+            async for record in cursor:
+                pass
         health.add("mongodb", HealthItemStatusEnum.up)
     except Exception as e:
         health.add("mongodb", HealthItemStatusEnum.down, str(e))

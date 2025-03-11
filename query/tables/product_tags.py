@@ -1,5 +1,7 @@
 from enum import Enum
 
+from query.models.product import Product
+
 
 tag_tables = {
     "countries_tags": "product_countries_tag",
@@ -82,11 +84,11 @@ async def create_tables(connection):
         )
 
 
-async def create_tag(connection, tag, product_id, value, obsolete=False):
+async def create_tag(connection, tag, product: Product, value, obsolete=False):
     tag_table = tag_tables[tag]
     await connection.execute(
         f"INSERT INTO {tag_table} (product_id, value, obsolete) VALUES ($1, $2, $3)",
-        product_id,
+        product.id,
         value,
         obsolete,
     )

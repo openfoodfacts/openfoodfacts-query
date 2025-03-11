@@ -3,7 +3,8 @@ from typing import Dict, List
 
 from fastapi import HTTPException, status
 from query.database import database_connection
-from query.models.query import AggregateCountResult, AggregateResult, Filter, GroupStage, Stage
+from query.models.query import AggregateCountResult, AggregateResult, Filter, FindQuery, GroupStage, Stage
+from query.tables.country import get_country
 from query.tables.product import product_filter_fields
 from query.tables.product_tags import tag_tables
 from query.tables.loaded_tag import get_loaded_tags
@@ -60,6 +61,16 @@ async def aggregate(stages: List[Stage], obsolete = False):
             return result
         else:
             return [AggregateResult(id=row["id"], count=row["count"]) for row in results]
+
+
+async def find(query: FindQuery):
+    async with database_connection() as conn:
+        country_tag = getattr(query.filter, 'countries-tags')
+        country = await get_country(conn, country_tag)
+        sql = f"SELECT p.code FROM product_country pc JOIN product p ON p.id = pc.product_id WHERE pc.country_id = $1 ORDER BY pc.recent_scans DESC"
+        logger.debug(f"Find: SQL:  {sql}")
+        results = await conn.fetch(sql, country.id)
+        return [result['code'] for result in results]
 
 
 def append_sql_fragments(

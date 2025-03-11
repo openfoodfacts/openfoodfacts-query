@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 import typing
 from pydantic import BaseModel, ConfigDict, Field, create_model
 from query.tables.product_tags import tag_tables
@@ -55,3 +55,17 @@ class AggregateResult(BaseModel, populate_by_name=True):
 
 class AggregateCountResult(BaseModel, extra="allow"):
     __pydantic_extra__: Dict[str, int]
+
+class SortDirection(int, Enum):
+    asc = 1
+    desc = -1
+    
+class SortColumn(str, Enum):
+    popularity = "popularity_key"
+
+class FindQuery(BaseModel):
+  filter: Filter
+  projection: Dict[str, bool]
+  sort: List[Tuple[SortColumn, SortDirection]]
+  limit: int = None
+  skip: int = None

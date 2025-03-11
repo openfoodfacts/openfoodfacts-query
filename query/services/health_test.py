@@ -1,18 +1,12 @@
 from unittest.mock import patch
 from query.models.health import HealthItemStatusEnum, HealthStatusEnum
 from query.services.health import check_health
+from query.test_helper import mock_cursor, error_cursor
 
 
-class MockMongoClient:
-    class Admin:
-        async def command(*args):
-            pass
-
-    admin = Admin()
-
-
-@patch("query.services.health.AsyncIOMotorClient", return_value=MockMongoClient())
+@patch("query.services.health.find_products")
 async def test_health_should_return_healthy(mocked_mongo):
+    mocked_mongo.return_value.__aenter__.return_value = mock_cursor([])
     my_health = await check_health()
     assert mocked_mongo.called
     assert my_health.status == HealthStatusEnum.ok
@@ -21,8 +15,9 @@ async def test_health_should_return_healthy(mocked_mongo):
     assert my_health.info['redis'].status == HealthItemStatusEnum.up
 
 
-@patch("query.services.health.AsyncIOMotorClient", side_effect=Exception("mongodb is down"))
+@patch("query.services.health.find_products")
 async def test_health_should_return_unhealthy_if_mongodb_is_down(mocked_mongo):
+    mocked_mongo.return_value.__aenter__.return_value = error_cursor("mongodb is down")
     my_health = await check_health()
     assert mocked_mongo.called
     assert my_health.status == HealthStatusEnum.error

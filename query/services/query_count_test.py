@@ -14,9 +14,11 @@ from query.test_helper import random_code
 
 
 async def create_random_product(connection, creator=None, obsolete=False):
-    return await create_product(
-        connection, Product(code=random_code(), creator=creator, obsolete=obsolete)
+    product = Product(code=random_code(), creator=creator, obsolete=obsolete)
+    await create_product(
+        connection, product
     )
+    return product
 
 
 async def test_count_the_number_of_products_with_a_tag():
@@ -80,10 +82,10 @@ class TagValues(BaseModel):
     amino_value2: str
     neucleotide_value: str
     creator_value: str
-    product1: int
-    product2: int
-    product3: int
-    product4: int
+    product1: Product
+    product2: Product
+    product3: Product
+    product4: Product
 
 
 async def create_test_tags(connection):

@@ -1,3 +1,8 @@
+from typing import List
+
+from query.models.country import Country
+
+
 async def create_table(connection):
     await connection.execute(
         'create table "country" ("id" serial primary key, "code" text null, "tag" text not null);',
@@ -21,3 +26,30 @@ async def create_table(connection):
         ON CONFLICT (tag) DO NOTHING"""
     )
 
+
+async def create_country(connection, country: Country):
+    result = await connection.fetchrow(
+        """INSERT INTO country (tag, code)
+            VALUES ($1, $2) RETURNING id""",
+        country.tag, country.code
+    )
+    country.id = result['id']
+    return country
+
+
+async def create_missing_countries(connection, countries: List[Country]):
+    await connection.executemany(
+        """INSERT INTO country (tag, code)
+            SELECT $1, $2 WHERE NOT EXISTS
+                (SELECT * FROM country WHERE tag = $1 AND COALESCE(code, '') = COALESCE($2, '')
+            ON CONFLICT (tag) 
+            DO UPDATE SET code = EXCLUDED.code""",
+        {[c.tag, c.code] for c in countries}
+    )
+
+async def get_country(connection, tag):
+    result = await connection.fetchrow(
+        """SELECT id, tag, code FROM country WHERE tag = $1""",
+       tag
+    )
+    return Country.model_validate(dict(result))

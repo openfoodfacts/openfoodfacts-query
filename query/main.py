@@ -7,6 +7,7 @@ from query.database import database_connection
 from query.migrator import migrate_database
 from query.models.query import AggregateCountResult, AggregateResult, Filter, Stage
 from query.models.health import Health
+from query.mongodb import find_products
 from query.services import query
 from query.services.health import check_health
 
@@ -39,3 +40,11 @@ async def aggregate(
     stages: List[Stage], obsolete: bool = False
 ) -> List[AggregateResult] | AggregateCountResult:
     return await query.aggregate(stages, obsolete)
+
+@app.post("/find")
+async def find(filter: Filter):
+    results = []
+    async with find_products(filter, {"code": True, "product_name": True}) as cursor:
+        async for result in cursor:
+            results.append(result)
+    return results

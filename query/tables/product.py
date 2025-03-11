@@ -47,4 +47,4 @@ async def create_product(connection: Connection, product: Product):
         product.creator,
         product.obsolete,
     )
-    return record["id"]
+    product.id = record["id"]
