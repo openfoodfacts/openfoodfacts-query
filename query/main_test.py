@@ -1,12 +1,12 @@
 from fastapi.testclient import TestClient
 from fastapi import status
-from query.db import Database
+from query.database import database_connection
 from query.main import app
 from query.services.query_count_test import create_test_tags
 
 
 async def test_count_route():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
     
     client = TestClient(app)
@@ -17,7 +17,7 @@ async def test_count_route():
 
 
 async def test_count_obsolete():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
     
     client = TestClient(app)
@@ -44,7 +44,7 @@ async def test_count_invalid_qualifier():
 
 
 async def test_aggregate_obsolete():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
     client = TestClient(app)
     response = client.post("/aggregate?obsolete=1", json=[{"$match":{"amino_acids_tags": tags.amino_value}}, {"$group":{"_id":"$origins_tags"}}])

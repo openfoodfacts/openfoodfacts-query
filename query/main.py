@@ -3,7 +3,7 @@ import logging
 from typing import List
 from fastapi import FastAPI
 
-from query.db import Database
+from query.database import database_connection
 from query.migrator import migrate_database
 from query.models.query import AggregateCountResult, AggregateResult, Filter, Stage
 from query.models.health import Health
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_):
     # Run migrations
-    async with Database() as conn:
+    async with database_connection() as conn:
         await migrate_database(conn)
     yield
 

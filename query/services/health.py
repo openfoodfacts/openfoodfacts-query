@@ -1,6 +1,6 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 import redis.asyncio as redis
-from query.db import Database
+from query.database import database_connection
 from query.config import config_settings
 from query.models.health import Health, HealthItemStatusEnum
 
@@ -9,7 +9,7 @@ async def check_health():
     health = Health()
 
     try:
-        async with Database() as conn:
+        async with database_connection() as conn:
             await conn.fetch("SELECT 1 FROM product LIMIT 1")
         health.add("postgres", HealthItemStatusEnum.up)
     except Exception as e:

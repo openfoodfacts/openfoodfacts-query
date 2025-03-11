@@ -2,7 +2,7 @@ import logging
 from typing import Dict, List
 
 from fastapi import HTTPException, status
-from query.db import Database
+from query.database import database_connection
 from query.models.query import AggregateCountResult, AggregateResult, Filter, GroupStage, Stage
 from query.tables.product import product_filter_fields
 from query.tables.product_tags import tag_tables
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 async def count(filter: Filter = None, obsolete=False):
-    async with Database() as conn:
+    async with database_connection() as conn:
         sql_fragments = []
         params = []
         loaded_tags = await get_loaded_tags(conn)
@@ -27,7 +27,7 @@ async def count(filter: Filter = None, obsolete=False):
 
 
 async def aggregate(stages: List[Stage], obsolete = False):
-    async with Database() as conn:
+    async with database_connection() as conn:
         sql_fragments = []
         params = []
         loaded_tags = await get_loaded_tags(conn)

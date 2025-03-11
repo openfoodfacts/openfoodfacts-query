@@ -4,7 +4,7 @@ from uuid import uuid4
 from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
 import pytest
-from query.db import Database
+from query.database import database_connection
 from query.models.query import Filter, Qualify
 from query.models.product import Product
 import query.services.query as query
@@ -20,7 +20,7 @@ async def create_random_product(connection, creator=None, obsolete=False):
 
 
 async def test_count_the_number_of_products_with_a_tag():
-    async with Database() as connection:
+    async with database_connection() as connection:
         ingredient_value = random_code()
         # Create 2 products with the tag we want
         await create_tag(
@@ -48,7 +48,7 @@ async def test_count_the_number_of_products_with_a_tag():
 
 
 async def test_count_the_number_of_products_with_a_tag_and_not_another_tag():
-    async with Database() as connection:
+    async with database_connection() as connection:
         # Create some dummy products with a specific tag
         tag_value = random_code()
         not_tag_value = random_code()
@@ -134,7 +134,7 @@ async def create_test_tags(connection):
 
 
 async def test_count_the_number_of_products_without_a_specified_tag():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -174,7 +174,7 @@ async def test_throw_and_unprocessable_exception_for_an_unrecognized_value_objec
 
 
 async def test_cope_with_more_than_two_filters():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -187,35 +187,35 @@ async def test_cope_with_more_than_two_filters():
 
 
 async def test_cope_with_an_empty_filter():
-    async with Database() as connection:
+    async with database_connection() as connection:
         await create_test_tags(connection)
         response = await query.count(Filter())
         assert response > 2
 
 
 async def test_cope_with_no_filters():
-    async with Database() as connection:
+    async with database_connection() as connection:
         await create_test_tags(connection)
         response = await query.count()
         assert response > 2
 
 
 async def test_be_able_to_count_obsolete_products():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(Filter(origins_tags=tags.origin_value), True)
         assert response == 1
 
 
 async def test_be_able_to_count_not_obsolete_products():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(Filter(origins_tags=tags.origin_value), False)
         assert response == 3
 
 
 async def test_cope_with_an_all_filter():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -228,7 +228,7 @@ async def test_cope_with_an_all_filter():
 
 
 async def test_cope_with_an_and_filter():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -242,7 +242,7 @@ async def test_cope_with_an_and_filter():
 
 
 async def test_cope_with_an_in_value():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -263,7 +263,7 @@ async def test_throw_an_unprocessable_exception_if_an_in_contains_a_sub_array():
 
 
 async def test_cope_with_an_in_unknown_value():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -275,7 +275,7 @@ async def test_cope_with_an_in_unknown_value():
 
 
 async def test_count_with_a_product_field():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -287,7 +287,7 @@ async def test_count_with_a_product_field():
 
 
 async def test_count_with_in_on_a_product_field():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -299,7 +299,7 @@ async def test_count_with_in_on_a_product_field():
 
 
 async def test_count_with_nin_on_a_product_field():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -311,7 +311,7 @@ async def test_count_with_nin_on_a_product_field():
 
 
 async def test_cope_with_an_in_unknown_value_on_a_product_field():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -323,7 +323,7 @@ async def test_cope_with_an_in_unknown_value_on_a_product_field():
 
 
 async def test_cope_with_nin():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -337,7 +337,7 @@ async def test_cope_with_nin():
 
 
 async def test_cope_with_nin_unknown():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(
@@ -349,7 +349,7 @@ async def test_cope_with_nin_unknown():
 
 
 async def test_cope_with_nin_unknown_on_a_product_field():
-    async with Database() as connection:
+    async with database_connection() as connection:
         tags = await create_test_tags(connection)
         response = await query.count(
             Filter(

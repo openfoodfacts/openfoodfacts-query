@@ -1,4 +1,4 @@
-from query.db import config_settings
+from query.database import config_settings
 
 async def create_view(connection):
     await connection.execute(

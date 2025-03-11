@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 import pytest
-from query.db import Database, config_settings
+from query.database import database_connection, config_settings
 from query.migrator import migrate_database
 
 
