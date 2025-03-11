@@ -41,3 +41,16 @@ async def test_count_invalid_qualifier():
     response = client.post("/count", json={"origins_tags":{"$invalid": [1,2]}})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     assert "$invalid" in response.text
+
+
+async def test_aggregate_obsolete():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+    client = TestClient(app)
+    response = client.post("/aggregate?obsolete=1", json=[{"$match":{"amino_acids_tags": tags.amino_value}}, {"$group":{"_id":"$origins_tags"}}])
+    assert response.status_code == status.HTTP_200_OK
+    response_data = response.json()
+    assert len(response_data) == 1
+    assert response_data[0]['_id'] == tags.origin_value
+    assert response_data[0]['count'] == 1
+    

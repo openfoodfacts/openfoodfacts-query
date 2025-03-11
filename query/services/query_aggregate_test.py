@@ -1,5 +1,7 @@
+from pydantic import ValidationError
+import pytest
 from query.db import Database
-from query.models.query import Filter, GroupStage, Stage
+from query.models.query import Filter, GroupStage, Qualify, Stage
 from query.services import query
 from query.services.query_count_test import create_test_tags
 
@@ -42,96 +44,95 @@ async def test_filter_products_when_grouping_by_a_product_field():
         assert len(my_result) == 1
         assert my_result[0].count == 1
 
-#   it('should filter products when grouping by a product field', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { amino_value, creator_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.aggregate([
-#         { $match: { amino_acids_tags: amino_value } },
-#         { $group: { _id: '$creator' } },
-#       ]);
-#       const my_tag = response.find((r) => r._id === creator_value);
-#       expect(my_tag).to_be_truthy();
-#       expect(parse_int(my_tag.count)).to_be(1);
-#     });
-#   });
 
-#   it('should group products when filtering by a product field', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { amino_value, creator_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.aggregate([
-#         { $match: { creator: creator_value } },
-#         { $group: { _id: '$amino_acids_tags' } },
-#       ]);
-#       const my_tag = response.find((r) => r._id === amino_value);
-#       expect(my_tag).to_be_truthy();
-#       expect(parse_int(my_tag.count)).to_be(1);
-#     });
-#   });
+async def test_group_products_when_filtering_by_a_product_field():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.aggregate(
+            [
+                Stage(match=Filter(creator=tags.creator_value)),
+                Stage(group=GroupStage(id="$amino_acids_tags")),
+            ]
+        )
+        my_result = [result for result in response if result.id == tags.amino_value]
+        assert len(my_result) == 1
+        assert my_result[0].count == 1
 
-#   it('should be able to do not filtering', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value, amino_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.aggregate([
-#         { $match: { amino_acids_tags: { $ne: amino_value } } },
-#         { $group: { _id: '$origins_tags' } },
-#       ]);
-#       const my_tag = response.find((r) => r._id === origin_value);
-#       expect(my_tag).to_be_truthy();
-#       expect(parse_int(my_tag.count)).to_be(1);
-#     });
-#   });
 
-#   it('should be able to just count', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const query_service = app.get(query_service);
-#       const query: aggregate_query = [
-#         { $match: {} },
-#         { $group: { _id: '$origins_tags' } },
-#         { $count: 1 },
-#       ];
-#       const before_response = await query_service.aggregate(query);
-#       const before_count = parse_int(before_response['origins_tags']);
+async def test_able_to_do_not_filtering():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.aggregate(
+            [
+                Stage(
+                    match=Filter(amino_acids_tags=Qualify(qualify_ne=tags.amino_value))
+                ),
+                Stage(group=GroupStage(id="$origins_tags")),
+            ]
+        )
+        my_result = [result for result in response if result.id == tags.origin_value]
+        assert len(my_result) == 1
+        assert my_result[0].count == 1
 
-#       await create_test_tags(app);
-#       const response = await query_service.aggregate(query);
-#       expect(parse_int(response['origins_tags'])).to_be(before_count + 1);
-#     });
-#   });
 
-#   it('should cope with multiple filters', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value, amino_value, neucleotide_value } =
-#         await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.aggregate([
-#         {
-#           $match: {
-#             amino_acids_tags: amino_value,
-#             nucleotides_tags: neucleotide_value,
-#           },
-#         },
-#         { $group: { _id: '$origins_tags' } },
-#       ]);
-#       const my_tag = response.find((r) => r._id === origin_value);
-#       expect(my_tag).to_be_truthy();
-#       expect(parse_int(my_tag.count)).to_be(1);
-#     });
-#   });
+async def test_able_to_just_count():
+    async with Database() as connection:
+        await create_test_tags(connection)
+        aggregate_query = [
+            Stage(match=Filter()),
+            Stage(group=GroupStage(id="$origins_tags")),
+            Stage(count=1),
+        ]
+        before_response = await query.aggregate(aggregate_query)
+        before_count = getattr(before_response, "origins_tags")
 
-#   it('should be able to group obsolete products', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const { origin_value } = await create_test_tags(app);
-#       const query_service = app.get(query_service);
-#       const response = await query_service.aggregate(
-#         [{ $match: {} }, { $group: { _id: '$origins_tags' } }],
-#         true,
-#       );
-#       const my_tag = response.find((r) => r._id === origin_value);
-#       expect(my_tag).to_be_truthy();
-#       expect(parse_int(my_tag.count)).to_be(1);
-#     });
-#   });
-# });
+        await create_test_tags(connection)
+        after_response = await query.aggregate(aggregate_query)
+        after_count = getattr(after_response, "origins_tags")
+        assert after_count == before_count + 1
+
+
+async def test_cope_with_multiple_filters():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.aggregate(
+            [
+                Stage(
+                    match=Filter(
+                        amino_acids_tags=tags.amino_value,
+                        nucleotides_tags=tags.neucleotide_value,
+                    )
+                ),
+                Stage(group=GroupStage(id="$origins_tags")),
+            ]
+        )
+        my_result = [result for result in response if result.id == tags.origin_value]
+        assert len(my_result) == 1
+        assert my_result[0].count == 1
+
+
+async def test_able_to_group_obsolete_products():
+    async with Database() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.aggregate(
+            [
+                Stage(match=Filter()),
+                Stage(group=GroupStage(id="$origins_tags")),
+            ], True
+        )
+        my_result = [result for result in response if result.id == tags.origin_value]
+        assert len(my_result) == 1
+        assert my_result[0].count == 1
+
+
+async def test_throw_exception_for_unrecognized_group_field():
+    with pytest.raises(ValidationError) as e:
+        await query.aggregate(
+            [
+                Stage(match=Filter()),
+                Stage(group=GroupStage(id="$invalid_tag")),
+            ], True
+        )
+    main_error = e.value.errors()[0]
+    assert main_error["type"] == "enum"
+    assert main_error["loc"][0] == "id"

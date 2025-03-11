@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from fastapi import HTTPException, status
 from query.db import Database
-from query.models.query import AggregateResult, Filter, GroupStage, Stage
+from query.models.query import AggregateCountResult, AggregateResult, Filter, GroupStage, Stage
 from query.tables.product import product_filter_fields
 from query.tables.product_tags import tag_tables
 from query.tables.loaded_tag import get_loaded_tags
@@ -26,14 +26,15 @@ async def count(filter: Filter = None, obsolete=False):
         return results["count"]
 
 
-async def aggregate(stages: List[Stage]):
+async def aggregate(stages: List[Stage], obsolete = False):
     async with Database() as conn:
         sql_fragments = []
         params = []
         loaded_tags = await get_loaded_tags(conn)
         group = [stage.group for stage in stages if stage.group][0]
         filter = [stage.match for stage in stages if stage.match][0]
-        tag = group.id[1:]
+        is_count = [stage.count for stage in stages if stage.count]
+        tag = group.id.value[1:]
         is_product_filter = tag in product_filter_fields.keys()
 
         table_name = "product" if is_product_filter else tag_tables[tag]
@@ -46,11 +47,19 @@ async def aggregate(stages: List[Stage]):
                 params,
                 sql_fragments,
             )
-        sql = f"SELECT {column_name} id, count(*) count FROM {table_name} p WHERE {column_name} IS NOT NULL AND NOT obsolete{''.join(sql_fragments)} GROUP BY {column_name} ORDER BY 2 DESC"
+        if is_count:
+            sql = f"SELECT count(*) count FROM (SELECT DISTINCT {column_name} FROM {table_name} p WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)})"
+        else:
+            sql = f"SELECT {column_name} id, count(*) count FROM {table_name} p WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)} GROUP BY {column_name} ORDER BY 2 DESC"
         logger.debug(f"Aggregate: SQL:  {sql}")
         logger.debug(f"Aggregate: Args: {repr(params)}")
         results = await conn.fetch(sql, *params)
-        return [AggregateResult(id=row["id"], count=row["count"]) for row in results]
+        if is_count:
+            result = AggregateCountResult()
+            setattr(result, tag, results[0]['count'])
+            return result
+        else:
+            return [AggregateResult(id=row["id"], count=row["count"]) for row in results]
 
 
 def append_sql_fragments(
@@ -93,27 +102,30 @@ def append_sql_fragments(
                 # TODO throw exception if unknown object (although Pydantic may never allow this)
 
             for tag_value in values:
-                value_placeholder = ""
+                where_expression = ""
                 field = product_filter_fields[tag] if is_product_filter else "value"
                 if tag_value != None:
                     params.append(tag_value)
                     if isinstance(tag_value, List):
-                        value_placeholder = (
+                        where_expression = (
                             f" AND {field} = ANY(${len(params)}::text[])"
                         )
                     else:
-                        value_placeholder = f" AND {field} = ${len(params)}"
+                        where_expression = f" AND {field} = ${len(params)}"
 
                 if is_product_filter:
                     if tag_value == None:
-                        sql_fragments.append(
-                            f" AND {field} IS {'' if is_not else 'NOT '}NULL"
-                        )
+                        where_expression = f" AND {field} IS {'' if is_not else 'NOT '}NULL"
                     else:
                         if is_not:
-                            value_placeholder = f" AND ({field} IS NULL OR {value_placeholder.replace(' AND ', ' NOT ')})"
-                        sql_fragments.append(f"{value_placeholder}")
+                            where_expression = f" AND ({field} IS NULL OR {where_expression.replace(' AND ', ' NOT ')})"
+                    # If parent is the product table then we can just add the where clause. Otherwise need an EXISTS
+                    if parent_id_column == "id":
+                        sql_fragments.append(where_expression)
+                    else:
+                        sql_fragments.append(f" AND EXISTS (SELECT * FROM product WHERE id = p.product_id{where_expression})")
+                        
                 else:
                     sql_fragments.append(
-                        f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {tag_tables[tag]} WHERE product_id = p.{parent_id_column}{value_placeholder})"
+                        f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {tag_tables[tag]} WHERE product_id = p.{parent_id_column}{where_expression})"
                     )

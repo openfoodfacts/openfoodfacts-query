@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Dict, List, Optional, Tuple
 import typing
 from pydantic import BaseModel, ConfigDict, Field, create_model
@@ -32,13 +33,25 @@ class Filter(Fragment, populate_by_name=True):
     # $and is only allowed on the root filter
     qualify_and: List[Fragment] | None = Field(alias="$and", default=None)
 
+
+GroupField = Enum('GroupFields',[ ('TAG1', '$tag1')]) 
+if not typing.TYPE_CHECKING:
+    GroupField = Enum('GroupFields',[ (key.replace("_", "-"), '$' + key) 
+            for key in (list(tag_tables.keys()) + list(product_filter_fields.keys()))
+        ])
+
 class GroupStage(BaseModel, populate_by_name=True, extra="forbid"):
-    id: str = Field(alias="_id", default=None)
+    # TODO: str below should be an enum of valid fields prefixed with dollar
+    id: GroupField = Field(alias="_id", default=None)
 
 class Stage(BaseModel, populate_by_name=True, extra="forbid"):
     match: Filter = Field(alias="$match", default=None)
     group: GroupStage = Field(alias="$group", default=None)
+    count: int = Field(alias="$count", default=None, multiple_of=1, le=1, ge=1)
 
 class AggregateResult(BaseModel, populate_by_name=True):
     id: str = Field(alias="_id", default=None)
     count: int
+
+class AggregateCountResult(BaseModel, extra="allow"):
+    __pydantic_extra__: Dict[str, int]
