@@ -17,7 +17,7 @@ async def check_health():
         health.add("postgres", HealthItemStatusEnum.down, str(e))
 
     try:
-        async with find_products(Filter(code='0'), {"_id": True}) as cursor:
+        async with find_products({"code": "0"}, {"_id": True}) as cursor:
             async for record in cursor:
                 pass
         health.add("mongodb", HealthItemStatusEnum.up)

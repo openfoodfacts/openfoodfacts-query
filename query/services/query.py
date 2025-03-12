@@ -4,6 +4,7 @@ from typing import Dict, List
 from fastapi import HTTPException, status
 from query.database import database_connection
 from query.models.query import AggregateCountResult, AggregateResult, Filter, FindQuery, GroupStage, Stage
+from query.mongodb import find_products
 from query.tables.country import get_country
 from query.tables.product import product_filter_fields
 from query.tables.product_tags import tag_tables
@@ -67,10 +68,18 @@ async def find(query: FindQuery):
     async with database_connection() as conn:
         country_tag = getattr(query.filter, 'countries-tags')
         country = await get_country(conn, country_tag)
-        sql = f"SELECT p.code FROM product_country pc JOIN product p ON p.id = pc.product_id WHERE pc.country_id = $1 ORDER BY pc.recent_scans DESC"
+        sql = f"SELECT p.code FROM product_country pc JOIN product p ON p.id = pc.product_id WHERE pc.country_id = $1 ORDER BY pc.recent_scans DESC, pc.total_scans DESC"
         logger.debug(f"Find: SQL:  {sql}")
         results = await conn.fetch(sql, country.id)
-        return [result['code'] for result in results]
+        product_codes = [result['code'] for result in results]
+        mongodb_filter = {"_id": product_codes}
+        mongodb_results = [None] * len(product_codes)
+        async with find_products(mongodb_filter, query.projection) as cursor:
+            async for result in cursor:
+                code_index = product_codes.index(result['code'])
+                mongodb_results[code_index] = result
+        
+        return mongodb_results
 
 
 def append_sql_fragments(
