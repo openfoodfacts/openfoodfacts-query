@@ -5,9 +5,11 @@ from fastapi import HTTPException, status
 from pydantic import BaseModel, ValidationError
 import pytest
 from query.database import database_connection
+from query.models.country import Country
 from query.models.query import Filter, Qualify
 from query.models.product import Product
 import query.services.query as query
+from query.tables.country import create_country
 from query.tables.product import create_product
 from query.tables.product_tags import create_tag
 from query.test_helper import random_code
@@ -82,6 +84,7 @@ class TagValues(BaseModel):
     amino_value2: str
     neucleotide_value: str
     creator_value: str
+    country: Country
     product1: Product
     product2: Product
     product3: Product
@@ -122,12 +125,16 @@ async def create_test_tags(connection):
     await create_tag(connection, "nucleotides_tags", product3, neucleotide_value)
     await create_tag(connection, "nucleotides_tags", product4, neucleotide_value, True)
 
+    country = Country(tag=random_code(), code=random_code())
+    await create_country(connection, country)
+
     return TagValues(
         origin_value=origin_value,
         amino_value=amino_value,
         amino_value2=amino_value2,
         neucleotide_value=neucleotide_value,
         creator_value=creator_value,
+        country=country,
         product1=product1,
         product2=product2,
         product3=product3,

@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 import logging
-from typing import List
+from typing import Dict, List
 from fastapi import FastAPI
 
 from query.database import database_connection
@@ -41,5 +41,5 @@ async def aggregate(
     return await query.aggregate(stages, obsolete)
 
 @app.post("/find")
-async def find(find_query: FindQuery):
-    return await query.find(find_query)
+async def find(find_query: FindQuery, obsolete: bool = False) -> List[Dict]:
+    return await query.find(find_query, obsolete)

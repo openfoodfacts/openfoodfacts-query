@@ -52,6 +52,7 @@ async def aggregate(stages: List[Stage], obsolete = False):
         if is_count:
             sql = f"SELECT count(*) count FROM (SELECT DISTINCT {column_name} FROM {table_name} p WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)})"
         else:
+            # TODO: Implement skip and limit
             sql = f"SELECT {column_name} id, count(*) count FROM {table_name} p WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)} GROUP BY {column_name} ORDER BY 2 DESC"
         logger.debug(f"Aggregate: SQL:  {sql}")
         logger.debug(f"Aggregate: Args: {repr(params)}")
@@ -64,15 +65,48 @@ async def aggregate(stages: List[Stage], obsolete = False):
             return [AggregateResult(id=row["id"], count=row["count"]) for row in results]
 
 
-async def find(query: FindQuery):
+async def find(query: FindQuery, obsolete = False):
     async with database_connection() as conn:
         country_tag = getattr(query.filter, 'countries-tags')
-        country = await get_country(conn, country_tag)
-        sql = f"SELECT p.code FROM product_country pc JOIN product p ON p.id = pc.product_id WHERE pc.country_id = $1 ORDER BY pc.recent_scans DESC, pc.total_scans DESC"
-        logger.debug(f"Find: SQL:  {sql}")
-        results = await conn.fetch(sql, country.id)
+        country = await get_country(conn, country_tag) if country_tag else await get_country(conn, "en:world")
+        if country_tag:
+            delattr(query.filter, 'countries-tags')
+
+        sql_fragments = []
+        params = [country.id]
+        loaded_tags = await get_loaded_tags(conn)
+        if query.filter:
+            append_sql_fragments(
+                query.filter,
+                loaded_tags,
+                "product_id",
+                params,
+                sql_fragments,
+            )
+        limit_clause = ""
+        if (query.limit):
+            params.append(query.limit)
+            limit_clause += f" LIMIT ${len(params)}"
+        if (query.skip):
+            params.append(query.skip)
+            limit_clause += f" OFFSET ${len(params)}"
+            
+        sql = f"""SELECT p.code FROM product p 
+            JOIN product_country pc ON pc.product_id = p.id AND pc.country_id = $1
+            WHERE p.id IN (SELECT p.product_id
+                FROM product_country p
+                WHERE p.country_id = $1 
+                AND {'' if obsolete else 'NOT '}p.obsolete
+                {''.join(sql_fragments)}
+                ORDER BY p.recent_scans DESC, p.total_scans DESC, p.product_id
+                {limit_clause})
+            ORDER BY pc.recent_scans DESC, pc.total_scans DESC, pc.product_id"""
+        logger.info(f"Find: SQL:  {sql}")
+        logger.info(f"Find: Args: {repr(params)}")
+        results = await conn.fetch(sql, *params)
         product_codes = [result['code'] for result in results]
-        mongodb_filter = {"_id": product_codes}
+        logger.info(f"Find: Codes: {repr(product_codes)}")
+        mongodb_filter = {"_id": {"$in": product_codes}}
         mongodb_results = [None] * len(product_codes)
         async with find_products(mongodb_filter, query.projection) as cursor:
             async for result in cursor:
