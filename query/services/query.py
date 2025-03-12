@@ -39,6 +39,17 @@ async def aggregate(stages: List[Stage], obsolete = False):
         tag = group.id.value[1:]
         is_product_filter = tag in product_filter_fields.keys()
 
+        limit = [stage.limit for stage in stages if stage.limit]
+        skip = [stage.skip for stage in stages if stage.skip]
+
+        limit_clause = ""
+        if (limit):
+            params.append(limit[0])
+            limit_clause += f" LIMIT ${len(params)}"
+        if (skip):
+            params.append(skip[0])
+            limit_clause += f" OFFSET ${len(params)}"
+
         table_name = "product" if is_product_filter else tag_tables[tag]
         column_name = product_filter_fields[tag] if is_product_filter else "value"
         if filter:
@@ -50,10 +61,13 @@ async def aggregate(stages: List[Stage], obsolete = False):
                 sql_fragments,
             )
         if is_count:
-            sql = f"SELECT count(*) count FROM (SELECT DISTINCT {column_name} FROM {table_name} p WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)})"
+            sql = f"""SELECT count(*) count FROM 
+                (SELECT DISTINCT {column_name} FROM {table_name} p 
+                WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)})"""
         else:
-            # TODO: Implement skip and limit
-            sql = f"SELECT {column_name} id, count(*) count FROM {table_name} p WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)} GROUP BY {column_name} ORDER BY 2 DESC"
+            sql = f"""SELECT {column_name} id, count(*) count FROM {table_name} p
+                WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)}
+                GROUP BY {column_name} ORDER BY 2 DESC, 1{limit_clause}"""
         logger.debug(f"Aggregate: SQL:  {sql}")
         logger.debug(f"Aggregate: Args: {repr(params)}")
         results = await conn.fetch(sql, *params)

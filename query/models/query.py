@@ -48,6 +48,8 @@ class Stage(BaseModel, populate_by_name=True, extra="forbid"):
     match: Filter = Field(alias="$match", default=None)
     group: GroupStage = Field(alias="$group", default=None)
     count: int = Field(alias="$count", default=None, multiple_of=1, le=1, ge=1)
+    limit: int = Field(alias="$limit", default=None)
+    skip: int = Field(alias="$skip", default=None)
 
 class AggregateResult(BaseModel, populate_by_name=True):
     id: str = Field(alias="_id", default=None)

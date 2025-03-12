@@ -54,9 +54,45 @@ async def test_group_products_when_filtering_by_a_product_field():
                 Stage(group=GroupStage(id="$amino_acids_tags")),
             ]
         )
-        my_result = [result for result in response if result.id == tags.amino_value]
-        assert len(my_result) == 1
-        assert my_result[0].count == 1
+
+        assert len(response) == 2
+        assert response[0].count == 2
+        assert response[0].id == tags.amino_value2
+        assert response[1].count == 1
+        assert response[1].id == tags.amino_value
+
+
+async def test_limit():
+    async with database_connection() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.aggregate(
+            [
+                Stage(match=Filter(creator=tags.creator_value)),
+                Stage(group=GroupStage(id="$amino_acids_tags")),
+                Stage(limit=1)
+            ]
+        )
+
+        assert len(response) == 1
+        assert response[0].count == 2
+        assert response[0].id == tags.amino_value2
+
+
+async def test_skip():
+    async with database_connection() as connection:
+        tags = await create_test_tags(connection)
+        response = await query.aggregate(
+            [
+                Stage(match=Filter(creator=tags.creator_value)),
+                Stage(group=GroupStage(id="$amino_acids_tags")),
+                Stage(limit=1),
+                Stage(skip=1)
+            ]
+        )
+
+        assert len(response) == 1
+        assert response[0].count == 1
+        assert response[0].id == tags.amino_value
 
 
 async def test_able_to_do_not_filtering():
@@ -136,5 +172,3 @@ async def test_throw_exception_for_unrecognized_group_field():
     main_error = e.value.errors()[0]
     assert main_error["type"] == "enum"
     assert main_error["loc"][0] == "id"
-
-# TODO: Test limit and skip
