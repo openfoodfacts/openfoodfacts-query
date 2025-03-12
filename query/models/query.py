@@ -23,7 +23,7 @@ class Fragment(BaseModel, extra="allow"):
 if not typing.TYPE_CHECKING:
     keys = {
         key.replace("_", "-"): (str | Qualify, Field(alias=key, default=None))
-        for key in (list(tag_tables.keys()) + list(product_filter_fields.keys()))
+        for key in (list(tag_tables.keys()) + product_filter_fields())
     }
     keys["model_config"] = ConfigDict(extra="forbid")
     Fragment = create_model("Fragment", __base__=Fragment, **keys)
@@ -37,7 +37,7 @@ class Filter(Fragment, populate_by_name=True):
 GroupField = Enum('GroupFields',[ ('TAG1', '$tag1')]) 
 if not typing.TYPE_CHECKING:
     GroupField = Enum('GroupFields',[ (key.replace("_", "-"), '$' + key) 
-            for key in (list(tag_tables.keys()) + list(product_filter_fields.keys()))
+            for key in (list(tag_tables.keys()) + product_filter_fields())
         ])
 
 class GroupStage(BaseModel, populate_by_name=True, extra="forbid"):

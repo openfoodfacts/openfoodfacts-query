@@ -1,8 +1,9 @@
-from pydantic import BaseModel
+from dataclasses import dataclass
 
 
-class Product(BaseModel):
-    id: int = None
+@dataclass
+class Product():
     code: str
     creator: str | None = None
     obsolete: bool | None = False
+    id: int = None

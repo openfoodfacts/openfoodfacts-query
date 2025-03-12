@@ -2,13 +2,21 @@ from asyncpg import Connection, Record
 
 from query.models.product import Product
 
-product_filter_fields = {
+product_fields = {
     "code": "code",
     "product_name": "name",
     "creator": "creator",
     "owners_tags": "owners_tags",
+    "last_modified_t": None,  # Note we actually use last_updated_t for checks but not all products may have this
+    "last_updated_t": "last_updated",
+    "ingredients_n": "ingredients_count",
+    "ingredients_without_ciqual_codes_n": "ingredients_without_ciqual_codes_count",
+    "ingredients": None,
+    "rev": "revision",
 }
 
+def product_filter_fields():
+    return [key for key,value in product_fields.items() if value]
 
 async def create_table(connection: Connection):
     await connection.execute(
@@ -41,10 +49,9 @@ async def create_table(connection: Connection):
 
 
 async def create_product(connection: Connection, product: Product):
-    record = await connection.fetchrow(
+    product.id = await connection.fetchval(
         "INSERT INTO product (code, creator, obsolete) VALUES ($1, $2, $3) RETURNING id",
         product.code,
         product.creator,
         product.obsolete,
     )
-    product.id = record["id"]

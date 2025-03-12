@@ -6,7 +6,7 @@ from query.database import database_connection
 from query.models.query import AggregateCountResult, AggregateResult, Filter, FindQuery, GroupStage, Stage
 from query.mongodb import find_products
 from query.tables.country import get_country
-from query.tables.product import product_filter_fields
+from query.tables.product import product_filter_fields, product_fields
 from query.tables.product_tags import tag_tables
 from query.tables.loaded_tag import get_loaded_tags
 
@@ -24,8 +24,7 @@ async def count(filter: Filter = None, obsolete=False):
         sql = f"SELECT count(*) count FROM product p WHERE {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)}"
         logger.debug(f"Count: SQL:  {sql}")
         logger.debug(f"Count: Args: {repr(params)}")
-        results = await conn.fetchrow(sql, *params)
-        return results["count"]
+        return await conn.fetchval(sql, *params)
 
 
 async def aggregate(stages: List[Stage], obsolete = False):
@@ -37,7 +36,7 @@ async def aggregate(stages: List[Stage], obsolete = False):
         filter = [stage.match for stage in stages if stage.match][0]
         is_count = [stage.count for stage in stages if stage.count]
         tag = group.id.value[1:]
-        is_product_filter = tag in product_filter_fields.keys()
+        is_product_filter = tag in product_filter_fields()
 
         limit = [stage.limit for stage in stages if stage.limit]
         skip = [stage.skip for stage in stages if stage.skip]
@@ -51,7 +50,7 @@ async def aggregate(stages: List[Stage], obsolete = False):
             limit_clause += f" OFFSET ${len(params)}"
 
         table_name = "product" if is_product_filter else tag_tables[tag]
-        column_name = product_filter_fields[tag] if is_product_filter else "value"
+        column_name = product_fields[tag] if is_product_filter else "value"
         if filter:
             append_sql_fragments(
                 filter,
@@ -122,12 +121,13 @@ async def find(query: FindQuery, obsolete = False):
         logger.info(f"Find: Codes: {repr(product_codes)}")
         mongodb_filter = {"_id": {"$in": product_codes}}
         mongodb_results = [None] * len(product_codes)
-        async with find_products(mongodb_filter, query.projection) as cursor:
+        async with find_products(mongodb_filter, query.projection, obsolete) as cursor:
             async for result in cursor:
                 code_index = product_codes.index(result['code'])
                 mongodb_results[code_index] = result
         
-        return mongodb_results
+        # Eliminate any None's from the result. Note this should only happen if there is a mismatch between off-query and MongoDB
+        return [result for result in mongodb_results if result]
 
 
 def append_sql_fragments(
@@ -138,7 +138,7 @@ def append_sql_fragments(
         for tag, value in fragment.model_dump(
             exclude_defaults=True, by_alias=True
         ).items():
-            is_product_filter = tag in product_filter_fields.keys()
+            is_product_filter = tag in product_filter_fields()
             if not is_product_filter and tag not in loaded_tags:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded"
@@ -171,7 +171,7 @@ def append_sql_fragments(
 
             for tag_value in values:
                 where_expression = ""
-                field = product_filter_fields[tag] if is_product_filter else "value"
+                field = product_fields[tag] if is_product_filter else "value"
                 if tag_value != None:
                     params.append(tag_value)
                     if isinstance(tag_value, List):

@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+from dataclasses import dataclass
 
 
-class Country(BaseModel):
-    id: int = None
+@dataclass
+class Country():
     tag: str
     code: str | None = None
+    id: int = None

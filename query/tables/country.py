@@ -28,12 +28,11 @@ async def create_table(connection):
 
 
 async def create_country(connection, country: Country):
-    result = await connection.fetchrow(
+    country.id = await connection.fetchval(
         """INSERT INTO country (tag, code)
             VALUES ($1, $2) RETURNING id""",
         country.tag, country.code
     )
-    country.id = result['id']
     return country
 
 
@@ -52,4 +51,4 @@ async def get_country(connection, tag):
         """SELECT id, tag, code FROM country WHERE tag = $1""",
        tag
     )
-    return Country.model_validate(dict(result))
+    return Country(result['tag'], result['code'], result['id'])

@@ -10,7 +10,7 @@ from query.config import config_settings
 async def find_products(filter: Dict[str, Any], projection: Dict[str,bool], obsolete = False):
     client = AsyncIOMotorClient(config_settings.MONGO_URI, serverSelectionTimeoutMS=1000)
     db = client.get_database('off')
-    collection = db.get_collection('products')
+    collection = db.get_collection(f"products{'_obsolete' if obsolete else ''}")
     cursor = collection.find(filter, projection)
     try:
         yield cursor
