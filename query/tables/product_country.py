@@ -1,3 +1,7 @@
+from query.models.country import Country
+from query.models.product import Product
+
+
 async def create_table(connection):
     await connection.execute(
         'create table "product_country" ("product_id" int not null, "obsolete" boolean null, "country_id" int not null, "recent_scans" int not null, "total_scans" int not null, constraint "product_country_pkey" primary key ("product_id", "country_id"));',
@@ -27,4 +31,42 @@ async def create_table(connection):
     await connection.execute(
         "create index product_country_ix1 on product_country (obsolete, country_id, recent_scans DESC, total_scans DESC, product_id);",
     )
-    
+
+
+async def create_product_country(
+    connection, product: Product, country: Country, recent_scans, total_scans
+):
+    await connection.execute(
+        "INSERT INTO product_country (product_id, country_id, recent_scans, total_scans) VALUES ($1, $2, $3, $4)",
+        product.id,
+        country.id,
+        recent_scans,
+        total_scans,
+    )
+
+
+async def get_product_countries(connection, product_id):
+    return await connection.fetch(
+        "SELECT * FROM product_country WHERE product_id = $1", product_id
+    )
+
+
+async def fixup_product_countries(connection, product: Product):
+    # Create missing countries
+    await connection.execute(
+        """INSERT INTO country (tag) SELECT value FROM product_countries_tag
+            WHERE product_id = $1 AND NOT EXISTS (SELECT * FROM country WHERE tag = value)
+            ON CONFLICT (tag) DO NOTHING""",
+        product.id,
+    )
+    await connection.execute(
+        """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+            SELECT pct.product_id, $2, c.id, 0, 0
+            FROM (SELECT product_id, value FROM product_countries_tag WHERE product_id = $1
+                UNION SELECT $1, 'en:world') pct
+            JOIN country c ON c.tag = pct.value
+            WHERE pct.product_id = $1
+            ON CONFLICT (product_id, country_id) DO NOTHING""",
+        product.id,
+        product.obsolete,
+    )

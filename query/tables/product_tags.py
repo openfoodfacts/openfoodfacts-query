@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Dict
 
 from query.models.product import Product
 
@@ -84,11 +85,29 @@ async def create_tables(connection):
         )
 
 
-async def create_tag(connection, tag, product: Product, value, obsolete=False):
+async def create_tag(connection, tag, product: Product, value):
     tag_table = tag_tables[tag]
     await connection.execute(
-        f"INSERT INTO {tag_table} (product_id, value, obsolete) VALUES ($1, $2, $3)",
+        f"""INSERT INTO {tag_table} (product_id, value, obsolete) VALUES ($1, $2, $3)
+        ON CONFLICT (value, product_id) DO UPDATE SET obsolete = excluded.obsolete""",
         product.id,
         value,
-        obsolete,
+        product.obsolete,
     )
+
+
+# TODO: Probably need to optimize this
+async def create_tags(connection, product: Product, data: Dict):
+    for tag in tag_tables.keys():
+        tag_data = data.get(tag, [])
+        for value in tag_data:
+            await create_tag(connection, tag, product, value)
+            
+async def delete_tags_not_in_this_load(connection, process_id):
+    for tag_table in tag_tables.values():
+        # TODO: May be more efficient to pass in the list of product ids
+        await connection.execute(f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id IN (SELECT id FROM product WHERE process_id < $1)", process_id)
+    
+async def get_tags(connection, tag, product_id):
+    tag_table = tag_tables[tag]
+    return await connection.fetch(f"SELECT * FROM {tag_table} WHERE product_id = $1", product_id)

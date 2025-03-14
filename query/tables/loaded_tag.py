@@ -16,3 +16,13 @@ async def get_loaded_tags(connection):
     if _loaded_tags == None:
         _loaded_tags = [row['id'] for row in await connection.fetch('SELECT id FROM loaded_tag')]
     return _loaded_tags
+
+async def append_loaded_tags(connection, new_tags: List[str]):
+    global _loaded_tags
+    if _loaded_tags == None:
+        await get_loaded_tags(connection)
+    
+    for tag in new_tags:
+        if tag not in _loaded_tags:
+            _loaded_tags.append(tag)
+            await connection.execute("INSERT INTO loaded_tag (id) VALUES ($1)", tag)
