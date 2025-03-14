@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -16,6 +16,6 @@ class Product():
     creator: str | None = None
     obsolete: bool | None = False
     source: Source = Source.full_load
-    last_processed: datetime = datetime.datetime.now(datetime.timezone.utc)
+    last_processed: datetime = datetime.now(timezone.utc)
     revision: int = 0
     id: int = None

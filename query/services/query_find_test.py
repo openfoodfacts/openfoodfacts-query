@@ -6,20 +6,20 @@ from query.services import query
 from query.services.query_count_test import create_test_tags
 from query.tables.country import get_country
 from query.tables.product_scans_by_country import create_scans
-from query.test_helper import mock_cursor
+from query.test_helper import mock_cursor, patch_context_manager
 
 
 @patch("query.services.query.find_products")
 async def test_sorts_by_country_scans(mocked_mongo):
     tags = await create_tags_and_scans()
 
-    mocked_mongo.return_value.__aenter__.return_value = mock_cursor(
+    patch_context_manager(mocked_mongo, mock_cursor(
         [
             {"code": tags.product1.code},
             {"code": tags.product2.code},
             {"code": tags.product3.code},
         ]
-    )
+    ))
     results = await query.find(
         FindQuery(
             filter=Filter(countries_tags=tags.country.tag),
@@ -39,13 +39,13 @@ async def test_sorts_by_country_scans(mocked_mongo):
 async def test_sorts_by_world_scans(mocked_mongo):
     tags = await create_tags_and_scans()
 
-    mocked_mongo.return_value.__aenter__.return_value = mock_cursor(
+    patch_context_manager(mocked_mongo, mock_cursor(
         [
             {"code": tags.product1.code},
             {"code": tags.product2.code},
             {"code": tags.product3.code},
         ]
-    )
+    ))
     results = await query.find(
         FindQuery(
             filter=Filter(origins_tags=tags.origin_value),
@@ -68,11 +68,11 @@ async def test_limit_and_offset(mocked_mongo):
     tags = await create_tags_and_scans()
 
     # Using world so order should be 2,3,1 but skipping 2 and limiting to 1
-    mocked_mongo.return_value.__aenter__.return_value = mock_cursor(
+    patch_context_manager(mocked_mongo, mock_cursor(
         [
             {"code": tags.product3.code},
         ]
-    )
+    ))
     results = await query.find(
         FindQuery(
             filter=Filter(origins_tags=tags.origin_value),
@@ -94,12 +94,11 @@ async def test_limit_and_offset(mocked_mongo):
 async def test_obsolete(mocked_mongo):
     tags = await create_tags_and_scans()
 
-    # Using world so order should be 2,3,1 but skipping 2 and limiting to 1
-    mocked_mongo.return_value.__aenter__.return_value = mock_cursor(
+    patch_context_manager(mocked_mongo, mock_cursor(
         [
             {"code": tags.product4.code},
         ]
-    )
+    ))
     results = await query.find(
         FindQuery(
             filter=Filter(origins_tags=tags.origin_value),

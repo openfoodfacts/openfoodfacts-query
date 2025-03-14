@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timezone
 from typing import Dict
 
 from query.database import database_connection
@@ -28,7 +28,7 @@ async def import_with_filter(filter: Dict, source: Source):
                         code=product_data["code"],
                         process_id=process_id,
                         source=source,
-                        last_processed=datetime.datetime.now(datetime.timezone.utc),
+                        last_processed=datetime.now(timezone.utc),
                         revision=product_data.get("rev"),
                     ),
                 )

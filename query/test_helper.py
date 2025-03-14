@@ -1,4 +1,5 @@
 from typing import Any, List
+from unittest.mock import Mock
 from uuid import uuid4
 
 
@@ -17,6 +18,10 @@ async def error_cursor(message):
             yield index
         raise Exception(message)
         
+
+def patch_context_manager(mock: Mock, cursor):
+    """ Patching a context manager isn't very intuitive so use this simple helper function to do it """
+    mock.return_value.__aenter__.return_value = cursor
 
 # class Cursor:
 #     def __init__(self, data: List[Any]):

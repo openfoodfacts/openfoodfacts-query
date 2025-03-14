@@ -1,12 +1,12 @@
 from unittest.mock import patch
 from query.models.health import HealthItemStatusEnum, HealthStatusEnum
 from query.services.health import check_health
-from query.test_helper import mock_cursor, error_cursor
+from query.test_helper import mock_cursor, error_cursor, patch_context_manager
 
 
 @patch("query.services.health.find_products")
 async def test_health_should_return_healthy(mocked_mongo):
-    mocked_mongo.return_value.__aenter__.return_value = mock_cursor([])
+    patch_context_manager(mocked_mongo, mock_cursor([]))
     my_health = await check_health()
     assert mocked_mongo.called
     assert my_health.status == HealthStatusEnum.ok
@@ -17,7 +17,7 @@ async def test_health_should_return_healthy(mocked_mongo):
 
 @patch("query.services.health.find_products")
 async def test_health_should_return_unhealthy_if_mongodb_is_down(mocked_mongo):
-    mocked_mongo.return_value.__aenter__.return_value = error_cursor("mongodb is down")
+    patch_context_manager(mocked_mongo, error_cursor("mongodb is down"))
     my_health = await check_health()
     assert mocked_mongo.called
     assert my_health.status == HealthStatusEnum.error

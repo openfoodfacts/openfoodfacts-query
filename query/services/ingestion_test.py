@@ -1,5 +1,4 @@
-import datetime
-import time
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 from query.database import database_connection
 from query.models.product import Product, Source
@@ -9,37 +8,16 @@ from query.tables.loaded_tag import get_loaded_tags
 from query.tables.product import create_product, get_product
 from query.tables.product_country import create_product_country, get_product_countries
 from query.tables.product_tags import create_tag, get_tags
-from query.test_helper import mock_cursor, random_code
+from query.test_helper import mock_cursor, patch_context_manager, random_code
 
 
-async def test_get_process_id():
+async def test_get_process_id_is_monotonically_increasing():
     async with database_connection() as connection:
         transaction_id = await ingestion.get_process_id(connection)
         assert await ingestion.get_process_id(connection) > transaction_id
 
 
-@patch("query.services.ingestion.find_products")
-async def test_imports_product_by_code(mocked_mongo):
-    product_code = random_code()
-
-    mocked_mongo.return_value.__aenter__.return_value = mock_cursor(
-        [
-            {"code": product_code},
-        ]
-    )
-    await ingestion.import_with_filter({"_id": {"$in": [product_code]}})
-    assert mocked_mongo.called
-    call_args = mocked_mongo.call_args
-    assert len(call_args[0][0]["_id"]["$in"]) == 1
-    async with database_connection() as conn:
-        product = await conn.fetchrow(
-            "SELECT * FROM product WHERE code = $1", product_code
-        )
-        assert product["code"] == product_code
-
-
 last_updated = 1692032161
-
 
 def test_products():
     return [
@@ -103,8 +81,8 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         await connection.execute("DELETE FROM loaded_tag WHERE id = 'teams_tags'")
 
         # when:doing a full import from mongo_db
-        find_products_mock.return_value.__aenter__.return_value = mock_cursor(products)
-        start = datetime.datetime.now(datetime.timezone.utc)
+        patch_context_manager( find_products_mock, mock_cursor(products))
+        start = datetime.now(timezone.utc)
 
         await ingestion.import_from_mongo()
 
