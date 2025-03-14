@@ -4,10 +4,10 @@ from query.database import database_connection
 from query.models.product import Product, Source
 from query.services import ingestion
 from query.tables.country import get_country
-from query.tables.loaded_tag import get_loaded_tags
 from query.tables.product import create_product, get_product
 from query.tables.product_country import create_product_country, get_product_countries
 from query.tables.product_tags import create_tag, get_tags
+from query.tables.settings import set_last_updated
 from query.test_helper import mock_cursor, patch_context_manager, random_code
 
 
@@ -19,7 +19,7 @@ async def test_get_process_id_is_monotonically_increasing():
 
 last_updated = 1692032161
 
-def test_products():
+def get_test_products():
     return [
         {
             # this one will be new
@@ -33,15 +33,16 @@ def test_products():
             "code": random_code(),
             "last_updated_t": last_updated,
             "ingredients_tags": ["new_ingredient", "old_ingredient"],
-            "countries_tags": ["en:france", "en:new-country"],
+            "countries_tags": ["en:france", random_code()],
         },
     ]
 
 
 @patch("query.services.ingestion.find_products")
 @patch("query.services.ingestion.get_process_id")
+@patch("query.services.ingestion.append_loaded_tags")
 async def test_import_from_mongo_should_import_a_new_product_update_existing_products_and_delete_missing_products(
-    get_process_id_mock: Mock, find_products_mock: Mock
+    append_loaded_tags: Mock, get_process_id_mock: Mock, find_products_mock: Mock
 ):
     async with database_connection() as connection:
         # mock the process id so it doesn't delete records from other tests
@@ -55,7 +56,7 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         get_process_id_mock.side_effect = next_process_id
 
         # given: two existing products, one of which is in mongo plus one new one in mongo
-        products = test_products()
+        products = get_test_products()
         product_existing = await create_product(
             connection, Product(code=products[1]["code"], process_id=0)
         )
@@ -76,9 +77,6 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         product_later = await create_product(
             connection, Product(code=random_code(), process_id=100)
         )
-
-        # delete a tag to prove it is re-created
-        await connection.execute("DELETE FROM loaded_tag WHERE id = 'teams_tags'")
 
         # when:doing a full import from mongo_db
         patch_context_manager( find_products_mock, mock_cursor(products))
@@ -123,7 +121,8 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         france = await get_country(connection, "en:france")
         assert any(c for c in countries_existing if c["country_id"] == france.id)
         # creates the new country on-the-fly
-        new_country = await get_country(connection, "en:new-country")
+        new_country_tag = products[1]['countries_tags'][1]
+        new_country = await get_country(connection, new_country_tag)
         assert any(c for c in countries_existing if c["country_id"] == new_country.id)
 
         # check unchanged product has been "deleted"
@@ -137,33 +136,27 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         found_later_product = await get_product(connection, product_later.code)
         assert found_later_product["obsolete"] == False
 
-        loaded_tags = await get_loaded_tags(connection)
-        assert "teams_tags" in loaded_tags
+        assert append_loaded_tags.called
 
 
-#   it('incremental import should not update loaded tags', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       // given: no loaded teams tag
-#       const em = app.get(entity_manager);
-#       await em.native_delete(loaded_tag, { id: 'teams_tags' });
-#       await em.flush();
-#       const import_service = app.get(import_service);
+@patch("query.services.ingestion.find_products")
+@patch("query.services.ingestion.append_loaded_tags")
+async def test_incremental_import_should_not_update_loaded_tags(set_loaded_tags_mock, find_products_mock):
+    async with database_connection() as connection:
+        # when: doing an incremental import from mongo_db
+        products = get_test_products()
+        patch_context_manager( find_products_mock, mock_cursor(products))
+        
+        await set_last_updated(connection, datetime.now(timezone.utc))
+        await ingestion.import_from_mongo('')
 
-#       // when: doing an incremental import from mongo_db
-#       const { products, product_id_new } = test_products();
-#       mock_mongo_db(products);
-#       await app.get(settings_service).set_last_modified(new date());
-#       await import_service.import_from_mongo('');
+        # then: set loaded tags is not updated
+        assert not set_loaded_tags_mock.called
 
-#       // then: loaded tags is not updated
-#       const loaded_tags = await app.get(tag_service).get_loaded_tags();
-#       expect(loaded_tags).not.to_contain('teams_tags');
+        product_new = await get_product(connection, products[0]['code'])
+        assert product_new
+        assert product_new['source'] == Source.incremental_load
 
-#       const product_new = await em.find_one(product, { code: product_id_new });
-#       expect(product_new).to_be_truthy();
-#       expect(product_new.source).to_be(product_source.incremental_load);
-#     });
-#   });
 
 #   it('import with no change should not update the source', async () => {
 #     await create_testing_module([domain_module], async (app) => {
