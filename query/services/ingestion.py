@@ -9,7 +9,7 @@ from query.mongodb import find_products
 from query.tables.loaded_tag import append_loaded_tags
 from query.tables.product_country import fixup_product_countries
 from query.tables.product_tags import create_tags, delete_tags_not_in_this_load, tag_tables
-from query.tables.product import create_product, delete_products_not_in_this_load, product_fields
+from query.tables.product import create_product, delete_products_not_in_this_load, get_product, product_fields, update_product
 from query.tables.settings import get_last_updated
 
 
@@ -27,16 +27,24 @@ async def import_with_filter(filter: Dict, source: Source):
         }
         async with find_products(filter, projection) as cursor:
             async for product_data in cursor:
-                product = await create_product(
-                    connection,
-                    Product(
+                # Fall back to last_modified_t if last_updated_t is not available
+                last_updated = datetime.fromtimestamp(product_data.get('last_updated_t', product_data.get('last_modified_t')), timezone.utc)
+                existing_product = await get_product(connection, product_data['code'])
+                if existing_product and existing_product['last_updated'] == last_updated:
+                    continue
+                product = Product(
                         code=product_data["code"],
                         process_id=process_id,
                         source=source,
                         last_processed=datetime.now(timezone.utc),
+                        last_updated=last_updated,
                         revision=product_data.get("rev"),
-                    ),
-                )
+                    )
+                if existing_product:
+                    product.id = existing_product['id']
+                    await update_product(connection, product)
+                else:
+                    await create_product(connection, product)
                 await create_tags(connection, product, product_data)
                 await fixup_product_countries(connection, product)
 
@@ -57,7 +65,8 @@ async def import_from_mongo(from_date: str = None):
             from_date = last_updated.isoformat()
         filter = {}
         if from_date:
-            from_time = math.floor(datetime.fromisoformat(from_date).timestamp() / 1000)
+            # Note in python the timestamp is in whole seconds (matches Perl)
+            from_time = math.floor(datetime.fromisoformat(from_date).timestamp())
             filter['last_updated_t'] = { "$gt": from_time }
             logger.info(f"Starting import from {from_date}")
 

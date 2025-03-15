@@ -48,31 +48,35 @@ async def create_table(connection: Connection):
     )
 
 
+async def update_product(connection: Connection, product: Product):
+    await connection.execute(
+        "UPDATE product SET creator=$2, obsolete=$3, process_id=$4, source=$5, last_processed=$6, revision = $7, last_updated = $8 WHERE id = $1",
+        product.id,
+        product.creator,
+        product.obsolete,
+        product.process_id,
+        product.source,
+        product.last_processed,
+        product.revision,
+        product.last_updated
+    )
+    return product
+
 async def create_product(connection: Connection, product: Product):
     product.id = await connection.fetchval(
-        "UPDATE product SET creator=$2, obsolete=$3, process_id=$4, source=$5, last_processed=$6, revision = $7 WHERE code = $1 RETURNING id",
+        "INSERT INTO product (code, creator, obsolete, process_id, source, last_processed, revision, last_updated) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
         product.code,
         product.creator,
         product.obsolete,
         product.process_id,
         product.source,
         product.last_processed,
-        product.revision
+        product.revision,
+        product.last_updated
     )
-    if product.id == None:
-        product.id = await connection.fetchval(
-            "INSERT INTO product (code, creator, obsolete, process_id, source, last_processed, revision) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-            product.code,
-            product.creator,
-            product.obsolete,
-            product.process_id,
-            product.source,
-            product.last_processed,
-            product.revision
-        )
     return product
 
-async def get_product(connection, code):
+async def get_product(connection: Connection, code):
     return await connection.fetchrow("SELECT * FROM product WHERE code = $1", code)
 
 async def delete_products_not_in_this_load(connection, process_id):

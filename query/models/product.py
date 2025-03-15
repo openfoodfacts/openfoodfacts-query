@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 
+from asyncpg import Record
+
 
 class Source(str, Enum):
     full_load = "full"
@@ -10,12 +12,13 @@ class Source(str, Enum):
     
 
 @dataclass
-class Product():
+class Product:
     code: str
     process_id: int = 0
     creator: str | None = None
     obsolete: bool | None = False
     source: Source = Source.full_load
     last_processed: datetime = datetime.now(timezone.utc)
+    last_updated: datetime = datetime.now(timezone.utc)
     revision: int = 0
     id: int = None

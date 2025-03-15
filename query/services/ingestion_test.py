@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+import math
+import time
 from unittest.mock import Mock, patch
 from query.database import database_connection
 from query.models.product import Product, Source
@@ -18,6 +20,7 @@ async def test_get_process_id_is_monotonically_increasing():
 
 
 last_updated = 1692032161
+
 
 def get_test_products():
     return [
@@ -79,10 +82,13 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         )
 
         # when:doing a full import from mongo_db
-        patch_context_manager( find_products_mock, mock_cursor(products))
+        patch_context_manager(find_products_mock, mock_cursor(products))
         start = datetime.now(timezone.utc)
 
         await ingestion.import_from_mongo()
+
+        # MongoDB called with no filter
+        assert find_products_mock.call_args[0][0] == {}
 
         # then: new product is added, updated product is updated and other product is unchanged
         product_new = await get_product(connection, products[0]["code"])
@@ -115,13 +121,15 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
             connection, product_existing.id
         )
         assert len(countries_existing) == 3
-        existing_world = next((c for c in countries_existing if c["country_id"] == world.id), None)
+        existing_world = next(
+            (c for c in countries_existing if c["country_id"] == world.id), None
+        )
         assert existing_world
         existing_world["recent_scans"] == 10
         france = await get_country(connection, "en:france")
         assert any(c for c in countries_existing if c["country_id"] == france.id)
         # creates the new country on-the-fly
-        new_country_tag = products[1]['countries_tags'][1]
+        new_country_tag = products[1]["countries_tags"][1]
         new_country = await get_country(connection, new_country_tag)
         assert any(c for c in countries_existing if c["country_id"] == new_country.id)
 
@@ -141,51 +149,62 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 
 @patch("query.services.ingestion.find_products")
 @patch("query.services.ingestion.append_loaded_tags")
-async def test_incremental_import_should_not_update_loaded_tags(set_loaded_tags_mock, find_products_mock):
+async def test_incremental_import_should_not_update_loaded_tags(
+    set_loaded_tags_mock, find_products_mock: Mock
+):
     async with database_connection() as connection:
         # when: doing an incremental import from mongo_db
         products = get_test_products()
-        patch_context_manager( find_products_mock, mock_cursor(products))
-        
-        await set_last_updated(connection, datetime.now(timezone.utc))
-        await ingestion.import_from_mongo('')
+        patch_context_manager(find_products_mock, mock_cursor(products))
+
+        last_updated = datetime.now(timezone.utc)
+        await set_last_updated(connection, last_updated)
+        await ingestion.import_from_mongo("")
 
         # then: set loaded tags is not updated
         assert not set_loaded_tags_mock.called
 
-        product_new = await get_product(connection, products[0]['code'])
+        product_new = await get_product(connection, products[0]["code"])
         assert product_new
-        assert product_new['source'] == Source.incremental_load
+        assert product_new["source"] == Source.incremental_load
+
+        # MongoDB called with the correct filter
+        call_args = find_products_mock.call_args[0][0]
+        assert call_args == {
+            "last_updated_t": {"$gt": math.floor(last_updated.timestamp())}
+        }
 
 
-#   it('import with no change should not update the source', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       // given: product with data that matches mongo_db
-#       const em = app.get(entity_manager);
-#       const last_processed = new date(2023, 1, 1);
-#       const { products, product_id_existing } = test_products();
-#       em.create(product, {
-#         code: product_id_existing,
-#         source: product_source.event,
-#         last_processed: last_processed,
-#         last_updated: new date(last_updated * 1000),
-#       });
-#       await em.flush();
-#       const import_service = app.get(import_service);
+@patch("query.services.ingestion.find_products")
+async def test_import_with_no_change_should_not_update_the_source(
+    find_products_mock: Mock,
+):
+    async with database_connection() as connection:
+        test = time.time()
+        # given: product with data that matches mongo_db
+        last_processed = datetime(2023, 1, 1, tzinfo=timezone.utc)
+        products = get_test_products()
+        existing_product_code = products[1]["code"]
+        await create_product(
+            connection,
+            Product(
+                code=existing_product_code,
+                source=Source.event,
+                last_processed=last_processed,
+                last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
+            ),
+        )
 
-#       // when: doing an incremental import from mongo_db
-#       mock_mongo_db(products);
-#       await import_service.import_from_mongo('');
+        # when: doing an incremental import from mongo_db
+        patch_context_manager(find_products_mock, mock_cursor(products))
+        await ingestion.import_from_mongo("")
 
-#       // then: source is not updated
-#       const product_existing = await em.find_one(product, {
-#         code: product_id_existing,
-#       });
-#       expect(product_existing).to_be_truthy();
-#       expect(product_existing.source).to_be(product_source.event);
-#       expect(product_existing.last_processed).to_strict_equal(last_processed);
-#     });
-#   });
+        # then: source is not updated
+        product_existing = await get_product(connection, existing_product_code)
+        assert product_existing
+        assert product_existing['source'] == Source.event
+        assert product_existing['last_processed'] == last_processed
+
 
 #   it('should start importing from the last import', async () => {
 #     await create_testing_module([domain_module], async (app) => {

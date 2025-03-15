@@ -96,7 +96,7 @@ async def create_tag(connection, tag, product: Product, value):
     )
 
 
-# TODO: Probably need to optimize this
+# TODO: Need to delete old tags first. Also probably need to optimize
 async def create_tags(connection, product: Product, data: Dict):
     for tag in tag_tables.keys():
         tag_data = data.get(tag, [])
