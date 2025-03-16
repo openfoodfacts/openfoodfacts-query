@@ -23,6 +23,9 @@ def product_filter_fields():
     return [key for key, value in product_fields.items() if value]
 
 
+product_columns = [value for value in product_fields.values() if value]
+
+
 async def create_table(connection: Connection):
     await connection.execute(
         """create table product (
@@ -54,32 +57,38 @@ async def create_table(connection: Connection):
 
 
 async def update_product(connection: Connection, product: Product):
-    await connection.execute(
-        "UPDATE product SET creator=$2, obsolete=$3, process_id=$4, source=$5, last_processed=$6, revision = $7, last_updated = $8 WHERE id = $1",
+    statement = (
+        "UPDATE product SET obsolete=$2, process_id=$3, source=$4, last_processed=$5"
+    )
+    args = [
         product.id,
-        product.creator,
         product.obsolete,
         product.process_id,
         product.source,
         product.last_processed,
-        product.revision,
-        product.last_updated,
-    )
+    ]
+    for column in product_columns:
+        args.append(getattr(product, column))
+        statement += f", {column} = ${len(args)}"
+    statement += " WHERE id = $1"
+    await connection.execute(statement, *args)
     return product
 
 
 async def create_product(connection: Connection, product: Product):
-    product.id = await connection.fetchval(
-        "INSERT INTO product (code, creator, obsolete, process_id, source, last_processed, revision, last_updated) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
-        product.code,
-        product.creator,
+    statement = "INSERT INTO product (obsolete, process_id, source, last_processed"
+    values = ") VALUES ($1, $2, $3, $4"
+    args = [
         product.obsolete,
         product.process_id,
         product.source,
         product.last_processed,
-        product.revision,
-        product.last_updated,
-    )
+    ]
+    for column in product_columns:
+        args.append(getattr(product, column))
+        statement += f", {column}"
+        values += f", ${len(args)}"
+    product.id = await connection.fetchval( f"{statement}{values}) RETURNING id", *args)
     return product
 
 
@@ -87,7 +96,7 @@ async def get_product(connection: Connection, code):
     return await connection.fetchrow("SELECT * FROM product WHERE code = $1", code)
 
 
-async def delete_products(connection, process_id, source, codes = None):
+async def delete_products(connection, process_id, source, codes=None):
     args = [process_id, datetime.now(timezone.utc), source]
     if codes:
         args.append(codes)
@@ -101,7 +110,7 @@ async def delete_products(connection, process_id, source, codes = None):
                 {"AND process_id < $1" if source == Source.full_load else ""}
                 {"AND code = ANY($4)" if codes else ""}
             RETURNING id""",
-        *args
+        *args,
     )
     deleted_ids = [result["id"] for result in results]
     await delete_tags(connection, deleted_ids)

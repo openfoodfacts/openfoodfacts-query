@@ -21,33 +21,69 @@ async def create_table(connection):
             constraint product_ingredient_pkey primary key (product_id, sequence))""",
     )
     await connection.execute(
-        'create index product_ingredient_parent_product_id_parent_sequence_index on product_ingredient (parent_product_id, parent_sequence);',
+        "create index product_ingredient_parent_product_id_parent_sequence_index on product_ingredient (parent_product_id, parent_sequence);",
     )
     await connection.execute(
-        'alter table product_ingredient add constraint product_ingredient_product_id_foreign foreign key (product_id) references product (id) on update cascade on delete cascade;',
+        "alter table product_ingredient add constraint product_ingredient_product_id_foreign foreign key (product_id) references product (id) on update cascade on delete cascade;",
     )
     await connection.execute(
-        'alter table product_ingredient add constraint product_ingredient_parent_product_id_parent_sequence_foreign foreign key (parent_product_id, parent_sequence) references product_ingredient (product_id, sequence) on update cascade on delete set null;',
+        "alter table product_ingredient add constraint product_ingredient_parent_product_id_parent_sequence_foreign foreign key (parent_product_id, parent_sequence) references product_ingredient (product_id, sequence) on update cascade on delete set null;",
     )
 
 
 async def get_ingredients(connection, product_id):
-    return await connection.fetch(f"SELECT * FROM product_ingredient WHERE product_id = $1", product_id)
+    return await connection.fetch(
+        f"SELECT * FROM product_ingredient WHERE product_id = $1", product_id
+    )
 
 
-async def create_ingredients(connection, product: Product, ingredients: List[Dict], parent_sequence = None):
+async def create_ingredients(
+    connection, product: Product, ingredients: List[Dict], parent_sequence=None
+):
     # TODO: Test extra fields
     if parent_sequence == None:
-        await connection.execute("DELETE FROM product_ingredient WHERE product_id = $1", product.id)
+        await connection.execute(
+            "DELETE FROM product_ingredient WHERE product_id = $1", product.id
+        )
 
     for seq, ingredient in enumerate(ingredients):
-        sequence = str(seq + 1) if parent_sequence == None else parent_sequence + '.' + (seq + 1)
-        await connection.execute("""INSERT INTO product_ingredient (product_id, sequence, parent_sequence, ingredient_text) VALUES ($1, $2, $3, $4)""",
-                                 product.id, sequence, parent_sequence, ingredient['ingredient_text'])
-        if 'ingredients' in ingredient:
-            await create_ingredients(connection, product, ingredient['ingredients'], sequence)
-            
+        sequence = (
+            str(seq + 1)
+            if parent_sequence == None
+            else parent_sequence + "." + str(seq + 1)
+        )
+        await connection.execute(
+            """INSERT INTO product_ingredient (
+            product_id,
+            sequence,
+            parent_sequence,
+            ingredient_text,
+            id,
+            ciqual_food_code,
+            percent_min,
+            percent,
+            percent_max,
+            percent_estimate
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)""",
+            product.id,
+            sequence,
+            parent_sequence,
+            ingredient.get("text"),
+            ingredient.get("id"),
+            ingredient.get("ciqual_food_code"),
+            ingredient.get("percent_min"),
+            ingredient.get("percent"),
+            ingredient.get("percent_max"),
+            ingredient.get("percent_estimate"),
+        )
+        if "ingredients" in ingredient:
+            await create_ingredients(
+                connection, product, ingredient["ingredients"], sequence
+            )
+
 
 async def delete_ingredients(connection, product_ids):
-    await connection.execute(f"UPDATE product_ingredient SET obsolete = NULL WHERE product_id = ANY($1::int[])", product_ids)
-  
+    await connection.execute(
+        f"UPDATE product_ingredient SET obsolete = NULL WHERE product_id = ANY($1::int[])",
+        product_ids,
+    )

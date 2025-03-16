@@ -38,49 +38,54 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
         projection = {
             key: True for key in (list(tag_tables.keys()) + list(product_fields.keys()))
         }
-        async with find_products(filter, projection) as cursor:
-            async for product_data in cursor:
-                # Fall back to last_modified_t if last_updated_t is not available
-                try:
-                    last_updated = datetime.fromtimestamp(
-                        product_data.get(
-                            "last_updated_t", product_data.get("last_modified_t")
-                        ),
-                        timezone.utc,
+        for obsolete in [False, True]:
+            async with find_products(filter, projection, obsolete) as cursor:
+                async for product_data in cursor:
+                    # Fall back to last_modified_t if last_updated_t is not available
+                    try:
+                        last_updated = datetime.fromtimestamp(
+                            product_data.get(
+                                "last_updated_t", product_data.get("last_modified_t")
+                            ),
+                            timezone.utc,
+                        )
+                    except TypeError:
+                        logger.warning(
+                            f"Product: {product_data['code']}. Invalid last_updated_t: {product_data.get('last_updated_t')}, or last_modified_t: {product_data.get('last_modified_t')}."
+                        )
+                        last_updated = min_datetime
+                    product_code = product_data["code"]
+                    found_product_codes.append(product_code)
+                    existing_product = await get_product(connection, product_code)
+                    if (
+                        existing_product
+                        and source != Source.event
+                        and existing_product["last_updated"] == last_updated
+                    ):
+                        continue
+                    product = Product(
+                        code=product_data["code"],
+                        process_id=process_id,
+                        source=source,
+                        last_processed=datetime.now(timezone.utc),
+                        last_updated=last_updated,
+                        obsolete=obsolete
                     )
-                except TypeError:
-                    logger.warning(
-                        f"Product: {product_data['code']}. Invalid last_updated_t: {product_data.get('last_updated_t')}, or last_modified_t: {product_data.get('last_modified_t')}."
+                    for field, column in product_fields.items():
+                        if column and column not in ['code', 'last_updated']:
+                            setattr(product, column, product_data.get(field))
+                        
+                    if existing_product:
+                        product.id = existing_product["id"]
+                        await update_product(connection, product)
+                    else:
+                        await create_product(connection, product)
+                    await create_tags(connection, product, product_data)
+                    await fixup_product_countries(connection, product)
+                    await create_ingredients(
+                        connection, product, product_data.get("ingredients", [])
                     )
-                    last_updated = min_datetime
-                product_code = product_data["code"]
-                found_product_codes.append(product_code)
-                existing_product = await get_product(connection, product_code)
-                if (
-                    existing_product
-                    and source != Source.event
-                    and existing_product["last_updated"] == last_updated
-                ):
-                    continue
-                product = Product(
-                    code=product_data["code"],
-                    process_id=process_id,
-                    source=source,
-                    last_processed=datetime.now(timezone.utc),
-                    last_updated=last_updated,
-                    revision=product_data.get("rev"),
-                )
-                if existing_product:
-                    product.id = existing_product["id"]
-                    await update_product(connection, product)
-                else:
-                    await create_product(connection, product)
-                await create_tags(connection, product, product_data)
-                await fixup_product_countries(connection, product)
-                await create_ingredients(
-                    connection, product, product_data.get("ingredients", [])
-                )
-                max_last_updated = max(last_updated, max_last_updated)
+                    max_last_updated = max(last_updated, max_last_updated)
 
         # Mark all products specifically requested but not found as deleted
         if source != Source.full_load and "code" in filter and "$in" in filter["code"]:

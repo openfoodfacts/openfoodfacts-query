@@ -19,9 +19,14 @@ async def error_cursor(message):
         raise Exception(message)
         
 
-def patch_context_manager(mock: Mock, cursor):
+def patch_context_manager(mock: Mock, *cursors):
     """ Patching a context manager isn't very intuitive so use this simple helper function to do it """
-    mock.return_value.__aenter__.return_value = cursor
+    # We pop from the end so need to reverse the list
+    cursor_list = list(reversed(cursors))
+    def next_cursor():
+        nonlocal cursor_list
+        return cursor_list.pop() if cursor_list else mock_cursor([])
+    mock.return_value.__aenter__.side_effect = next_cursor
 
 # class Cursor:
 #     def __init__(self, data: List[Any]):

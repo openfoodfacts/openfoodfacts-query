@@ -314,7 +314,7 @@ async def test_cope_with_duplicate_product_codes(
         # when: importing data containing duplicate product codes
         product = {
             "code": random_code(),
-            "ingredients": [{"ingredient_text": "test"}],
+            "ingredients": [{"text": "test"}],
         }
         patch_context_manager(find_products_mock, mock_cursor([product, product]))
         await ingestion.import_from_mongo("")
@@ -451,16 +451,125 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
 
         # then: obsolete flag should get set to null
         deleted_product = await get_product(connection, product_code_to_delete)
-        updated_product = await get_product(connection, products[1]['code'])
-        assert deleted_product['process_id'] == updated_product['process_id']
-        assert deleted_product['last_processed'] >= before_import
-        assert deleted_product['source'] == Source.event
-        assert updated_product['obsolete'] == False
+        updated_product = await get_product(connection, products[1]["code"])
+        assert deleted_product["process_id"] == updated_product["process_id"]
+        assert deleted_product["last_processed"] >= before_import
+        assert deleted_product["source"] == Source.event
+        assert updated_product["obsolete"] == False
 
-        deleted_tags = await get_tags(connection, "ingredients_tags", deleted_product['id'])
+        deleted_tags = await get_tags(
+            connection, "ingredients_tags", deleted_product["id"]
+        )
         assert len(deleted_tags) == 1
-        assert deleted_tags[0]['obsolete'] == None
+        assert deleted_tags[0]["obsolete"] == None
 
 
-# TODO: Test loading from obsolete collection
-# TODO: All fields populated
+@patch("query.services.ingestion.find_products")
+async def test_import_from_obsolete_collection(find_products_mock: Mock):
+    async with database_connection() as connection:
+        # given: one existing product
+        products = get_test_products()
+        product_existing = await create_product(
+            connection, Product(code=products[1]["code"], process_id=0)
+        )
+        await create_tag(
+            connection, "ingredients_tags", product_existing, "old_ingredient"
+        )
+        await create_tag(
+            connection, "ingredients_tags", product_existing, "to_be_deleted"
+        )
+
+        # when importing from mongodb where existing product is obsolete then it is marked as such
+        patch_context_manager(
+            find_products_mock, mock_cursor([products[0]]), mock_cursor([products[1]])
+        )
+        await ingestion.import_with_filter({}, Source.incremental_load)
+
+        # MongoDB is called twice. Second time for the obsolete collection
+        call_args_list = find_products_mock.call_args_list
+        assert len(call_args_list) == 2
+        assert call_args_list[0][0][2] == False
+        assert call_args_list[1][0][2] == True
+
+        found_product = await get_product(connection, product_existing.code)
+        assert found_product["obsolete"] == True
+        found_tags = await get_tags(connection, "ingredients_tags", found_product["id"])
+        assert all(tag for tag in found_tags if tag["obsolete"] == True)
+        assert (
+            any(tag for tag in found_tags if tag["value"] == "to_be_deleted") == False
+        )
+
+        new_product = await get_product(connection, products[0]["code"])
+        assert new_product["obsolete"] == False
+        assert found_product["process_id"] == new_product["process_id"]
+
+
+@patch("query.services.ingestion.find_products")
+async def test_all_supported_fields(find_products_mock: Mock):
+    async with database_connection() as connection:
+        # when importing from mongodb where all fields are populated
+        test_product = {
+            "code": random_code(),
+            "product_name": "test name",
+            "last_updated_t": last_updated,
+            "last_modified_t": last_updated - 1,
+            "creator": "test creator",
+            "owners_tags": "test owners tags",
+            "ingredients_n": 3,
+            "ingredients_without_ciqual_codes_n": 2,
+            "rev": 123,
+            "ingredients": [
+                {
+                    "text": "first ingredient",
+                    "id": "en:1",
+                    "ciqual_food_code": "CFC1",
+                    "percent": "50",
+                    "percent_min": 20,
+                    "percent_max": 70,
+                    "percent_estimate": 51,
+                },
+                {
+                    "text": "second parent",
+                    "ingredients": [
+                        {"text": "child of second ingredient", "id": "en:2.1"}
+                    ],
+                },
+            ],
+        }
+        patch_context_manager(find_products_mock, mock_cursor([test_product]))
+        await ingestion.import_with_filter({}, Source.incremental_load)
+        
+        found_product = await get_product(connection, test_product['code'])
+        assert found_product['name'] == test_product['product_name']
+        assert found_product['last_updated'] == datetime.fromtimestamp(last_updated, timezone.utc)
+        assert found_product['creator'] == test_product['creator']
+        assert found_product['owners_tags'] == test_product['owners_tags']
+        assert found_product['ingredients_count'] == test_product['ingredients_n']
+        assert found_product['ingredients_without_ciqual_codes_count'] == test_product['ingredients_without_ciqual_codes_n']
+        assert found_product['revision'] == test_product['rev']
+
+        found_ingredients = await get_ingredients(connection, found_product['id'])
+        assert len(found_ingredients) == 3
+        first_ingredient = next(i for i in found_ingredients if i['ingredient_text'] == "first ingredient")
+        assert first_ingredient
+        test_first_ingredient = test_product['ingredients'][0]
+        assert first_ingredient['sequence'] == '1'
+        assert first_ingredient['id'] == test_first_ingredient['id']
+        assert first_ingredient['ciqual_food_code'] == test_first_ingredient['ciqual_food_code']
+        assert first_ingredient['percent'] == test_first_ingredient['percent']
+        assert first_ingredient['percent_min'] == test_first_ingredient['percent_min']
+        assert first_ingredient['percent_max'] == test_first_ingredient['percent_max']
+        assert first_ingredient['percent_estimate'] == test_first_ingredient['percent_estimate']
+        assert first_ingredient['parent_sequence'] == None
+        
+        second_ingredient = next(i for i in found_ingredients if i['ingredient_text'] == "second parent")
+        assert second_ingredient
+        assert second_ingredient['sequence'] == '2'
+        assert second_ingredient['parent_sequence'] == None
+
+        child_ingredient = next(i for i in found_ingredients if i['ingredient_text'] == "child of second ingredient")
+        assert child_ingredient
+        assert child_ingredient['sequence'] == '2.1'
+        assert child_ingredient['parent_sequence'] == '2'
+        assert child_ingredient['id'] == test_product['ingredients'][1]['ingredients'][0]['id']
+        

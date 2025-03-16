@@ -20,5 +20,9 @@ class Product:
     source: Source = Source.full_load
     last_processed: datetime = datetime.now(timezone.utc)
     last_updated: datetime = datetime.now(timezone.utc)
+    name: str = None
+    owners_tags: str = None
     revision: int = 0
+    ingredients_count: int = None
+    ingredients_without_ciqual_codes_count: int = None
     id: int = None
