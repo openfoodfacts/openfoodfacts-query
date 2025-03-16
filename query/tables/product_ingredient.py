@@ -37,6 +37,12 @@ async def get_ingredients(connection, product_id):
     )
 
 
+def float_or_none(value):
+    if value == None:
+        return None
+    return float(value)
+
+
 async def create_ingredients(
     connection, product: Product, ingredients: List[Dict], parent_sequence=None
 ):
@@ -71,10 +77,10 @@ async def create_ingredients(
             ingredient.get("text"),
             ingredient.get("id"),
             ingredient.get("ciqual_food_code"),
-            ingredient.get("percent_min"),
-            ingredient.get("percent"),
-            ingredient.get("percent_max"),
-            ingredient.get("percent_estimate"),
+            float_or_none(ingredient.get("percent_min")),
+            str(ingredient.get("percent")),
+            float_or_none(ingredient.get("percent_max")),
+            float_or_none(ingredient.get("percent_estimate")),
         )
         if "ingredients" in ingredient:
             await create_ingredients(

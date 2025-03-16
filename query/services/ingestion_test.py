@@ -524,9 +524,9 @@ async def test_all_supported_fields(find_products_mock: Mock):
                     "id": "en:1",
                     "ciqual_food_code": "CFC1",
                     "percent": "50",
-                    "percent_min": 20,
-                    "percent_max": 70,
-                    "percent_estimate": 51,
+                    "percent_min": 20.1,
+                    "percent_max": 70.2,
+                    "percent_estimate": 51.3,
                 },
                 {
                     "text": "second parent",
@@ -572,4 +572,23 @@ async def test_all_supported_fields(find_products_mock: Mock):
         assert child_ingredient['sequence'] == '2.1'
         assert child_ingredient['parent_sequence'] == '2'
         assert child_ingredient['id'] == test_product['ingredients'][1]['ingredients'][0]['id']
+
+
+@patch("query.services.ingestion.find_products")
+async def test_ignores_duplicate_tags(find_products_mock: Mock):
+    async with database_connection() as connection:
+        # when importing from mongodb where a tag is duplicated
+        test_product = {
+            "code": random_code(),
+            "ingredients_tags": ['one','two','one'],
+        }
+        patch_context_manager(find_products_mock, mock_cursor([test_product]))
+        await ingestion.import_with_filter({}, Source.incremental_load)
+        
+        found_product = await get_product(connection, test_product['code'])
+        assert found_product
+
+        found_tags = await get_tags(connection, "ingredients_tags", found_product['id'])
+        assert len(found_tags) == 2
+        
         

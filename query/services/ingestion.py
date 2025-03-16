@@ -29,6 +29,8 @@ async def get_process_id(connection):
 
 min_datetime = datetime(1, 1, 1, tzinfo=timezone.utc)
 
+def int_or_none(value):
+    return None if value == None else int(value)
 
 async def import_with_filter(filter: Dict, source: Source) -> datetime:
     max_last_updated = min_datetime
@@ -39,8 +41,13 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
             key: True for key in (list(tag_tables.keys()) + list(product_fields.keys()))
         }
         for obsolete in [False, True]:
+            product_count = 0
             async with find_products(filter, projection, obsolete) as cursor:
                 async for product_data in cursor:
+                    product_count += 1
+                    if not (product_count % 1000):
+                        logger.info(f"Imported {product_count}{' obsolete' if obsolete else ''} products")
+
                     # Fall back to last_modified_t if last_updated_t is not available
                     try:
                         last_updated = datetime.fromtimestamp(
@@ -59,7 +66,7 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                     existing_product = await get_product(connection, product_code)
                     if (
                         existing_product
-                        and source != Source.event
+                        and source == Source.incremental_load
                         and existing_product["last_updated"] == last_updated
                     ):
                         continue
@@ -73,7 +80,10 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                     )
                     for field, column in product_fields.items():
                         if column and column not in ['code', 'last_updated']:
-                            setattr(product, column, product_data.get(field))
+                            value = product_data.get(field)
+                            if column in ['revision', 'ingredients_count' ,'ingredients_without_ciqual_codes_count']:
+                                value = int_or_none(value)
+                            setattr(product, column, value)
                         
                     if existing_product:
                         product.id = existing_product["id"]
@@ -85,7 +95,10 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                     await create_ingredients(
                         connection, product, product_data.get("ingredients", [])
                     )
-                    max_last_updated = max(last_updated, max_last_updated)
+                    max_last_updated = max(last_updated, max_last_updated)                   
+
+            if product_count % 1000:
+                logger.info(f"Imported {product_count}{' obsolete' if obsolete else ''} products")
 
         # Mark all products specifically requested but not found as deleted
         if source != Source.full_load and "code" in filter and "$in" in filter["code"]:

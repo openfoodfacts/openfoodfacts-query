@@ -1,13 +1,13 @@
 from contextlib import asynccontextmanager
 import logging
 from typing import Dict, List
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 
 from query.database import database_connection
 from query.migrator import migrate_database
 from query.models.query import AggregateCountResult, AggregateResult, Filter, FindQuery, Stage
 from query.models.health import Health
-from query.services import query
+from query.services import ingestion, query
 from query.services.health import check_health
 
 logger = logging.getLogger(__name__)
@@ -43,3 +43,8 @@ async def aggregate(
 @app.post("/find")
 async def find(find_query: FindQuery, obsolete: bool = False) -> List[Dict]:
     return await query.find(find_query, obsolete)
+
+@app.get("/importfrommongo")
+async def importfrommongo(start_from: str = Query(None, alias="from")):
+    return await ingestion.import_from_mongo(start_from)
+

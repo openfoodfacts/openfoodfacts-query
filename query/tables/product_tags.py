@@ -95,7 +95,7 @@ async def create_tables(connection):
 async def create_tag(connection, tag, product: Product, value):
     tag_table = tag_tables[tag]
     await connection.execute(
-        f"""INSERT INTO {tag_table} (product_id, value, obsolete) VALUES ($1, $2, $3)""",
+        f"""INSERT INTO {tag_table} (product_id, value, obsolete) VALUES ($1, $2, $3) ON CONFLICT (value, product_id) DO NOTHING""",
         product.id,
         value,
         product.obsolete,
