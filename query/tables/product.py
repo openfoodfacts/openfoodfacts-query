@@ -1,6 +1,9 @@
+from datetime import datetime, timezone
 from asyncpg import Connection, Record
 
-from query.models.product import Product
+from query.models.product import Product, Source
+from query.tables.product_ingredient import delete_ingredients
+from query.tables.product_tags import delete_tags
 
 product_fields = {
     "code": "code",
@@ -15,8 +18,10 @@ product_fields = {
     "rev": "revision",
 }
 
+
 def product_filter_fields():
-    return [key for key,value in product_fields.items() if value]
+    return [key for key, value in product_fields.items() if value]
+
 
 async def create_table(connection: Connection):
     await connection.execute(
@@ -58,9 +63,10 @@ async def update_product(connection: Connection, product: Product):
         product.source,
         product.last_processed,
         product.revision,
-        product.last_updated
+        product.last_updated,
     )
     return product
+
 
 async def create_product(connection: Connection, product: Product):
     product.id = await connection.fetchval(
@@ -72,12 +78,31 @@ async def create_product(connection: Connection, product: Product):
         product.source,
         product.last_processed,
         product.revision,
-        product.last_updated
+        product.last_updated,
     )
     return product
+
 
 async def get_product(connection: Connection, code):
     return await connection.fetchrow("SELECT * FROM product WHERE code = $1", code)
 
-async def delete_products_not_in_this_load(connection, process_id):
-    await connection.execute("UPDATE product SET obsolete = NULL WHERE process_id < $1", process_id)
+
+async def delete_products(connection, process_id, source, codes = None):
+    args = [process_id, datetime.now(timezone.utc), source]
+    if codes:
+        args.append(codes)
+    results = await connection.fetch(
+        f"""UPDATE product SET 
+                obsolete = NULL,
+                process_id = $1,
+                last_processed = $2,
+                source = $3 
+            WHERE obsolete IS NOT NULL
+                {"AND process_id < $1" if source == Source.full_load else ""}
+                {"AND code = ANY($4)" if codes else ""}
+            RETURNING id""",
+        *args
+    )
+    deleted_ids = [result["id"] for result in results]
+    await delete_tags(connection, deleted_ids)
+    await delete_ingredients(connection, deleted_ids)

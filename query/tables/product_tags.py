@@ -1,7 +1,10 @@
-from enum import Enum
+import logging
 from typing import Dict
 
 from query.models.product import Product
+
+
+logger = logging.getLogger(__name__)
 
 
 tag_tables = {
@@ -75,7 +78,11 @@ tag_tables = {
 async def create_tables(connection):
     for table_name in tag_tables.values():
         await connection.execute(
-            f"create table {table_name} (product_id int not null, value text not null, obsolete boolean null default false, constraint {table_name}_pkey primary key (value, product_id));",
+            f"""create table {table_name} (
+                product_id int not null,
+                value text not null,
+                obsolete boolean null default false,
+                constraint {table_name}_pkey primary key (value, product_id))""",
         )
         await connection.execute(
             f"create index {table_name}_product_id_index on {table_name} (product_id);"
@@ -88,26 +95,31 @@ async def create_tables(connection):
 async def create_tag(connection, tag, product: Product, value):
     tag_table = tag_tables[tag]
     await connection.execute(
-        f"""INSERT INTO {tag_table} (product_id, value, obsolete) VALUES ($1, $2, $3)
-        ON CONFLICT (value, product_id) DO UPDATE SET obsolete = excluded.obsolete""",
+        f"""INSERT INTO {tag_table} (product_id, value, obsolete) VALUES ($1, $2, $3)""",
         product.id,
         value,
         product.obsolete,
     )
 
 
-# TODO: Need to delete old tags first. Also probably need to optimize
+# TODO: Probably need to optimize
 async def create_tags(connection, product: Product, data: Dict):
     for tag in tag_tables.keys():
+        await connection.execute(f"DELETE FROM {tag_tables[tag]} WHERE product_id = $1", product.id)
         tag_data = data.get(tag, [])
         for value in tag_data:
+            if '\0' in value:
+                logger.warning(f"Product: {product.code}. Nuls stripped from {tag} value: {value}")
+                value = value.replace('\0', '')
+
             await create_tag(connection, tag, product, value)
             
-async def delete_tags_not_in_this_load(connection, process_id):
+
+async def delete_tags(connection, product_ids):
     for tag_table in tag_tables.values():
-        # TODO: May be more efficient to pass in the list of product ids
-        await connection.execute(f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id IN (SELECT id FROM product WHERE process_id < $1)", process_id)
-    
+        await connection.fetch(f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id = ANY($1::int[])", product_ids)
+  
+
 async def get_tags(connection, tag, product_id):
     tag_table = tag_tables[tag]
     return await connection.fetch(f"SELECT * FROM {tag_table} WHERE product_id = $1", product_id)

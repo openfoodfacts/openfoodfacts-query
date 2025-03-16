@@ -176,7 +176,7 @@ def append_sql_fragments(
                     params.append(tag_value)
                     if isinstance(tag_value, List):
                         where_expression = (
-                            f" AND {field} = ANY(${len(params)}::text[])"
+                            f" AND {field} = ANY(${len(params)})"
                         )
                     else:
                         where_expression = f" AND {field} = ${len(params)}"

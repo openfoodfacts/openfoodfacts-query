@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 import math
 import time
@@ -8,8 +9,9 @@ from query.services import ingestion
 from query.tables.country import get_country
 from query.tables.product import create_product, get_product
 from query.tables.product_country import create_product_country, get_product_countries
-from query.tables.product_tags import create_tag, get_tags
-from query.tables.settings import set_last_updated
+from query.tables.product_ingredient import get_ingredients
+from query.tables.product_tags import create_tag, get_tags, tag_tables
+from query.tables.settings import get_last_updated, set_last_updated
 from query.test_helper import mock_cursor, patch_context_manager, random_code
 
 
@@ -202,278 +204,263 @@ async def test_import_with_no_change_should_not_update_the_source(
         # then: source is not updated
         product_existing = await get_product(connection, existing_product_code)
         assert product_existing
-        assert product_existing['source'] == Source.event
-        assert product_existing['last_processed'] == last_processed
+        assert product_existing["source"] == Source.event
+        assert product_existing["last_processed"] == last_processed
 
 
-#   it('should start importing from the last import', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       // given: last_updated setting already set
-#       const settings = app.get(settings_service);
-#       const start_from = new date(2023, 1, 1);
-#       await settings.set_last_modified(start_from);
-#       const { products } = test_products();
-#       const import_service = app.get(import_service);
+@patch("query.services.ingestion.find_products")
+async def test_start_importing_from_the_last_import(
+    find_products_mock: Mock,
+):
+    async with database_connection() as connection:
+        # given: last_updated setting already set
+        start_from = datetime(2023, 1, 1, tzinfo=timezone.utc)
+        await set_last_updated(connection, start_from)
 
-#       // when: doing an incremental import from mongo_db
-#       mock_mongo_db(products);
-#       find_calls.length = 0;
-#       await import_service.import_from_mongo('');
+        # when: doing an incremental import from mongo_db
+        products = get_test_products()
+        patch_context_manager(find_products_mock, mock_cursor(products))
+        await ingestion.import_from_mongo("")
 
-#       // then: mongo find is called with the setting as a parameter
-#       expect(find_calls).to_have_length(2); // called for normal an obsolete prodocuts
-#       expect(find_calls[0][0].last_updated_t.$gt).to_be(
-#         math.floor(start_from.get_time() / 1000),
-#       );
+        # MongoDB called with the correct filter
+        call_args = find_products_mock.call_args[0][0]
+        assert call_args == {
+            "last_updated_t": {"$gt": math.floor(start_from.timestamp())}
+        }
 
-#       expect(await settings.get_last_modified()).to_strict_equal(
-#         new date(last_updated * 1000),
-#       );
-#     });
-#   });
+        assert (await get_last_updated(connection)) == datetime.fromtimestamp(
+            last_updated, timezone.utc
+        )
 
-#   it('should cope with nul characters', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       // when: importing data containing nul characters
-#       const { product_id_new } = test_products();
-#       mock_mongo_db([
-#         {
-#           // this one will be new
-#           code: product_id_new,
-#           last_updated_t: 1692032161,
-#           ingredients_tags: ['test \u0000 test2 \u0000 end'],
-#         },
-#       ]);
-#       await app.get(import_service).import_from_mongo();
 
-#       // then: product should be loaded with nuls stripped
-#       const ingredients_new = await app
-#         .get(entity_manager)
-#         .find(product_ingredients_tag, {
-#           product: { code: product_id_new },
-#         });
+@patch("query.services.ingestion.find_products")
+async def test_cope_with_nul_characters(
+    find_products_mock: Mock,
+):
+    async with database_connection() as connection:
+        # when: importing data containing nul characters
+        product_code = random_code()
+        patch_context_manager(
+            find_products_mock,
+            mock_cursor(
+                [
+                    {
+                        "code": product_code,
+                        "last_updated_t": 1692032161,
+                        "ingredients_tags": ["test \0 test2 \0 end"],
+                    }
+                ]
+            ),
+        )
+        await ingestion.import_from_mongo("")
 
-#       expect(ingredients_new).to_have_length(1);
-#       expect(ingredients_new[0].value).to_be('test  test2  end');
-#     });
-#   });
+        # then: product should be loaded with nuls stripped
+        product = await get_product(connection, product_code)
+        ingredients = await get_tags(connection, "ingredients_tags", product["id"])
 
-#   it('should set last_updated correctly if one product has an invalid date', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       // given: products with invalid date
-#       const settings = app.get(settings_service);
-#       const start_from = new date(2023, 1, 1);
-#       await settings.set_last_modified(start_from);
-#       const { products } = test_products();
-#       const test_data = [
-#         products[0],
-#         { ...products[1], last_updated_t: 'invalid' },
-#       ];
-#       const import_service = app.get(import_service);
+        assert len(ingredients) == 1
+        assert ingredients[0]["value"] == "test  test2  end"
 
-#       // when: doing an import from mongo_db
-#       mock_mongo_db(test_data);
-#       await import_service.import_from_mongo('');
 
-#       // then: the last modified date is set correctly
-#       expect(await settings.get_last_modified()).to_strict_equal(
-#         new date(last_updated * 1000),
-#       );
-#     });
-#   });
+@patch("query.services.ingestion.find_products")
+async def test_set_last_updated_correctly_if_one_product_has_an_invalid_date(
+    find_products_mock: Mock,
+):
+    async with database_connection() as connection:
+        # given: products with invalid date
+        start_from = datetime(2023, 1, 1, tzinfo=timezone.utc)
+        await set_last_updated(connection, start_from)
+        products = get_test_products()
+        invalid_product = dict(products[1])
+        invalid_product["last_updated_t"] = "invalid"
 
-#   it('should skip if already importing', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       // given: import already running
-#       const import_service = app.get(import_service);
-#       const { products } = test_products();
-#       mock_mongo_db(products);
-#       const first_import = import_service.import_from_mongo();
-#       const warn_spy = jest.spy_on(import_service['logger'], 'warn');
+        # when: doing an import from mongo_db
+        patch_context_manager(
+            find_products_mock, mock_cursor([products[0], invalid_product])
+        )
+        await ingestion.import_from_mongo("")
 
-#       // when: doing a second import
-#       await import_service.import_from_mongo();
-#       await first_import;
+        # then: the last modified date is set correctly
+        assert (await get_last_updated(connection)) == datetime.fromtimestamp(
+            last_updated, timezone.utc
+        )
 
-#       // then: second import just logs a warning
-#       expect(warn_spy).to_have_been_called_times(1);
-#     });
-#   });
 
-#   it('should cope with duplicate product codes', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       // when: importing data containing nul characters
-#       const { product_id_new } = test_products();
-#       const product_with_ingredients = {
-#         code: product_id_new,
-#         ingredients: [{ ingredient_text: 'test' }],
-#       };
-#       const duplicate_products = [
-#         product_with_ingredients,
-#         product_with_ingredients,
-#       ];
-#       mock_mongo_db(duplicate_products);
-#       await app.get(import_service).import_from_mongo();
+@patch("query.services.ingestion.logger")
+@patch("query.services.ingestion.find_products")
+async def test_skip_if_already_importing(
+    find_products_mock: Mock,
+    logger_mock: Mock,
+):
+    # given: import already running
+    products = get_test_products()
+    patch_context_manager(find_products_mock, mock_cursor(products))
+    # Note, don't await. In python need to use create_task to ensure the routine actually starts
+    first_import = asyncio.create_task(ingestion.import_from_mongo("2000-01-01"))
 
-#       // then: product should be loaded with no duplicates
-#       const ingredients_new = await app
-#         .get(entity_manager)
-#         .find(product_ingredient, {
-#           product: { code: product_id_new },
-#         });
+    # when: doing a second import
+    await ingestion.import_from_mongo("2001-01-01")
+    await first_import
 
-#       expect(ingredients_new).to_have_length(1);
-#       expect(ingredients_new[0].ingredient_text).to_be('test');
-#     });
-#   });
+    # then: second import just logs a warning
+    assert logger_mock.warning.called
 
-#   it('import from redis should always update product', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       // given: product with data that matches mongo_db
-#       const em = app.get(entity_manager);
-#       const last_processed = new date(2023, 1, 1);
-#       const { products, product_id_existing } = test_products();
-#       em.create(product, {
-#         code: product_id_existing,
-#         source: product_source.incremental_load,
-#         process_id: 10n,
-#         last_processed: last_processed,
-#         last_updated: new date(last_updated * 1000),
-#       });
-#       await em.flush();
-#       const import_service = app.get(import_service);
 
-#       // when: doing an event import
-#       mock_mongo_db(products);
-#       await import_service.import_with_filter(
-#         { code: { $in: [product_id_existing] } },
-#         product_source.event,
-#       );
+@patch("query.services.ingestion.find_products")
+async def test_cope_with_duplicate_product_codes(
+    find_products_mock: Mock,
+):
+    async with database_connection() as connection:
+        # when: importing data containing duplicate product codes
+        product = {
+            "code": random_code(),
+            "ingredients": [{"ingredient_text": "test"}],
+        }
+        patch_context_manager(find_products_mock, mock_cursor([product, product]))
+        await ingestion.import_from_mongo("")
 
-#       // then: source is updated
-#       const product_existing = await em.find_one(product, {
-#         code: product_id_existing,
-#       });
-#       expect(product_existing).to_be_truthy();
-#       expect(product_existing.source).to_be(product_source.event);
-#       expect(product_existing.process_id).not.to_be(10n.to_string());
-#       expect(product_existing.last_processed).not.to_strict_equal(last_processed);
-#     });
-#   });
-# });
+        found_products = await connection.fetch(
+            "SELECT * FROM product WHERE code = $1", product["code"]
+        )
+        assert len(found_products) == 1
 
-# describe('scheduled_import_from_mongo', () => {
-#   it('should do a full import if loaded tags arent complete', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const import_service = app.get(import_service);
-#       jest
-#         .spy_on(app.get(tag_service), 'get_loaded_tags')
-#         .mock_implementation(async () => []);
-#       const import_spy = jest
-#         .spy_on(import_service, 'import_from_mongo')
-#         .mock_implementation();
-#       await import_service.scheduled_import_from_mongo();
-#       expect(import_spy).to_have_been_called_times(1);
-#       expect(import_spy.mock.calls[0][0]).to_be_undefined();
-#     });
-#   });
+        ingredients = await get_ingredients(connection, found_products[0]["id"])
+        assert len(ingredients) == 1
+        assert ingredients[0]["ingredient_text"] == "test"
 
-#   it('should do an incremental import if loaded tags are complete', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const import_service = app.get(import_service);
-#       jest
-#         .spy_on(app.get(tag_service), 'get_loaded_tags')
-#         .mock_implementation(async () => [
-#           'dummy_tag', // add an extra tag to ensure this doesn't break things
-#           ...object.keys(product_tag_map.mapped_tags).reverse(),
-#         ]);
-#       const import_spy = jest
-#         .spy_on(import_service, 'import_from_mongo')
-#         .mock_implementation();
-#       await import_service.scheduled_import_from_mongo();
-#       expect(import_spy).to_have_been_called_times(1);
-#       expect(import_spy.mock.calls[0][0]).to_be('');
-#     });
-#   });
-# });
 
-# describe('product_tag', () => {
-#   it('should add class to tag array', async () => {
-#     await create_testing_module([domain_module], async () => {
-#       expect(product_tag_map.mapped_tags['categories_tags']).to_be_truthy();
-#     });
-#   });
-# });
+@patch("query.services.ingestion.find_products")
+async def test_import_from_event_source_should_always_update_product(
+    find_products_mock: Mock,
+):
+    async with database_connection() as connection:
+        # given: product with data that matches mongo_db
+        last_processed = datetime(2023, 1, 1, tzinfo=timezone.utc)
+        products = get_test_products()
+        product_code = products[1]["code"]
+        await create_product(
+            connection,
+            Product(
+                code=product_code,
+                source=Source.incremental_load,
+                process_id=10,
+                last_processed=last_processed,
+                last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
+            ),
+        )
+        patch_context_manager(find_products_mock, mock_cursor(products))
+        await ingestion.import_with_filter(
+            {"code": {"$in": [product_code]}}, Source.event
+        )
 
-# describe('import_with_filter', () => {
-#   it('should not get an error with concurrent imports', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const import_service = app.get(import_service);
+        # then: source is updated
+        product_existing = await get_product(connection, product_code)
+        assert product_existing
+        assert product_existing["source"] == Source.event
+        assert product_existing["process_id"] != 10
+        assert product_existing["last_processed"] > last_processed
 
-#       // when: doing an incremental import from mongo_db
-#       const { products, product_id_existing, product_id_new } = test_products();
-#       mock_mongo_db(products);
-#       const imports = [];
-#       // need more than 10 concurrent imports to start to see errors
-#       for (let i = 0; i < 11; i++) {
-#         imports.push(
-#           import_service.import_with_filter(
-#             { code: { $in: [product_id_existing, product_id_new] } },
-#             product_source.event,
-#           ),
-#         );
-#       }
-#       await promise.all(imports);
-#     });
-#   });
 
-#   it('should flag products not in mongodb as deleted', async () => {
-#     await create_testing_module([domain_module], async (app) => {
-#       const import_service = app.get(import_service);
+@patch("query.services.ingestion.get_loaded_tags", return_value=[])
+@patch("query.services.ingestion.import_from_mongo")
+async def test_scheduled_import_from_mongo_should_do_a_full_import_if_loaded_tags_arent_complete(
+    import_mock: Mock,
+    _: Mock,
+):
+    await ingestion.scheduled_import_from_mongo()
+    assert import_mock.called
+    assert len(import_mock.call_args[0]) == 0
 
-#       // given: an existing product that doesn't exist in mongo_db
-#       const em = app.get(entity_manager);
-#       const product_id_to_delete = random_code();
-#       const product_to_delete = em.create(product, {
-#         code: product_id_to_delete,
-#         source: product_source.full_load,
-#         process_id: 10n,
-#         last_processed: new date(2023, 1, 1),
-#         last_updated: new date(last_updated * 1000),
-#       });
-#       em.create(product_ingredients_tag, {
-#         product: product_to_delete,
-#         value: 'old_ingredient',
-#       });
-#       await em.flush();
 
-#       const before_import = date.now();
-#       // when: doing an incremental import from mongo_db where the id is mentioned
-#       const { products, product_id_existing, product_id_new } = test_products();
-#       mock_mongo_db(products);
-#       await import_service.import_with_filter(
-#         { code: { $in: [product_id_existing, product_id_new, product_id_to_delete] } },
-#         product_source.event,
-#       );
+# add an extra tag to ensure this doesn't break things
+@patch(
+    "query.services.ingestion.get_loaded_tags",
+    return_value=list(tag_tables.keys()) + ["dummy_tag"],
+)
+@patch("query.services.ingestion.import_from_mongo")
+async def test_scheduled_import_from_mongo_should_do_an_incremental_import_if_loaded_tags_are_complete(
+    import_mock: Mock,
+    _: Mock,
+):
+    await ingestion.scheduled_import_from_mongo()
+    assert import_mock.called
+    assert import_mock.call_args[0][0] == ""
 
-#       // then: obsolete flag should get set to null
-#       const deleted_product = await em.find_one(product, {
-#         code: product_id_to_delete,
-#       });
-#       const updated_product = await em.find_one(product, {
-#         code: product_id_existing,
-#       });
-#       expect(deleted_product.process_id).to_be(updated_product.process_id);
-#       expect(deleted_product.last_processed.get_time()).to_be_greater_than_or_equal(
-#         before_import,
-#       );
-#       expect(deleted_product.source).to_be(product_source.event);
-#       expect(updated_product.obsolete).to_be(false);
 
-#       const deleted_tag = await em.find_one(product_ingredients_tag, {
-#         product: deleted_product,
-#       });
-#       expect(deleted_tag.obsolete).to_be_null();
-#     });
-#   });
-# });
+async def test_not_get_an_error_with_concurrent_imports():
+    products = get_test_products()
+
+    async def one_import():
+        with patch("query.services.ingestion.find_products") as find_products_mock:
+            patch_context_manager(find_products_mock, mock_cursor(products))
+            await ingestion.import_with_filter(
+                {"code": {"$in": [products[0]["code"], products[1]["code"]]}},
+                Source.event,
+            )
+
+    running_imports = []
+    for i in range(11):
+        running_imports.append(one_import())
+
+    await asyncio.gather(*running_imports)
+    async with database_connection() as connection:
+        found_product = await connection.fetch(
+            "SELECT * FROM product WHERE code = $1", products[0]["code"]
+        )
+        assert len(found_product) == 1
+
+
+@patch("query.services.ingestion.find_products")
+async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
+    find_products_mock: Mock,
+):
+    async with database_connection() as connection:
+        # given: an existing product that doesn't exist in mongo_db
+        product_code_to_delete = random_code()
+        product_to_delete = await create_product(
+            connection,
+            Product(
+                code=product_code_to_delete,
+                source=Source.full_load,
+                process_id=10,
+                last_processed=datetime(2023, 1, 1, tzinfo=timezone.utc),
+                last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
+            ),
+        )
+        await create_tag(
+            connection, "ingredients_tags", product_to_delete, "old_ingredient"
+        )
+
+        before_import = datetime.now(timezone.utc)
+
+        # when: doing an incremental import from mongo_db where the id is mentioned
+        products = get_test_products()
+        patch_context_manager(find_products_mock, mock_cursor(products))
+        await ingestion.import_with_filter(
+            {
+                "code": {
+                    "$in": [
+                        products[0]["code"],
+                        products[1]["code"],
+                        product_code_to_delete,
+                    ]
+                }
+            },
+            Source.event,
+        )
+
+        # then: obsolete flag should get set to null
+        deleted_product = await get_product(connection, product_code_to_delete)
+        updated_product = await get_product(connection, products[1]['code'])
+        assert deleted_product['process_id'] == updated_product['process_id']
+        assert deleted_product['last_processed'] >= before_import
+        assert deleted_product['source'] == Source.event
+        assert updated_product['obsolete'] == False
+
+        deleted_tags = await get_tags(connection, "ingredients_tags", deleted_product['id'])
+        assert len(deleted_tags) == 1
+        assert deleted_tags[0]['obsolete'] == None
+
+
+# TODO: Test loading from obsolete collection
+# TODO: All fields populated
