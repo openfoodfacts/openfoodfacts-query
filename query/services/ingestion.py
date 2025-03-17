@@ -3,13 +3,18 @@ import logging
 import math
 from typing import Dict
 
-from query.database import database_connection
+from asyncpg import Connection
+
+from query.database import database_connection, get_rows_affected
 from query.models.product import Product, Source
 from query.mongodb import find_products
 from query.tables.loaded_tag import append_loaded_tags, get_loaded_tags
 from query.tables.product_country import fixup_product_countries
-from query.tables.product_ingredient import create_ingredients
-from query.tables.product_tags import create_tags, tag_tables
+from query.tables.product_ingredient import (
+    create_ingredients,
+    create_ingredients_from_staging,
+)
+from query.tables.product_tags import create_tags, create_tags_from_staging, tag_tables
 from query.tables.product import (
     create_product,
     delete_products,
@@ -21,105 +26,143 @@ from query.tables.settings import get_last_updated, set_last_updated
 
 
 logger = logging.getLogger(__name__)
+min_datetime = datetime(1, 1, 1, tzinfo=timezone.utc)
+batch_size = 10000
 
 
 async def get_process_id(connection):
     return await connection.fetchval("SELECT pg_current_xact_id()")
 
 
-min_datetime = datetime(1, 1, 1, tzinfo=timezone.utc)
-
 def int_or_none(value):
     return None if value == None else int(value)
+
 
 async def import_with_filter(filter: Dict, source: Source) -> datetime:
     max_last_updated = min_datetime
     found_product_codes = []
+    codes_specified = "code" in filter and "$in" in filter["code"]
+
     async with database_connection() as connection:
-        process_id = await get_process_id(connection)
-        projection = {
-            key: True for key in (list(tag_tables.keys()) + list(product_fields.keys()))
-        }
-        for obsolete in [False, True]:
-            product_count = 0
-            async with find_products(filter, projection, obsolete) as cursor:
-                async for product_data in cursor:
-                    product_count += 1
-                    if not (product_count % 1000):
-                        logger.info(f"Imported {product_count}{' obsolete' if obsolete else ''} products")
+        await connection.execute(
+            "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
+        )
+        try:
+            process_id = await get_process_id(connection)
+            projection = {
+                key: True
+                for key in (list(tag_tables.keys()) + list(product_fields.keys()))
+            }
+            for obsolete in [False, True]:
+                product_count = 0
+                async with find_products(filter, projection, obsolete) as cursor:
+                    async for product_data in cursor:
+                        if product_count == 0:
+                            logger.info("Fetched first product")
+                        product_count += 1
 
-                    # Fall back to last_modified_t if last_updated_t is not available
-                    try:
-                        last_updated = datetime.fromtimestamp(
-                            product_data.get(
-                                "last_updated_t", product_data.get("last_modified_t")
-                            ),
-                            timezone.utc,
+                        # Fall back to last_modified_t if last_updated_t is not available
+                        try:
+                            last_updated = datetime.fromtimestamp(
+                                product_data.get(
+                                    "last_updated_t",
+                                    product_data.get("last_modified_t"),
+                                ),
+                                timezone.utc,
+                            )
+                        except TypeError:
+                            logger.warning(
+                                f"Product: {product_data['code']}. Invalid last_updated_t: {product_data.get('last_updated_t')}, or last_modified_t: {product_data.get('last_modified_t')}."
+                            )
+                            last_updated = min_datetime
+                        product_code = product_data["code"]
+                        if codes_specified:
+                            found_product_codes.append(product_code)
+
+                        existing_product = await connection.fetchrow("SELECT id, last_updated FROM product WHERE code = $1", product_code)
+                        if (
+                            existing_product
+                            and source == Source.incremental_load
+                            and existing_product["last_updated"] == last_updated
+                        ):
+                            continue
+                        if not existing_product:
+                            existing_product = await connection.fetchrow("INSERT INTO product (code) VALUES ($1) RETURNING id", product_code)
+
+                        # Strip any nulls from tag text
+                        for tag in tag_tables.keys():
+                            tag_data = product_data.get(tag, [])
+                            for i, tag_value in enumerate(tag_data):
+                                if "\0" in tag_value:
+                                    logger.warning(
+                                        f"Product: {product_code}. Nuls stripped from {tag} value: {tag_value}"
+                                    )
+                                    tag_data[i] = tag_value.replace("\0", "")
+                        await connection.execute(
+                            "INSERT INTO product_temp (id, last_updated, data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+                            existing_product['id'],
+                            last_updated,
+                            product_data,
                         )
-                    except TypeError:
-                        logger.warning(
-                            f"Product: {product_data['code']}. Invalid last_updated_t: {product_data.get('last_updated_t')}, or last_modified_t: {product_data.get('last_modified_t')}."
-                        )
-                        last_updated = min_datetime
-                    product_code = product_data["code"]
-                    found_product_codes.append(product_code)
-                    existing_product = await get_product(connection, product_code)
-                    if (
-                        existing_product
-                        and source == Source.incremental_load
-                        and existing_product["last_updated"] == last_updated
-                    ):
-                        continue
-                    product = Product(
-                        code=product_data["code"],
-                        process_id=process_id,
-                        source=source,
-                        last_processed=datetime.now(timezone.utc),
-                        last_updated=last_updated,
-                        obsolete=obsolete
-                    )
-                    for field, column in product_fields.items():
-                        if column and column not in ['code', 'last_updated']:
-                            value = product_data.get(field)
-                            if column in ['revision', 'ingredients_count' ,'ingredients_without_ciqual_codes_count']:
-                                value = int_or_none(value)
-                            setattr(product, column, value)
-                        
-                    if existing_product:
-                        product.id = existing_product["id"]
-                        await update_product(connection, product)
-                    else:
-                        await create_product(connection, product)
-                    await create_tags(connection, product, product_data)
-                    await fixup_product_countries(connection, product)
-                    await create_ingredients(
-                        connection, product, product_data.get("ingredients", [])
-                    )
-                    max_last_updated = max(last_updated, max_last_updated)                   
+                        if not (product_count % batch_size):
+                            await apply_staged_changes(
+                                connection, obsolete, product_count, process_id, source
+                            )
 
-            if product_count % 1000:
-                logger.info(f"Imported {product_count}{' obsolete' if obsolete else ''} products")
+                        max_last_updated = max(last_updated, max_last_updated)
 
-        # Mark all products specifically requested but not found as deleted
-        if source != Source.full_load and "code" in filter and "$in" in filter["code"]:
-            requested_product_codes = filter["code"]["$in"]
-            missing_product_codes = [
-                code
-                for code in requested_product_codes
-                if code not in found_product_codes
-            ]
-            await delete_products(connection, process_id, source, missing_product_codes)
+                if product_count % batch_size:
+                    await apply_staged_changes(connection, obsolete, product_count, process_id, source)
 
-        if source == Source.full_load:
-            await delete_products(connection, process_id, source)
-            await append_loaded_tags(connection, tag_tables.keys())
+            # Mark all products specifically requested but not found as deleted
+            if codes_specified:
+                requested_product_codes = filter["code"]["$in"]
+                missing_product_codes = [
+                    code
+                    for code in requested_product_codes
+                    if code not in found_product_codes
+                ]
+                await delete_products(
+                    connection, process_id, source, missing_product_codes
+                )
+
+            if source == Source.full_load:
+                await delete_products(connection, process_id, source)
+                await append_loaded_tags(connection, tag_tables.keys())
+        finally:
+            await connection.execute("DROP TABLE product_temp")
 
     return max_last_updated
 
 
+async def apply_staged_changes(connection: Connection, obsolete, product_count, process_id, source):
+    await connection.execute("ANALYZE product_temp")
+    # Apply updates to products
+    product_results = await connection.execute(f"""
+      update product
+      set name = tp.data->>'product_name',
+        creator = tp.data->>'creator',
+        owners_tags = tp.data->>'owners_tags',
+        obsolete = $1,
+        ingredients_count = (tp.data->>'ingredients_n')::numeric,
+        ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
+        last_updated = tp.last_updated,
+        process_id = $2,
+        last_processed = $3,
+        source = $4,
+        revision = (tp.data->>'rev')::int
+      from product_temp tp
+      where product.id = tp.id""", obsolete, process_id, datetime.now(timezone.utc), source)
+    logger.info(f"Updated {get_rows_affected(product_results)} products")
+
+    await create_ingredients_from_staging(connection, logger, obsolete)
+    await create_tags_from_staging(connection, logger, obsolete)
+    await fixup_product_countries(connection, obsolete)
+    await connection.execute("TRUNCATE TABLE product_temp")
+    logger.info(f"Imported {product_count}{' obsolete' if obsolete else ''} products")
+
+
 import_running = False
-
-
 async def import_from_mongo(from_date: str = None):
     global import_running
     if import_running:

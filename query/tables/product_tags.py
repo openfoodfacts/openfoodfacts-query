@@ -1,6 +1,7 @@
 import logging
 from typing import Dict
 
+from query.database import get_rows_affected
 from query.models.product import Product
 
 
@@ -113,7 +114,24 @@ async def create_tags(connection, product: Product, data: Dict):
                 value = value.replace('\0', '')
 
             await create_tag(connection, tag, product, value)
+    
             
+async def create_tags_from_staging(connection, logger, obsolete):
+    for tag, tag_table in tag_tables.items():
+        log_text = f"Updated {tag}"
+
+        # Delete existing tags for products that were imported on this run
+        deleted = await connection.execute(f"""delete from {tag_table}
+            where product_id in (select id from product_temp)""")
+        log_text += f" deleted {get_rows_affected(deleted)},"
+
+        # Add tags back in with the updated information
+        results = await connection.execute(f"""insert into {tag_table} (product_id, value, obsolete)
+          select DISTINCT id, tag.value, {obsolete} from product_temp 
+          cross join jsonb_array_elements_text(data->'{tag}') tag""")
+        log_text += f" inserted {get_rows_affected(results)} rows"
+        logger.info(log_text)
+
 
 async def delete_tags(connection, product_ids):
     for tag_table in tag_tables.values():

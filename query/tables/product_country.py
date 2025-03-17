@@ -51,22 +51,19 @@ async def get_product_countries(connection, product_id):
     )
 
 
-async def fixup_product_countries(connection, product: Product):
+async def fixup_product_countries(connection, obsolete):
     # Create missing countries
     await connection.execute(
-        """INSERT INTO country (tag) SELECT value FROM product_countries_tag
-            WHERE product_id = $1 AND NOT EXISTS (SELECT * FROM country WHERE tag = value)
-            ON CONFLICT (tag) DO NOTHING""",
-        product.id,
-    )
+        """INSERT INTO country (tag) SELECT DISTINCT pct.value 
+            FROM product_temp pt
+            JOIN product_countries_tag pct ON pct.product_id = pt.id
+            WHERE NOT EXISTS (SELECT * FROM country WHERE tag = pct.value)
+            ON CONFLICT (tag) DO NOTHING""")
     await connection.execute(
         """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
-            SELECT pct.product_id, $2, c.id, 0, 0
-            FROM (SELECT product_id, value FROM product_countries_tag WHERE product_id = $1
-                UNION SELECT $1, 'en:world') pct
+            SELECT pct.product_id, $1, c.id, 0, 0
+            FROM (SELECT product_id, value FROM product_temp JOIN product_countries_tag ON product_id = id
+                UNION SELECT id, 'en:world' FROM product_temp) pct
             JOIN country c ON c.tag = pct.value
-            WHERE pct.product_id = $1
-            ON CONFLICT (product_id, country_id) DO NOTHING""",
-        product.id,
-        product.obsolete,
+            ON CONFLICT (product_id, country_id) DO NOTHING""", obsolete
     )

@@ -144,8 +144,11 @@ omit = [
 
 Tried to use the `source` option to report on modules that were never loaded but couldn't get it to work.
 
+## Import process
+
+Tried moving to more simple code rather than staging via temporary tables. However, for 1000 records it was taking more than 10 minutes whereas the staging method takes only 2.25 minutes for 10000 records.
+
 # TODO
 
- - query services
  - redis import
  - incremental / full import
