@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
-from asyncpg import Connection, Record
+from asyncpg import Connection
 
+from query.database import get_rows_affected
 from query.models.product import Product, Source
 from query.tables.product_ingredient import delete_ingredients
 from query.tables.product_tags import delete_tags
@@ -56,23 +57,44 @@ async def create_table(connection: Connection):
     )
 
 
-async def update_product(connection: Connection, product: Product):
-    statement = (
-        "UPDATE product SET obsolete=$2, process_id=$3, source=$4, last_processed=$5"
+async def update_products_from_staging(
+    connection: Connection, log, obsolete, process_id, source
+):
+    # Apply updates to products
+    product_results = await connection.execute(
+        f"""
+      update product
+      set name = tp.data->>'product_name',
+        creator = tp.data->>'creator',
+        owners_tags = tp.data->>'owners_tags',
+        obsolete = $1,
+        ingredients_count = (tp.data->>'ingredients_n')::numeric,
+        ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
+        last_updated = tp.last_updated,
+        process_id = $2,
+        last_processed = $3,
+        source = $4,
+        revision = (tp.data->>'rev')::int
+      from product_temp tp
+      where product.id = tp.id""",
+        obsolete,
+        process_id,
+        datetime.now(timezone.utc),
+        source,
     )
-    args = [
-        product.id,
-        product.obsolete,
-        product.process_id,
-        product.source,
-        product.last_processed,
-    ]
-    for column in product_columns:
-        args.append(getattr(product, column))
-        statement += f", {column} = ${len(args)}"
-    statement += " WHERE id = $1"
-    await connection.execute(statement, *args)
-    return product
+    log(f"Updated {get_rows_affected(product_results)} products")
+
+
+async def get_minimal_product(connection, code):
+    return await connection.fetchrow(
+        "SELECT id, last_updated FROM product WHERE code = $1", code
+    )
+
+
+async def create_minimal_product(connection, code):
+    return await connection.fetchrow(
+        "INSERT INTO product (code) VALUES ($1) RETURNING id", code
+    )
 
 
 async def create_product(connection: Connection, product: Product):
@@ -88,7 +110,7 @@ async def create_product(connection: Connection, product: Product):
         args.append(getattr(product, column))
         statement += f", {column}"
         values += f", ${len(args)}"
-    product.id = await connection.fetchval( f"{statement}{values}) RETURNING id", *args)
+    product.id = await connection.fetchval(f"{statement}{values}) RETURNING id", *args)
     return product
 
 

@@ -1,11 +1,7 @@
 import logging
-from typing import Dict
 
 from query.database import get_rows_affected
 from query.models.product import Product
-
-
-logger = logging.getLogger(__name__)
 
 
 tag_tables = {
@@ -101,22 +97,9 @@ async def create_tag(connection, tag, product: Product, value):
         value,
         product.obsolete,
     )
-
-
-# TODO: Probably need to optimize
-async def create_tags(connection, product: Product, data: Dict):
-    for tag in tag_tables.keys():
-        await connection.execute(f"DELETE FROM {tag_tables[tag]} WHERE product_id = $1", product.id)
-        tag_data = data.get(tag, [])
-        for value in tag_data:
-            if '\0' in value:
-                logger.warning(f"Product: {product.code}. Nuls stripped from {tag} value: {value}")
-                value = value.replace('\0', '')
-
-            await create_tag(connection, tag, product, value)
-    
+  
             
-async def create_tags_from_staging(connection, logger, obsolete):
+async def create_tags_from_staging(connection, log, obsolete):
     for tag, tag_table in tag_tables.items():
         log_text = f"Updated {tag}"
 
@@ -130,7 +113,7 @@ async def create_tags_from_staging(connection, logger, obsolete):
           select DISTINCT id, tag.value, {obsolete} from product_temp 
           cross join jsonb_array_elements_text(data->'{tag}') tag""")
         log_text += f" inserted {get_rows_affected(results)} rows"
-        logger.info(log_text)
+        log(log_text)
 
 
 async def delete_tags(connection, product_ids):

@@ -1,8 +1,5 @@
-from typing import Dict, List
-
 from asyncpg import Connection
 from query.database import get_rows_affected
-from query.models.product import Product
 
 
 async def create_table(connection):
@@ -40,57 +37,7 @@ async def get_ingredients(connection, product_id):
     )
 
 
-def float_or_none(value):
-    if value == None:
-        return None
-    return float(value)
-
-
-async def create_ingredients(
-    connection, product: Product, ingredients: List[Dict], parent_sequence=None
-):
-    # TODO: Test extra fields
-    if parent_sequence == None:
-        await connection.execute(
-            "DELETE FROM product_ingredient WHERE product_id = $1", product.id
-        )
-
-    for seq, ingredient in enumerate(ingredients):
-        sequence = (
-            str(seq + 1)
-            if parent_sequence == None
-            else parent_sequence + "." + str(seq + 1)
-        )
-        await connection.execute(
-            """INSERT INTO product_ingredient (
-            product_id,
-            sequence,
-            parent_sequence,
-            ingredient_text,
-            id,
-            ciqual_food_code,
-            percent_min,
-            percent,
-            percent_max,
-            percent_estimate
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)""",
-            product.id,
-            sequence,
-            parent_sequence,
-            ingredient.get("text"),
-            ingredient.get("id"),
-            ingredient.get("ciqual_food_code"),
-            float_or_none(ingredient.get("percent_min")),
-            str(ingredient.get("percent")),
-            float_or_none(ingredient.get("percent_max")),
-            float_or_none(ingredient.get("percent_estimate")),
-        )
-        if "ingredients" in ingredient:
-            await create_ingredients(
-                connection, product, ingredient["ingredients"], sequence
-            )
-
-async def create_ingredients_from_staging(connection: Connection, logger, obsolete):
+async def create_ingredients_from_staging(connection: Connection, log, obsolete):
       deleted = await connection.execute("""delete from product_ingredient 
         where product_id in (select id from product_temp)""")
       log_text = f"Updated ingredients deleted {get_rows_affected(deleted)},"
@@ -160,7 +107,7 @@ async def create_ingredients_from_staging(connection: Connection, logger, obsole
           AND NOT EXISTS (SELECT * FROM product_ingredient pi2 WHERE pi2.parent_product_id = pi.product_id AND pi2.parent_sequence = pi.sequence)""")
         affected_rows = get_rows_affected(results)
         log_text += f" > {affected_rows}"
-      logger.info(log_text)
+      log(log_text)
     
 
 async def delete_ingredients(connection, product_ids):

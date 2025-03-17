@@ -5,22 +5,19 @@ from typing import Dict
 
 from asyncpg import Connection
 
-from query.database import database_connection, get_rows_affected
-from query.models.product import Product, Source
+from query.database import database_connection
+from query.models.product import Source
 from query.mongodb import find_products
 from query.tables.loaded_tag import append_loaded_tags, get_loaded_tags
 from query.tables.product_country import fixup_product_countries
-from query.tables.product_ingredient import (
-    create_ingredients,
-    create_ingredients_from_staging,
-)
-from query.tables.product_tags import create_tags, create_tags_from_staging, tag_tables
+from query.tables.product_ingredient import create_ingredients_from_staging
+from query.tables.product_tags import create_tags_from_staging, tag_tables
 from query.tables.product import (
-    create_product,
+    create_minimal_product,
     delete_products,
-    get_product,
+    get_minimal_product,
     product_fields,
-    update_product,
+    update_products_from_staging,
 )
 from query.tables.settings import get_last_updated, set_last_updated
 
@@ -79,7 +76,7 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                         if codes_specified:
                             found_product_codes.append(product_code)
 
-                        existing_product = await connection.fetchrow("SELECT id, last_updated FROM product WHERE code = $1", product_code)
+                        existing_product = await get_minimal_product(connection, product_code)
                         if (
                             existing_product
                             and source == Source.incremental_load
@@ -87,7 +84,9 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                         ):
                             continue
                         if not existing_product:
-                            existing_product = await connection.fetchrow("INSERT INTO product (code) VALUES ($1) RETURNING id", product_code)
+                            existing_product = await create_minimal_product(
+                                connection, product_code
+                            )
 
                         # Strip any nulls from tag text
                         for tag in tag_tables.keys():
@@ -100,7 +99,7 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                                     tag_data[i] = tag_value.replace("\0", "")
                         await connection.execute(
                             "INSERT INTO product_temp (id, last_updated, data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-                            existing_product['id'],
+                            existing_product["id"],
                             last_updated,
                             product_data,
                         )
@@ -112,7 +111,9 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                         max_last_updated = max(last_updated, max_last_updated)
 
                 if product_count % batch_size:
-                    await apply_staged_changes(connection, obsolete, product_count, process_id, source)
+                    await apply_staged_changes(
+                        connection, obsolete, product_count, process_id, source
+                    )
 
             # Mark all products specifically requested but not found as deleted
             if codes_specified:
@@ -122,9 +123,10 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                     for code in requested_product_codes
                     if code not in found_product_codes
                 ]
-                await delete_products(
-                    connection, process_id, source, missing_product_codes
-                )
+                if missing_product_codes:
+                    await delete_products(
+                        connection, process_id, source, missing_product_codes
+                    )
 
             if source == Source.full_load:
                 await delete_products(connection, process_id, source)
@@ -135,34 +137,23 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
     return max_last_updated
 
 
-async def apply_staged_changes(connection: Connection, obsolete, product_count, process_id, source):
+async def apply_staged_changes(
+    connection: Connection, obsolete, product_count, process_id, source
+):
     await connection.execute("ANALYZE product_temp")
-    # Apply updates to products
-    product_results = await connection.execute(f"""
-      update product
-      set name = tp.data->>'product_name',
-        creator = tp.data->>'creator',
-        owners_tags = tp.data->>'owners_tags',
-        obsolete = $1,
-        ingredients_count = (tp.data->>'ingredients_n')::numeric,
-        ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
-        last_updated = tp.last_updated,
-        process_id = $2,
-        last_processed = $3,
-        source = $4,
-        revision = (tp.data->>'rev')::int
-      from product_temp tp
-      where product.id = tp.id""", obsolete, process_id, datetime.now(timezone.utc), source)
-    logger.info(f"Updated {get_rows_affected(product_results)} products")
-
-    await create_ingredients_from_staging(connection, logger, obsolete)
-    await create_tags_from_staging(connection, logger, obsolete)
+    log = logger.info
+    await update_products_from_staging(connection, log, obsolete, process_id, source)
+    await create_ingredients_from_staging(connection, log, obsolete)
+    await create_tags_from_staging(connection, log, obsolete)
     await fixup_product_countries(connection, obsolete)
     await connection.execute("TRUNCATE TABLE product_temp")
+
     logger.info(f"Imported {product_count}{' obsolete' if obsolete else ''} products")
 
 
 import_running = False
+
+
 async def import_from_mongo(from_date: str = None):
     global import_running
     if import_running:
