@@ -15,5 +15,12 @@ async def set_last_updated(connection, last_updated):
 
 
 async def get_last_updated(connection) -> datetime:
-    settings = await connection.fetchrow("SELECT * FROM settings")
-    return settings["last_updated"]
+    return await connection.fetchval("SELECT last_updated FROM settings")
+
+
+async def set_last_message_id(connection, message_id):
+    await connection.execute("UPDATE settings SET last_message_id = $1", message_id)
+
+
+async def get_last_message_id(connection) -> str:
+    return await connection.fetchval("SELECT last_message_id FROM settings")

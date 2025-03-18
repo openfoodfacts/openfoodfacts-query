@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 import logging
 from typing import Dict, List
@@ -13,6 +14,7 @@ from query.models.query import (
     Stage,
 )
 from query.models.health import Health
+from query.redis import redis_listener
 from query.services import ingestion, query
 from query.services.health import check_health
 
@@ -24,7 +26,10 @@ async def lifespan(_):
     # Run migrations
     async with database_connection() as conn:
         await migrate_database(conn)
+    
+    redis_listener_task = asyncio.create_task(redis_listener())
     yield
+    redis_listener_task.cancel()
 
 
 app = FastAPI(lifespan=lifespan)

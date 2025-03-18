@@ -2,8 +2,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 import pytest
-from query.database import database_connection, config_settings
+from query.database import database_connection
 from query.migrator import migrate_database
+from query.config import config_settings
+from query.redis import STREAM_NAME, redis_client
+from query.redis_test import add_test_message
+from query.test_helper import random_code
 
 
 # Don't prefix with "Test" as otherwise pytest thinks this is a test class
@@ -16,12 +20,12 @@ class SettingsForTests(BaseSettings):
 
 test_settings = SettingsForTests()
 
-if test_settings.USE_TESTCONTAINERS:
-    postgres = PostgresContainer(test_settings.POSTGRES_IMAGE)
-    redis = RedisContainer()
+@pytest.fixture(scope="session", autouse=True)
+async def setup(request):
+    if test_settings.USE_TESTCONTAINERS:
+        postgres = PostgresContainer(test_settings.POSTGRES_IMAGE)
+        redis = RedisContainer()
 
-    @pytest.fixture(scope="session", autouse=True)
-    async def setup(request):
         postgres.start()
         redis.start()
 
@@ -43,3 +47,8 @@ if test_settings.USE_TESTCONTAINERS:
 
         async with database_connection() as conn:
             await migrate_database(conn)
+
+    # Make sure the redis stream exists by adding and removing a dummy message
+    async with redis_client() as redis:
+        message_id = await add_test_message(redis, random_code())
+        await redis.xdel(STREAM_NAME, message_id)

@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 import json
 from typing import Any, AsyncGenerator
 import asyncpg
-import logging
 from query.config import config_settings
 
 
