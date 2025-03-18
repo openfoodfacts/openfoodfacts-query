@@ -148,7 +148,16 @@ Tried to use the `source` option to report on modules that were never loaded but
 
 Tried moving to more simple code rather than staging via temporary tables. However, for 1000 records it was taking more than 10 minutes whereas the staging method takes only 2.25 minutes for 10000 records.
 
+## Models
+
+Using Pydantic for external interfaces for validation and to generate Swagger docs.
+
+Started using for internal classes but wanted to avoid performance overhead of validaiton. Tried using dataclasses for a but but then just decided to use the basic asyncpg Record classes for internal database models.
+
+This doesn't abstract away the underlying database model from the code, but given that a lot of the processing requires raw SQL anyway then it seems better to keep things simple without extra layers of abstraction.
+
+
 # TODO
 
  - redis import
- - incremental / full import
+ - import scans
