@@ -87,31 +87,46 @@ async def create_tables(connection):
 
 
 async def create_tag(connection, tag, product, value):
-    return await create_record(connection, tag_tables[tag], product_id=product['id'], value=value, obsolete=product['obsolete'])
-  
-            
+    return await create_record(
+        connection,
+        tag_tables[tag],
+        product_id=product["id"],
+        value=value,
+        obsolete=product["obsolete"],
+    )
+
+
 async def create_tags_from_staging(connection, log, obsolete):
     for tag, tag_table in tag_tables.items():
         log_text = f"Updated {tag}"
 
         # Delete existing tags for products that were imported on this run
-        deleted = await connection.execute(f"""delete from {tag_table}
-            where product_id in (select id from product_temp)""")
+        deleted = await connection.execute(
+            f"""delete from {tag_table}
+            where product_id in (select id from product_temp)"""
+        )
         log_text += f" deleted {get_rows_affected(deleted)},"
 
         # Add tags back in with the updated information
-        results = await connection.execute(f"""insert into {tag_table} (product_id, value, obsolete)
+        results = await connection.execute(
+            f"""insert into {tag_table} (product_id, value, obsolete)
           select DISTINCT id, tag.value, {obsolete} from product_temp 
-          cross join jsonb_array_elements_text(data->'{tag}') tag""")
+          cross join jsonb_array_elements_text(data->'{tag}') tag"""
+        )
         log_text += f" inserted {get_rows_affected(results)} rows"
         log(log_text)
 
 
 async def delete_tags(connection, product_ids):
     for tag_table in tag_tables.values():
-        await connection.fetch(f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id = ANY($1::int[])", product_ids)
-  
+        await connection.fetch(
+            f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id = ANY($1::int[])",
+            product_ids,
+        )
+
 
 async def get_tags(connection, tag, product):
     tag_table = tag_tables[tag]
-    return await connection.fetch(f"SELECT * FROM {tag_table} WHERE product_id = $1", product['id'])
+    return await connection.fetch(
+        f"SELECT * FROM {tag_table} WHERE product_id = $1", product["id"]
+    )

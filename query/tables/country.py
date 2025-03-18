@@ -32,4 +32,4 @@ async def create_country(connection, **params):
 
 
 async def get_country(connection, tag):
-    return await connection.fetchrow("SELECT * FROM country WHERE tag = $1",tag)
+    return await connection.fetchrow("SELECT * FROM country WHERE tag = $1", tag)

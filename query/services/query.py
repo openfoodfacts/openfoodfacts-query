@@ -3,7 +3,14 @@ from typing import Dict, List
 
 from fastapi import HTTPException, status
 from query.database import database_connection
-from query.models.query import AggregateCountResult, AggregateResult, Filter, FindQuery, GroupStage, Stage
+from query.models.query import (
+    AggregateCountResult,
+    AggregateResult,
+    Filter,
+    FindQuery,
+    GroupStage,
+    Stage,
+)
 from query.mongodb import find_products
 from query.tables.country import get_country
 from query.tables.product import product_filter_fields, product_fields
@@ -27,7 +34,7 @@ async def count(filter: Filter = None, obsolete=False):
         return await conn.fetchval(sql, *params)
 
 
-async def aggregate(stages: List[Stage], obsolete = False):
+async def aggregate(stages: List[Stage], obsolete=False):
     async with database_connection() as conn:
         sql_fragments = []
         params = []
@@ -42,10 +49,10 @@ async def aggregate(stages: List[Stage], obsolete = False):
         skip = [stage.skip for stage in stages if stage.skip]
 
         limit_clause = ""
-        if (limit):
+        if limit:
             params.append(limit[0])
             limit_clause += f" LIMIT ${len(params)}"
-        if (skip):
+        if skip:
             params.append(skip[0])
             limit_clause += f" OFFSET ${len(params)}"
 
@@ -72,21 +79,27 @@ async def aggregate(stages: List[Stage], obsolete = False):
         results = await conn.fetch(sql, *params)
         if is_count:
             result = AggregateCountResult()
-            setattr(result, tag, results[0]['count'])
+            setattr(result, tag, results[0]["count"])
             return result
         else:
-            return [AggregateResult(id=row["id"], count=row["count"]) for row in results]
+            return [
+                AggregateResult(id=row["id"], count=row["count"]) for row in results
+            ]
 
 
-async def find(query: FindQuery, obsolete = False):
+async def find(query: FindQuery, obsolete=False):
     async with database_connection() as conn:
-        country_tag = getattr(query.filter, 'countries-tags')
-        country = await get_country(conn, country_tag) if country_tag else await get_country(conn, "en:world")
+        country_tag = getattr(query.filter, "countries-tags")
+        country = (
+            await get_country(conn, country_tag)
+            if country_tag
+            else await get_country(conn, "en:world")
+        )
         if country_tag:
-            delattr(query.filter, 'countries-tags')
+            delattr(query.filter, "countries-tags")
 
         sql_fragments = []
-        params = [country['id']]
+        params = [country["id"]]
         loaded_tags = await get_loaded_tags(conn)
         if query.filter:
             append_sql_fragments(
@@ -97,13 +110,13 @@ async def find(query: FindQuery, obsolete = False):
                 sql_fragments,
             )
         limit_clause = ""
-        if (query.limit):
+        if query.limit:
             params.append(query.limit)
             limit_clause += f" LIMIT ${len(params)}"
-        if (query.skip):
+        if query.skip:
             params.append(query.skip)
             limit_clause += f" OFFSET ${len(params)}"
-            
+
         sql = f"""SELECT p.code FROM product p 
             JOIN product_country pc ON pc.product_id = p.id AND pc.country_id = $1
             WHERE p.id IN (SELECT p.product_id
@@ -117,15 +130,15 @@ async def find(query: FindQuery, obsolete = False):
         logger.info(f"Find: SQL:  {sql}")
         logger.info(f"Find: Args: {repr(params)}")
         results = await conn.fetch(sql, *params)
-        product_codes = [result['code'] for result in results]
+        product_codes = [result["code"] for result in results]
         logger.info(f"Find: Codes: {repr(product_codes)}")
         mongodb_filter = {"_id": {"$in": product_codes}}
         mongodb_results = [None] * len(product_codes)
         async with find_products(mongodb_filter, query.projection, obsolete) as cursor:
             async for result in cursor:
-                code_index = product_codes.index(result['code'])
+                code_index = product_codes.index(result["code"])
                 mongodb_results[code_index] = result
-        
+
         # Eliminate any None's from the result. Note this should only happen if there is a mismatch between off-query and MongoDB
         return [result for result in mongodb_results if result]
 
@@ -175,15 +188,15 @@ def append_sql_fragments(
                 if tag_value != None:
                     params.append(tag_value)
                     if isinstance(tag_value, List):
-                        where_expression = (
-                            f" AND {field} = ANY(${len(params)})"
-                        )
+                        where_expression = f" AND {field} = ANY(${len(params)})"
                     else:
                         where_expression = f" AND {field} = ${len(params)}"
 
                 if is_product_filter:
                     if tag_value == None:
-                        where_expression = f" AND {field} IS {'' if is_not else 'NOT '}NULL"
+                        where_expression = (
+                            f" AND {field} IS {'' if is_not else 'NOT '}NULL"
+                        )
                     else:
                         if is_not:
                             where_expression = f" AND ({field} IS NULL OR {where_expression.replace(' AND ', ' NOT ')})"
@@ -191,8 +204,10 @@ def append_sql_fragments(
                     if parent_id_column == "id":
                         sql_fragments.append(where_expression)
                     else:
-                        sql_fragments.append(f" AND EXISTS (SELECT * FROM product WHERE id = p.product_id{where_expression})")
-                        
+                        sql_fragments.append(
+                            f" AND EXISTS (SELECT * FROM product WHERE id = p.product_id{where_expression})"
+                        )
+
                 else:
                     sql_fragments.append(
                         f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {tag_tables[tag]} WHERE product_id = p.{parent_id_column}{where_expression})"

@@ -10,9 +10,9 @@ async def test_health_should_return_healthy(mocked_mongo):
     my_health = await check_health()
     assert mocked_mongo.called
     assert my_health.status == HealthStatusEnum.ok
-    assert my_health.info['postgres'].status == HealthItemStatusEnum.up
-    assert my_health.info['mongodb'].status == HealthItemStatusEnum.up
-    assert my_health.info['redis'].status == HealthItemStatusEnum.up
+    assert my_health.info["postgres"].status == HealthItemStatusEnum.up
+    assert my_health.info["mongodb"].status == HealthItemStatusEnum.up
+    assert my_health.info["redis"].status == HealthItemStatusEnum.up
 
 
 @patch("query.services.health.find_products")
@@ -21,5 +21,5 @@ async def test_health_should_return_unhealthy_if_mongodb_is_down(mocked_mongo):
     my_health = await check_health()
     assert mocked_mongo.called
     assert my_health.status == HealthStatusEnum.error
-    assert my_health.info['postgres'].status == HealthItemStatusEnum.up
-    assert my_health.info['mongodb'].status == HealthItemStatusEnum.down
+    assert my_health.info["postgres"].status == HealthItemStatusEnum.up
+    assert my_health.info["mongodb"].status == HealthItemStatusEnum.down

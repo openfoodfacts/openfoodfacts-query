@@ -29,6 +29,7 @@ fastapi-cli = "^0.0.7"
 testcontainers = {extras = ["postgres", "redis"], version = "^4.9.1"}
 pytest-cov = "^6.0.0"
 httpx = "^0.28.1"
+black = "^25.1.0"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

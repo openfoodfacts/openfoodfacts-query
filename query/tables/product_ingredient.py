@@ -38,10 +38,13 @@ async def get_ingredients(connection, product_id):
 
 
 async def create_ingredients_from_staging(connection: Connection, log, obsolete):
-      deleted = await connection.execute("""delete from product_ingredient 
-        where product_id in (select id from product_temp)""")
-      log_text = f"Updated ingredients deleted {get_rows_affected(deleted)},"
-      results = await connection.execute(f"""insert into product_ingredient (
+    deleted = await connection.execute(
+        """delete from product_ingredient 
+        where product_id in (select id from product_temp)"""
+    )
+    log_text = f"Updated ingredients deleted {get_rows_affected(deleted)},"
+    results = await connection.execute(
+        f"""insert into product_ingredient (
           product_id,
           sequence,
           id,
@@ -67,11 +70,13 @@ async def create_ingredients_from_staging(connection: Connection, log, obsolete)
           tag.value->'ingredients',
           {obsolete}
         from product_temp product
-        cross join jsonb_array_elements(data->'ingredients') with ordinality tag""")
-      affected_rows = get_rows_affected(results)
-      log_text += f" inserted {affected_rows}"
-      while (affected_rows > 0):
-        results = await connection.execute(f"""insert into product_ingredient (
+        cross join jsonb_array_elements(data->'ingredients') with ordinality tag"""
+    )
+    affected_rows = get_rows_affected(results)
+    log_text += f" inserted {affected_rows}"
+    while affected_rows > 0:
+        results = await connection.execute(
+            f"""insert into product_ingredient (
             product_id,
             parent_product_id,
             parent_sequence,
@@ -104,11 +109,12 @@ async def create_ingredients_from_staging(connection: Connection, log, obsolete)
           join product_temp product on product.id = pi.product_id
           cross join json_array_elements(pi.data) with ordinality tag
           WHERE pi.data IS NOT NULL
-          AND NOT EXISTS (SELECT * FROM product_ingredient pi2 WHERE pi2.parent_product_id = pi.product_id AND pi2.parent_sequence = pi.sequence)""")
+          AND NOT EXISTS (SELECT * FROM product_ingredient pi2 WHERE pi2.parent_product_id = pi.product_id AND pi2.parent_sequence = pi.sequence)"""
+        )
         affected_rows = get_rows_affected(results)
         log_text += f" > {affected_rows}"
-      log(log_text)
-    
+    log(log_text)
+
 
 async def delete_ingredients(connection, product_ids):
     await connection.execute(

@@ -15,6 +15,13 @@ async def create_table(connection):
 
 
 async def create_scan(connection, product, country, year, unique_scans):
-    scan = await create_record(connection, "product_scans_by_country", product_id=product['id'], country_id=country['id'], year=year, unique_scans=unique_scans)
-    await fixup_product_countries_for_product(connection, product['id'])
+    scan = await create_record(
+        connection,
+        "product_scans_by_country",
+        product_id=product["id"],
+        country_id=country["id"],
+        year=year,
+        unique_scans=unique_scans,
+    )
+    await fixup_product_countries_for_product(connection, product["id"])
     return scan

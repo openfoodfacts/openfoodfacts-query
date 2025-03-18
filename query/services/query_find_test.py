@@ -16,15 +16,15 @@ async def test_sorts_by_country_scans(mocked_mongo):
         mocked_mongo,
         mock_cursor(
             [
-                {"code": tags.product1['code']},
-                {"code": tags.product2['code']},
-                {"code": tags.product3['code']},
+                {"code": tags.product1["code"]},
+                {"code": tags.product2["code"]},
+                {"code": tags.product3["code"]},
             ]
         ),
     )
     results = await query.find(
         FindQuery(
-            filter=Filter(countries_tags=tags.country['tag']),
+            filter=Filter(countries_tags=tags.country["tag"]),
             projection={"code": True},
             sort=[("popularity_key", -1)],
         )
@@ -32,9 +32,9 @@ async def test_sorts_by_country_scans(mocked_mongo):
     assert mocked_mongo.called
     call_args = mocked_mongo.call_args
     assert len(call_args[0][0]["_id"]["$in"]) == 3
-    assert results[0]["code"] == tags.product3['code']
-    assert results[1]["code"] == tags.product2['code']
-    assert results[2]["code"] == tags.product1['code']
+    assert results[0]["code"] == tags.product3["code"]
+    assert results[1]["code"] == tags.product2["code"]
+    assert results[2]["code"] == tags.product1["code"]
 
 
 @patch("query.services.query.find_products")
@@ -45,9 +45,9 @@ async def test_sorts_by_world_scans(mocked_mongo):
         mocked_mongo,
         mock_cursor(
             [
-                {"code": tags.product1['code']},
-                {"code": tags.product2['code']},
-                {"code": tags.product3['code']},
+                {"code": tags.product1["code"]},
+                {"code": tags.product2["code"]},
+                {"code": tags.product3["code"]},
             ]
         ),
     )
@@ -63,9 +63,9 @@ async def test_sorts_by_world_scans(mocked_mongo):
     assert len(call_args[0][0]["_id"]["$in"]) == 3
     assert call_args[0][1] == {"code": True}
     assert len(results) == 3
-    assert results[0]["code"] == tags.product2['code']
-    assert results[1]["code"] == tags.product3['code']
-    assert results[2]["code"] == tags.product1['code']
+    assert results[0]["code"] == tags.product2["code"]
+    assert results[1]["code"] == tags.product3["code"]
+    assert results[2]["code"] == tags.product1["code"]
 
 
 @patch("query.services.query.find_products")
@@ -77,7 +77,7 @@ async def test_limit_and_offset(mocked_mongo):
         mocked_mongo,
         mock_cursor(
             [
-                {"code": tags.product3['code']},
+                {"code": tags.product3["code"]},
             ]
         ),
     )
@@ -95,7 +95,7 @@ async def test_limit_and_offset(mocked_mongo):
     assert len(call_args[0][0]["_id"]["$in"]) == 1
     assert call_args[0][1] == {"code": True}
     assert len(results) == 1
-    assert results[0]["code"] == tags.product3['code']
+    assert results[0]["code"] == tags.product3["code"]
 
 
 @patch("query.services.query.find_products")
@@ -106,7 +106,7 @@ async def test_obsolete(mocked_mongo):
         mocked_mongo,
         mock_cursor(
             [
-                {"code": tags.product4['code']},
+                {"code": tags.product4["code"]},
             ]
         ),
     )
@@ -123,7 +123,7 @@ async def test_obsolete(mocked_mongo):
     assert len(call_args[0][0]["_id"]["$in"]) == 1
     assert call_args[0][2] == True
     assert len(results) == 1
-    assert results[0]["code"] == tags.product4['code']
+    assert results[0]["code"] == tags.product4["code"]
 
 
 async def create_tags_and_scans():

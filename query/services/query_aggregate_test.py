@@ -69,7 +69,7 @@ async def test_limit():
             [
                 Stage(match=Filter(creator=tags.creator_value)),
                 Stage(group=GroupStage(id="$amino_acids_tags")),
-                Stage(limit=1)
+                Stage(limit=1),
             ]
         )
 
@@ -86,7 +86,7 @@ async def test_skip():
                 Stage(match=Filter(creator=tags.creator_value)),
                 Stage(group=GroupStage(id="$amino_acids_tags")),
                 Stage(limit=1),
-                Stage(skip=1)
+                Stage(skip=1),
             ]
         )
 
@@ -154,7 +154,8 @@ async def test_able_to_group_obsolete_products():
             [
                 Stage(match=Filter()),
                 Stage(group=GroupStage(id="$origins_tags")),
-            ], True
+            ],
+            True,
         )
         my_result = [result for result in response if result.id == tags.origin_value]
         assert len(my_result) == 1
@@ -167,7 +168,8 @@ async def test_throw_exception_for_unrecognized_group_field():
             [
                 Stage(match=Filter()),
                 Stage(group=GroupStage(id="$invalid_tag")),
-            ], True
+            ],
+            True,
         )
     main_error = e.value.errors()[0]
     assert main_error["type"] == "enum"

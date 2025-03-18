@@ -7,4 +7,3 @@ async def create_table(connection):
       updated_at timestamptz NOT NULL,
       message jsonb NOT NULL)"""
     )
-    

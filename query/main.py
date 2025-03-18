@@ -5,7 +5,13 @@ from fastapi import FastAPI, Query
 
 from query.database import database_connection
 from query.migrator import migrate_database
-from query.models.query import AggregateCountResult, AggregateResult, Filter, FindQuery, Stage
+from query.models.query import (
+    AggregateCountResult,
+    AggregateResult,
+    Filter,
+    FindQuery,
+    Stage,
+)
 from query.models.health import Health
 from query.services import ingestion, query
 from query.services.health import check_health
@@ -40,11 +46,12 @@ async def aggregate(
 ) -> List[AggregateResult] | AggregateCountResult:
     return await query.aggregate(stages, obsolete)
 
+
 @app.post("/find")
 async def find(find_query: FindQuery, obsolete: bool = False) -> List[Dict]:
     return await query.find(find_query, obsolete)
 
+
 @app.get("/importfrommongo")
 async def importfrommongo(start_from: str = Query(None, alias="from")):
     return await ingestion.import_from_mongo(start_from)
-

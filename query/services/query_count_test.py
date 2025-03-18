@@ -15,22 +15,33 @@ from query.test_helper import random_code
 
 
 async def create_random_product(connection, creator=None, obsolete=False):
-    return await create_product(connection, code=random_code(), creator=creator, obsolete=obsolete)
+    return await create_product(
+        connection, code=random_code(), creator=creator, obsolete=obsolete
+    )
 
 
 async def test_count_the_number_of_products_with_a_tag():
     async with database_connection() as connection:
         ingredient_value = random_code()
         # Create 2 products with the tag we want
-        await create_tag(connection, 
-            "ingredients_tags", await create_random_product(connection), ingredient_value
+        await create_tag(
+            connection,
+            "ingredients_tags",
+            await create_random_product(connection),
+            ingredient_value,
         )
-        await create_tag(connection, 
-            "ingredients_tags", await create_random_product(connection), ingredient_value
+        await create_tag(
+            connection,
+            "ingredients_tags",
+            await create_random_product(connection),
+            ingredient_value,
         )
         # Create another with a tag we don't want
-        await create_tag(connection, 
-            "ingredients_tags", await create_random_product(connection), random_code()
+        await create_tag(
+            connection,
+            "ingredients_tags",
+            await create_random_product(connection),
+            random_code(),
         )
 
     count = await query.count(Filter(ingredients_tags=ingredient_value))
@@ -46,10 +57,17 @@ async def test_count_the_number_of_products_with_a_tag_and_not_another_tag():
         # Product with the tag we don't want
         product_with_not_tag = await create_random_product(connection)
         await create_tag(connection, "brands_tags", product_with_not_tag, tag_value)
-        await create_tag(connection, "additives_tags", product_with_not_tag, not_tag_value)
+        await create_tag(
+            connection, "additives_tags", product_with_not_tag, not_tag_value
+        )
 
         # Product with just the tag we want
-        await create_tag(connection, "brands_tags", await create_random_product(connection), tag_value)
+        await create_tag(
+            connection,
+            "brands_tags",
+            await create_random_product(connection),
+            tag_value,
+        )
 
     response = await query.count(
         Filter(brands_tags=tag_value, additives_tags=Qualify(qualify_ne=not_tag_value))

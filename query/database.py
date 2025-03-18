@@ -17,24 +17,22 @@ async def database_connection() -> AsyncGenerator[asyncpg.Connection, Any]:
     )
     try:
         await connection.set_type_codec(
-            'jsonb',
-            encoder=json.dumps,
-            decoder=json.loads,
-            schema='pg_catalog'
+            "jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"
         )
 
         yield connection
     finally:
         await connection.close()
 
+
 def get_rows_affected(response: str):
-    parts = response.split(' ')
-    if parts[0] == 'INSERT':
+    parts = response.split(" ")
+    if parts[0] == "INSERT":
         return int(parts[2])
     return int(parts[1])
 
 
-async def create_record(connection, table_name, returning = None, **params):
-    """" This is mainly used for creating test data """
+async def create_record(connection, table_name, returning=None, **params):
+    """ " This is mainly used for creating test data"""
     statement = f"INSERT INTO {table_name} ({','.join(params.keys())}) VALUES ({','.join(f'${i + 1}' for i in range(len(params)))}) RETURNING *"
     return await connection.fetchrow(statement, *params.values())

@@ -1,5 +1,6 @@
 from query.database import config_settings
 
+
 async def create_view(connection):
     await connection.execute(
         """CREATE OR REPLACE VIEW views.product_updates_by_owner AS

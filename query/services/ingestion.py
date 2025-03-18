@@ -76,7 +76,9 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                         if codes_specified:
                             found_product_codes.append(product_code)
 
-                        existing_product = await get_minimal_product(connection, product_code)
+                        existing_product = await get_minimal_product(
+                            connection, product_code
+                        )
                         if (
                             existing_product
                             and source == Source.incremental_load

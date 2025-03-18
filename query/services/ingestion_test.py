@@ -62,16 +62,26 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 
         # given: two existing products, one of which is in mongo plus one new one in mongo
         products = get_test_products()
-        product_existing = await create_product(connection, code=products[1]["code"], process_id=0)
-        await create_tag(connection, "ingredients_tags", product_existing, "old_ingredient")
+        product_existing = await create_product(
+            connection, code=products[1]["code"], process_id=0
+        )
+        await create_tag(
+            connection, "ingredients_tags", product_existing, "old_ingredient"
+        )
         world = await get_country(connection, "en:world")
-        await create_product_country( connection, product_existing, world, 10, 100)
+        await create_product_country(connection, product_existing, world, 10, 100)
 
-        product_unchanged = await create_product(connection, code=random_code(), process_id=0)
-        await create_tag(connection, "ingredients_tags", product_unchanged, "unchanged_ingredient")
+        product_unchanged = await create_product(
+            connection, code=random_code(), process_id=0
+        )
+        await create_tag(
+            connection, "ingredients_tags", product_unchanged, "unchanged_ingredient"
+        )
 
         # simulate a product that was added after the full load started
-        product_later = await create_product(connection, code=random_code(), process_id=100)
+        product_later = await create_product(
+            connection, code=random_code(), process_id=100
+        )
 
         # when:doing a full import from mongo_db
         patch_context_manager(find_products_mock, mock_cursor(products))
@@ -89,16 +99,14 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         assert product_new["source"] == Source.full_load
         assert product_new["last_processed"] >= start
         assert product_new["revision"] == 1
-        ingredients_new = await get_tags(
-            connection, "ingredients_tags", product_new
-        )
+        ingredients_new = await get_tags(connection, "ingredients_tags", product_new)
         assert len(ingredients_new) == 1
         assert ingredients_new[0]["value"] == "test"
 
         # should create at least a world entry in the product_country table
         countries = await get_product_countries(connection, product_new)
         assert len(countries) == 1
-        assert countries[0]["country_id"] == world['id']
+        assert countries[0]["country_id"] == world["id"]
         assert countries[0]["obsolete"] == False
 
         ingredients_existing = await get_tags(
@@ -109,31 +117,31 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         assert any(i for i in ingredients_existing if i["value"] == "new_ingredient")
 
         # should create an entry for each country plus world
-        countries_existing = await get_product_countries(
-            connection, product_existing
-        )
+        countries_existing = await get_product_countries(connection, product_existing)
         assert len(countries_existing) == 3
         existing_world = next(
-            (c for c in countries_existing if c["country_id"] == world['id']), None
+            (c for c in countries_existing if c["country_id"] == world["id"]), None
         )
         assert existing_world
         existing_world["recent_scans"] == 10
         france = await get_country(connection, "en:france")
-        assert any(c for c in countries_existing if c["country_id"] == france['id'])
+        assert any(c for c in countries_existing if c["country_id"] == france["id"])
         # creates the new country on-the-fly
         new_country_tag = products[1]["countries_tags"][1]
         new_country = await get_country(connection, new_country_tag)
-        assert any(c for c in countries_existing if c["country_id"] == new_country['id'])
+        assert any(
+            c for c in countries_existing if c["country_id"] == new_country["id"]
+        )
 
         # check unchanged product has been "deleted"
-        found_old_product = await get_product_by_id(product_unchanged['id'])
+        found_old_product = await get_product_by_id(product_unchanged["id"])
         assert found_old_product["obsolete"] == None
         ingredients_unchanged = await get_tags(
             connection, "ingredients_tags", product_unchanged
         )
         assert ingredients_unchanged[0]["obsolete"] == None
 
-        found_later_product = await get_product_by_id(product_later['id'])
+        found_later_product = await get_product_by_id(product_later["id"])
         assert found_later_product["obsolete"] == False
 
         assert append_loaded_tags.called
@@ -177,11 +185,12 @@ async def test_import_with_no_change_should_not_update_the_source(
         last_processed = datetime(2023, 1, 1, tzinfo=timezone.utc)
         products = get_test_products()
         existing_product_code = products[1]["code"]
-        await create_product(connection, 
-                code=existing_product_code,
-                source=Source.event,
-                last_processed=last_processed,
-                last_updated=datetime.fromtimestamp(last_updated, timezone.utc)
+        await create_product(
+            connection,
+            code=existing_product_code,
+            source=Source.event,
+            last_processed=last_processed,
+            last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
         )
 
         # when: doing an incremental import from mongo_db
@@ -325,13 +334,14 @@ async def test_import_from_event_source_should_always_update_product(
         last_processed = datetime(2023, 1, 1, tzinfo=timezone.utc)
         products = get_test_products()
         product_code = products[1]["code"]
-        await create_product(connection, 
-                code=product_code,
-                source=Source.incremental_load,
-                process_id=10,
-                last_processed=last_processed,
-                last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
-            )
+        await create_product(
+            connection,
+            code=product_code,
+            source=Source.incremental_load,
+            process_id=10,
+            last_processed=last_processed,
+            last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
+        )
         patch_context_manager(find_products_mock, mock_cursor(products))
         await ingestion.import_with_filter(
             {"code": {"$in": [product_code]}}, Source.event
@@ -401,14 +411,17 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
     async with database_connection() as connection:
         # given: an existing product that doesn't exist in mongo_db
         product_code_to_delete = random_code()
-        product_to_delete = await create_product(connection, 
-                code=product_code_to_delete,
-                source=Source.full_load,
-                process_id=10,
-                last_processed=datetime(2023, 1, 1, tzinfo=timezone.utc),
-                last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
-            )
-        await create_tag(connection, "ingredients_tags", product_to_delete, "old_ingredient")
+        product_to_delete = await create_product(
+            connection,
+            code=product_code_to_delete,
+            source=Source.full_load,
+            process_id=10,
+            last_processed=datetime(2023, 1, 1, tzinfo=timezone.utc),
+            last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
+        )
+        await create_tag(
+            connection, "ingredients_tags", product_to_delete, "old_ingredient"
+        )
 
         before_import = datetime.now(timezone.utc)
 
@@ -436,9 +449,7 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
         assert deleted_product["source"] == Source.event
         assert updated_product["obsolete"] == False
 
-        deleted_tags = await get_tags(
-            connection, "ingredients_tags", deleted_product
-        )
+        deleted_tags = await get_tags(connection, "ingredients_tags", deleted_product)
         assert len(deleted_tags) == 1
         assert deleted_tags[0]["obsolete"] == None
 
@@ -448,9 +459,15 @@ async def test_import_from_obsolete_collection(find_products_mock: Mock):
     async with database_connection() as connection:
         # given: one existing product
         products = get_test_products()
-        product_existing = await create_product(connection, code=products[1]["code"], process_id=0)
-        await create_tag(connection, "ingredients_tags", product_existing, "old_ingredient")
-        await create_tag(connection, "ingredients_tags", product_existing, "to_be_deleted")
+        product_existing = await create_product(
+            connection, code=products[1]["code"], process_id=0
+        )
+        await create_tag(
+            connection, "ingredients_tags", product_existing, "old_ingredient"
+        )
+        await create_tag(
+            connection, "ingredients_tags", product_existing, "to_be_deleted"
+        )
 
         # when importing from mongodb where existing product is obsolete then it is marked as such
         patch_context_manager(
@@ -464,7 +481,7 @@ async def test_import_from_obsolete_collection(find_products_mock: Mock):
         assert call_args_list[0][0][2] == False
         assert call_args_list[1][0][2] == True
 
-        found_product = await get_product_by_id(product_existing['id'])
+        found_product = await get_product_by_id(product_existing["id"])
         assert found_product["obsolete"] == True
         found_tags = await get_tags(connection, "ingredients_tags", found_product)
         assert all(tag for tag in found_tags if tag["obsolete"] == True)
@@ -511,40 +528,62 @@ async def test_all_supported_fields(find_products_mock: Mock):
         }
         patch_context_manager(find_products_mock, mock_cursor([test_product]))
         await ingestion.import_with_filter({}, Source.incremental_load)
-        
-        found_product = await get_product(connection, test_product['code'])
-        assert found_product['name'] == test_product['product_name']
-        assert found_product['last_updated'] == datetime.fromtimestamp(last_updated, timezone.utc)
-        assert found_product['creator'] == test_product['creator']
-        assert found_product['owners_tags'] == test_product['owners_tags']
-        assert found_product['ingredients_count'] == test_product['ingredients_n']
-        assert found_product['ingredients_without_ciqual_codes_count'] == test_product['ingredients_without_ciqual_codes_n']
-        assert found_product['revision'] == test_product['rev']
 
-        found_ingredients = await get_ingredients(connection, found_product['id'])
+        found_product = await get_product(connection, test_product["code"])
+        assert found_product["name"] == test_product["product_name"]
+        assert found_product["last_updated"] == datetime.fromtimestamp(
+            last_updated, timezone.utc
+        )
+        assert found_product["creator"] == test_product["creator"]
+        assert found_product["owners_tags"] == test_product["owners_tags"]
+        assert found_product["ingredients_count"] == test_product["ingredients_n"]
+        assert (
+            found_product["ingredients_without_ciqual_codes_count"]
+            == test_product["ingredients_without_ciqual_codes_n"]
+        )
+        assert found_product["revision"] == test_product["rev"]
+
+        found_ingredients = await get_ingredients(connection, found_product["id"])
         assert len(found_ingredients) == 3
-        first_ingredient = next(i for i in found_ingredients if i['ingredient_text'] == "first ingredient")
+        first_ingredient = next(
+            i for i in found_ingredients if i["ingredient_text"] == "first ingredient"
+        )
         assert first_ingredient
-        test_first_ingredient = test_product['ingredients'][0]
-        assert first_ingredient['sequence'] == '1'
-        assert first_ingredient['id'] == test_first_ingredient['id']
-        assert first_ingredient['ciqual_food_code'] == test_first_ingredient['ciqual_food_code']
-        assert first_ingredient['percent'] == test_first_ingredient['percent']
-        assert first_ingredient['percent_min'] == test_first_ingredient['percent_min']
-        assert first_ingredient['percent_max'] == test_first_ingredient['percent_max']
-        assert first_ingredient['percent_estimate'] == test_first_ingredient['percent_estimate']
-        assert first_ingredient['parent_sequence'] == None
-        
-        second_ingredient = next(i for i in found_ingredients if i['ingredient_text'] == "second parent")
-        assert second_ingredient
-        assert second_ingredient['sequence'] == '2'
-        assert second_ingredient['parent_sequence'] == None
+        test_first_ingredient = test_product["ingredients"][0]
+        assert first_ingredient["sequence"] == "1"
+        assert first_ingredient["id"] == test_first_ingredient["id"]
+        assert (
+            first_ingredient["ciqual_food_code"]
+            == test_first_ingredient["ciqual_food_code"]
+        )
+        assert first_ingredient["percent"] == test_first_ingredient["percent"]
+        assert first_ingredient["percent_min"] == test_first_ingredient["percent_min"]
+        assert first_ingredient["percent_max"] == test_first_ingredient["percent_max"]
+        assert (
+            first_ingredient["percent_estimate"]
+            == test_first_ingredient["percent_estimate"]
+        )
+        assert first_ingredient["parent_sequence"] == None
 
-        child_ingredient = next(i for i in found_ingredients if i['ingredient_text'] == "child of second ingredient")
+        second_ingredient = next(
+            i for i in found_ingredients if i["ingredient_text"] == "second parent"
+        )
+        assert second_ingredient
+        assert second_ingredient["sequence"] == "2"
+        assert second_ingredient["parent_sequence"] == None
+
+        child_ingredient = next(
+            i
+            for i in found_ingredients
+            if i["ingredient_text"] == "child of second ingredient"
+        )
         assert child_ingredient
-        assert child_ingredient['sequence'] == '2.1'
-        assert child_ingredient['parent_sequence'] == '2'
-        assert child_ingredient['id'] == test_product['ingredients'][1]['ingredients'][0]['id']
+        assert child_ingredient["sequence"] == "2.1"
+        assert child_ingredient["parent_sequence"] == "2"
+        assert (
+            child_ingredient["id"]
+            == test_product["ingredients"][1]["ingredients"][0]["id"]
+        )
 
 
 @patch("query.services.ingestion.find_products")
@@ -553,15 +592,13 @@ async def test_ignores_duplicate_tags(find_products_mock: Mock):
         # when importing from mongodb where a tag is duplicated
         test_product = {
             "code": random_code(),
-            "ingredients_tags": ['one','two','one'],
+            "ingredients_tags": ["one", "two", "one"],
         }
         patch_context_manager(find_products_mock, mock_cursor([test_product]))
         await ingestion.import_with_filter({}, Source.incremental_load)
-        
-        found_product = await get_product(connection, test_product['code'])
+
+        found_product = await get_product(connection, test_product["code"])
         assert found_product
 
         found_tags = await get_tags(connection, "ingredients_tags", found_product)
         assert len(found_tags) == 2
-        
-        

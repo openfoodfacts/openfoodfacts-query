@@ -32,13 +32,22 @@ async def create_table(connection):
     )
 
 
-async def create_product_country(connection, product, country, recent_scans, total_scans):
-    return await create_record(connection, "product_country", product_id=product['id'], country_id=country['id'], recent_scans=recent_scans, total_scans=total_scans)
+async def create_product_country(
+    connection, product, country, recent_scans, total_scans
+):
+    return await create_record(
+        connection,
+        "product_country",
+        product_id=product["id"],
+        country_id=country["id"],
+        recent_scans=recent_scans,
+        total_scans=total_scans,
+    )
 
 
 async def get_product_countries(connection, product):
     return await connection.fetch(
-        "SELECT * FROM product_country WHERE product_id = $1", product['id']
+        "SELECT * FROM product_country WHERE product_id = $1", product["id"]
     )
 
 
@@ -49,14 +58,16 @@ async def fixup_product_countries(connection, obsolete):
             FROM product_temp pt
             JOIN product_countries_tag pct ON pct.product_id = pt.id
             WHERE NOT EXISTS (SELECT * FROM country WHERE tag = pct.value)
-            ON CONFLICT (tag) DO NOTHING""")
+            ON CONFLICT (tag) DO NOTHING"""
+    )
     await connection.execute(
         """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
             SELECT pct.product_id, $1, c.id, 0, 0
             FROM (SELECT product_id, value FROM product_temp JOIN product_countries_tag ON product_id = id
                 UNION SELECT id, 'en:world' FROM product_temp) pct
             JOIN country c ON c.tag = pct.value
-            ON CONFLICT (product_id, country_id) DO NOTHING""", obsolete
+            ON CONFLICT (product_id, country_id) DO NOTHING""",
+        obsolete,
     )
 
 
@@ -70,7 +81,9 @@ async def fixup_product_countries_for_product(connection, product_id):
         AND year = $2
         ON CONFLICT (product_id, country_id)
         DO UPDATE SET recent_scans = EXCLUDED.recent_scans, obsolete = EXCLUDED.obsolete""",
-        product_id, 2024)
+        product_id,
+        2024,
+    )
 
     await connection.execute(
         """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
@@ -82,6 +95,6 @@ async def fixup_product_countries_for_product(connection, product_id):
         GROUP BY product_id, p.obsolete, country_id
         ON CONFLICT (product_id, country_id)
         DO UPDATE SET total_scans = EXCLUDED.total_scans, obsolete = EXCLUDED.obsolete""",
-        product_id, 2019,
+        product_id,
+        2019,
     )
-        
