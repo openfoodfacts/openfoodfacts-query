@@ -86,7 +86,7 @@ async def find(query: FindQuery, obsolete = False):
             delattr(query.filter, 'countries-tags')
 
         sql_fragments = []
-        params = [country.id]
+        params = [country['id']]
         loaded_tags = await get_loaded_tags(conn)
         if query.filter:
             append_sql_fragments(

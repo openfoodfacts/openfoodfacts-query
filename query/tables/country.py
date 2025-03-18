@@ -1,6 +1,6 @@
 from typing import List
 
-from query.models.country import Country
+from query.database import create_record
 
 
 async def create_table(connection):
@@ -27,28 +27,9 @@ async def create_table(connection):
     )
 
 
-async def create_country(connection, country: Country):
-    country.id = await connection.fetchval(
-        """INSERT INTO country (tag, code)
-            VALUES ($1, $2) RETURNING id""",
-        country.tag, country.code
-    )
-    return country
+async def create_country(connection, **params):
+    return await create_record(connection, "country", **params)
 
-
-async def create_missing_countries(connection, countries: List[Country]):
-    await connection.executemany(
-        """INSERT INTO country (tag, code)
-            SELECT $1, $2 WHERE NOT EXISTS
-                (SELECT * FROM country WHERE tag = $1 AND COALESCE(code, '') = COALESCE($2, '')
-            ON CONFLICT (tag) 
-            DO UPDATE SET code = EXCLUDED.code""",
-        {[c.tag, c.code] for c in countries}
-    )
 
 async def get_country(connection, tag):
-    result = await connection.fetchrow(
-        """SELECT id, tag, code FROM country WHERE tag = $1""",
-       tag
-    )
-    return Country(result['tag'], result['code'], result['id'])
+    return await connection.fetchrow("SELECT * FROM country WHERE tag = $1",tag)

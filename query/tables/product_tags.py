@@ -1,7 +1,4 @@
-import logging
-
-from query.database import get_rows_affected
-from query.models.product import Product
+from query.database import create_record, get_rows_affected
 
 
 tag_tables = {
@@ -89,14 +86,8 @@ async def create_tables(connection):
         )
 
 
-async def create_tag(connection, tag, product: Product, value):
-    tag_table = tag_tables[tag]
-    await connection.execute(
-        f"""INSERT INTO {tag_table} (product_id, value, obsolete) VALUES ($1, $2, $3) ON CONFLICT (value, product_id) DO NOTHING""",
-        product.id,
-        value,
-        product.obsolete,
-    )
+async def create_tag(connection, tag, product, value):
+    return await create_record(connection, tag_tables[tag], product_id=product['id'], value=value, obsolete=product['obsolete'])
   
             
 async def create_tags_from_staging(connection, log, obsolete):
@@ -121,6 +112,6 @@ async def delete_tags(connection, product_ids):
         await connection.fetch(f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id = ANY($1::int[])", product_ids)
   
 
-async def get_tags(connection, tag, product_id):
+async def get_tags(connection, tag, product):
     tag_table = tag_tables[tag]
-    return await connection.fetch(f"SELECT * FROM {tag_table} WHERE product_id = $1", product_id)
+    return await connection.fetch(f"SELECT * FROM {tag_table} WHERE product_id = $1", product['id'])

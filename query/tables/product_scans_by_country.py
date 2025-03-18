@@ -1,5 +1,5 @@
-from typing import List
-from query.models.scans_by_country import ScansByCountry
+from query.database import create_record
+from query.tables.product_country import fixup_product_countries_for_product
 
 
 async def create_table(connection):
@@ -14,42 +14,7 @@ async def create_table(connection):
     )
 
 
-async def create_scans(connection, scans: List[ScansByCountry]):
-    await connection.executemany(
-        """INSERT INTO product_scans_by_country (product_id, year, country_id, unique_scans) 
-          SELECT product.id, source.year::int, country.id, source.scans::int 
-          FROM (values ($1, $2, $3, $4)) as source (code, year, country, scans)
-          JOIN product ON product.code = source.code
-          JOIN country ON country.code = source.country
-          ON CONFLICT (product_id, year, country_id) 
-          DO UPDATE SET unique_scans = EXCLUDED.unique_scans""",
-        # For some reason executemany doesn't like non-string arguments below
-        [(scan.product.code, str(scan.year), scan.country.code, str(scan.unique_scans))
-            for scan in scans],
-    )
-
-    codes_updated = set([scan.product.code for scan in scans])
-    await connection.executemany(
-        """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
-        SELECT product_id, p.obsolete, country_id, unique_scans, unique_scans
-        FROM product_scans_by_country
-        JOIN product p ON p.id = product_id
-        WHERE p.code = $1
-        AND year = $2
-        ON CONFLICT (product_id, country_id)
-        DO UPDATE SET recent_scans = EXCLUDED.recent_scans, obsolete = EXCLUDED.obsolete""",
-        [(code, 2024) for code in codes_updated],
-    )
-
-    await connection.executemany(
-        """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
-        SELECT product_id, p.obsolete, country_id, 0, sum(unique_scans)
-        FROM product_scans_by_country
-        JOIN product p ON p.id = product_id
-        WHERE p.code = $1
-        AND year >= $2
-        GROUP BY product_id, p.obsolete, country_id
-        ON CONFLICT (product_id, country_id)
-        DO UPDATE SET total_scans = EXCLUDED.total_scans, obsolete = EXCLUDED.obsolete""",
-        [(code, 2019) for code in codes_updated],
-    )
+async def create_scan(connection, product, country, year, unique_scans):
+    scan = await create_record(connection, "product_scans_by_country", product_id=product['id'], country_id=country['id'], year=year, unique_scans=unique_scans)
+    await fixup_product_countries_for_product(connection, product['id'])
+    return scan

@@ -1,5 +1,4 @@
-from query.models.country import Country
-from query.models.product import Product
+from query.database import create_record, database_connection
 
 
 async def create_table(connection):
@@ -33,21 +32,13 @@ async def create_table(connection):
     )
 
 
-async def create_product_country(
-    connection, product: Product, country: Country, recent_scans, total_scans
-):
-    await connection.execute(
-        "INSERT INTO product_country (product_id, country_id, recent_scans, total_scans) VALUES ($1, $2, $3, $4)",
-        product.id,
-        country.id,
-        recent_scans,
-        total_scans,
-    )
+async def create_product_country(connection, product, country, recent_scans, total_scans):
+    return await create_record(connection, "product_country", product_id=product['id'], country_id=country['id'], recent_scans=recent_scans, total_scans=total_scans)
 
 
-async def get_product_countries(connection, product_id):
+async def get_product_countries(connection, product):
     return await connection.fetch(
-        "SELECT * FROM product_country WHERE product_id = $1", product_id
+        "SELECT * FROM product_country WHERE product_id = $1", product['id']
     )
 
 
@@ -67,3 +58,30 @@ async def fixup_product_countries(connection, obsolete):
             JOIN country c ON c.tag = pct.value
             ON CONFLICT (product_id, country_id) DO NOTHING""", obsolete
     )
+
+
+async def fixup_product_countries_for_product(connection, product_id):
+    await connection.execute(
+        """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+        SELECT product_id, p.obsolete, country_id, unique_scans, unique_scans
+        FROM product_scans_by_country
+        JOIN product p ON p.id = product_id
+        WHERE product_id = $1
+        AND year = $2
+        ON CONFLICT (product_id, country_id)
+        DO UPDATE SET recent_scans = EXCLUDED.recent_scans, obsolete = EXCLUDED.obsolete""",
+        product_id, 2024)
+
+    await connection.execute(
+        """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+        SELECT product_id, p.obsolete, country_id, 0, sum(unique_scans)
+        FROM product_scans_by_country
+        JOIN product p ON p.id = product_id
+        WHERE product_id = $1
+        AND year >= $2
+        GROUP BY product_id, p.obsolete, country_id
+        ON CONFLICT (product_id, country_id)
+        DO UPDATE SET total_scans = EXCLUDED.total_scans, obsolete = EXCLUDED.obsolete""",
+        product_id, 2019,
+    )
+        

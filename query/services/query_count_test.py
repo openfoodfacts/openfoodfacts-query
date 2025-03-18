@@ -1,13 +1,12 @@
+from dataclasses import dataclass
 from unittest.mock import patch
-from uuid import uuid4
 
+from asyncpg import Record
 from fastapi import HTTPException, status
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 import pytest
 from query.database import database_connection
-from query.models.country import Country
 from query.models.query import Filter, Qualify
-from query.models.product import Product
 import query.services.query as query
 from query.tables.country import create_country
 from query.tables.product import create_product
@@ -16,35 +15,22 @@ from query.test_helper import random_code
 
 
 async def create_random_product(connection, creator=None, obsolete=False):
-    product = Product(code=random_code(), creator=creator, obsolete=obsolete)
-    await create_product(
-        connection, product
-    )
-    return product
+    return await create_product(connection, code=random_code(), creator=creator, obsolete=obsolete)
 
 
 async def test_count_the_number_of_products_with_a_tag():
     async with database_connection() as connection:
         ingredient_value = random_code()
         # Create 2 products with the tag we want
-        await create_tag(
-            connection,
-            "ingredients_tags",
-            await create_random_product(connection),
-            ingredient_value,
+        await create_tag(connection, 
+            "ingredients_tags", await create_random_product(connection), ingredient_value
         )
-        await create_tag(
-            connection,
-            "ingredients_tags",
-            await create_random_product(connection),
-            ingredient_value,
+        await create_tag(connection, 
+            "ingredients_tags", await create_random_product(connection), ingredient_value
         )
         # Create another with a tag we don't want
-        await create_tag(
-            connection,
-            "ingredients_tags",
-            await create_random_product(connection),
-            random_code(),
+        await create_tag(connection, 
+            "ingredients_tags", await create_random_product(connection), random_code()
         )
 
     count = await query.count(Filter(ingredients_tags=ingredient_value))
@@ -60,17 +46,10 @@ async def test_count_the_number_of_products_with_a_tag_and_not_another_tag():
         # Product with the tag we don't want
         product_with_not_tag = await create_random_product(connection)
         await create_tag(connection, "brands_tags", product_with_not_tag, tag_value)
-        await create_tag(
-            connection, "additives_tags", product_with_not_tag, not_tag_value
-        )
+        await create_tag(connection, "additives_tags", product_with_not_tag, not_tag_value)
 
         # Product with just the tag we want
-        await create_tag(
-            connection,
-            "brands_tags",
-            await create_random_product(connection),
-            tag_value,
-        )
+        await create_tag(connection, "brands_tags", await create_random_product(connection), tag_value)
 
     response = await query.count(
         Filter(brands_tags=tag_value, additives_tags=Qualify(qualify_ne=not_tag_value))
@@ -78,17 +57,18 @@ async def test_count_the_number_of_products_with_a_tag_and_not_another_tag():
     assert response == 1
 
 
-class TagValues(BaseModel):
+@dataclass
+class TagValues:
     origin_value: str
     amino_value: str
     amino_value2: str
     neucleotide_value: str
     creator_value: str
-    country: Country
-    product1: Product
-    product2: Product
-    product3: Product
-    product4: Product
+    country: Record
+    product1: Record
+    product2: Record
+    product3: Record
+    product4: Record
 
 
 async def create_test_tags(connection):
@@ -125,8 +105,7 @@ async def create_test_tags(connection):
     await create_tag(connection, "nucleotides_tags", product3, neucleotide_value)
     await create_tag(connection, "nucleotides_tags", product4, neucleotide_value)
 
-    country = Country(tag=random_code(), code=random_code())
-    await create_country(connection, country)
+    country = await create_country(connection, tag=random_code(), code=random_code())
 
     return TagValues(
         origin_value=origin_value,

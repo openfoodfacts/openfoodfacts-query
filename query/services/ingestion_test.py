@@ -4,10 +4,10 @@ import math
 import time
 from unittest.mock import Mock, patch
 from query.database import database_connection
-from query.models.product import Product, Source
+from query.models.product import Source
 from query.services import ingestion
 from query.tables.country import get_country
-from query.tables.product import create_product, get_product
+from query.tables.product import create_product, get_product, get_product_by_id
 from query.tables.product_country import create_product_country, get_product_countries
 from query.tables.product_ingredient import get_ingredients
 from query.tables.product_tags import create_tag, get_tags, tag_tables
@@ -62,26 +62,16 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 
         # given: two existing products, one of which is in mongo plus one new one in mongo
         products = get_test_products()
-        product_existing = await create_product(
-            connection, Product(code=products[1]["code"], process_id=0)
-        )
-        await create_tag(
-            connection, "ingredients_tags", product_existing, "old_ingredient"
-        )
+        product_existing = await create_product(connection, code=products[1]["code"], process_id=0)
+        await create_tag(connection, "ingredients_tags", product_existing, "old_ingredient")
         world = await get_country(connection, "en:world")
-        await create_product_country(connection, product_existing, world, 10, 100)
+        await create_product_country( connection, product_existing, world, 10, 100)
 
-        product_unchanged = await create_product(
-            connection, Product(code=random_code(), process_id=0)
-        )
-        await create_tag(
-            connection, "ingredients_tags", product_unchanged, "unchanged_ingredient"
-        )
+        product_unchanged = await create_product(connection, code=random_code(), process_id=0)
+        await create_tag(connection, "ingredients_tags", product_unchanged, "unchanged_ingredient")
 
         # simulate a product that was added after the full load started
-        product_later = await create_product(
-            connection, Product(code=random_code(), process_id=100)
-        )
+        product_later = await create_product(connection, code=random_code(), process_id=100)
 
         # when:doing a full import from mongo_db
         patch_context_manager(find_products_mock, mock_cursor(products))
@@ -100,19 +90,19 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         assert product_new["last_processed"] >= start
         assert product_new["revision"] == 1
         ingredients_new = await get_tags(
-            connection, "ingredients_tags", product_new["id"]
+            connection, "ingredients_tags", product_new
         )
         assert len(ingredients_new) == 1
         assert ingredients_new[0]["value"] == "test"
 
         # should create at least a world entry in the product_country table
-        countries = await get_product_countries(connection, product_new["id"])
+        countries = await get_product_countries(connection, product_new)
         assert len(countries) == 1
-        assert countries[0]["country_id"] == world.id
+        assert countries[0]["country_id"] == world['id']
         assert countries[0]["obsolete"] == False
 
         ingredients_existing = await get_tags(
-            connection, "ingredients_tags", product_existing.id
+            connection, "ingredients_tags", product_existing
         )
         assert len(ingredients_existing) == 2
         assert any(i for i in ingredients_existing if i["value"] == "old_ingredient")
@@ -120,30 +110,30 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 
         # should create an entry for each country plus world
         countries_existing = await get_product_countries(
-            connection, product_existing.id
+            connection, product_existing
         )
         assert len(countries_existing) == 3
         existing_world = next(
-            (c for c in countries_existing if c["country_id"] == world.id), None
+            (c for c in countries_existing if c["country_id"] == world['id']), None
         )
         assert existing_world
         existing_world["recent_scans"] == 10
         france = await get_country(connection, "en:france")
-        assert any(c for c in countries_existing if c["country_id"] == france.id)
+        assert any(c for c in countries_existing if c["country_id"] == france['id'])
         # creates the new country on-the-fly
         new_country_tag = products[1]["countries_tags"][1]
         new_country = await get_country(connection, new_country_tag)
-        assert any(c for c in countries_existing if c["country_id"] == new_country.id)
+        assert any(c for c in countries_existing if c["country_id"] == new_country['id'])
 
         # check unchanged product has been "deleted"
-        found_old_product = await get_product(connection, product_unchanged.code)
+        found_old_product = await get_product_by_id(product_unchanged['id'])
         assert found_old_product["obsolete"] == None
         ingredients_unchanged = await get_tags(
-            connection, "ingredients_tags", product_unchanged.id
+            connection, "ingredients_tags", product_unchanged
         )
         assert ingredients_unchanged[0]["obsolete"] == None
 
-        found_later_product = await get_product(connection, product_later.code)
+        found_later_product = await get_product_by_id(product_later['id'])
         assert found_later_product["obsolete"] == False
 
         assert append_loaded_tags.called
@@ -187,14 +177,11 @@ async def test_import_with_no_change_should_not_update_the_source(
         last_processed = datetime(2023, 1, 1, tzinfo=timezone.utc)
         products = get_test_products()
         existing_product_code = products[1]["code"]
-        await create_product(
-            connection,
-            Product(
+        await create_product(connection, 
                 code=existing_product_code,
                 source=Source.event,
                 last_processed=last_processed,
-                last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
-            ),
+                last_updated=datetime.fromtimestamp(last_updated, timezone.utc)
         )
 
         # when: doing an incremental import from mongo_db
@@ -256,7 +243,7 @@ async def test_cope_with_nul_characters(
 
         # then: product should be loaded with nuls stripped
         product = await get_product(connection, product_code)
-        ingredients = await get_tags(connection, "ingredients_tags", product["id"])
+        ingredients = await get_tags(connection, "ingredients_tags", product)
 
         assert len(ingredients) == 1
         assert ingredients[0]["value"] == "test  test2  end"
@@ -338,16 +325,13 @@ async def test_import_from_event_source_should_always_update_product(
         last_processed = datetime(2023, 1, 1, tzinfo=timezone.utc)
         products = get_test_products()
         product_code = products[1]["code"]
-        await create_product(
-            connection,
-            Product(
+        await create_product(connection, 
                 code=product_code,
                 source=Source.incremental_load,
                 process_id=10,
                 last_processed=last_processed,
                 last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
-            ),
-        )
+            )
         patch_context_manager(find_products_mock, mock_cursor(products))
         await ingestion.import_with_filter(
             {"code": {"$in": [product_code]}}, Source.event
@@ -417,19 +401,14 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
     async with database_connection() as connection:
         # given: an existing product that doesn't exist in mongo_db
         product_code_to_delete = random_code()
-        product_to_delete = await create_product(
-            connection,
-            Product(
+        product_to_delete = await create_product(connection, 
                 code=product_code_to_delete,
                 source=Source.full_load,
                 process_id=10,
                 last_processed=datetime(2023, 1, 1, tzinfo=timezone.utc),
                 last_updated=datetime.fromtimestamp(last_updated, timezone.utc),
-            ),
-        )
-        await create_tag(
-            connection, "ingredients_tags", product_to_delete, "old_ingredient"
-        )
+            )
+        await create_tag(connection, "ingredients_tags", product_to_delete, "old_ingredient")
 
         before_import = datetime.now(timezone.utc)
 
@@ -458,7 +437,7 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
         assert updated_product["obsolete"] == False
 
         deleted_tags = await get_tags(
-            connection, "ingredients_tags", deleted_product["id"]
+            connection, "ingredients_tags", deleted_product
         )
         assert len(deleted_tags) == 1
         assert deleted_tags[0]["obsolete"] == None
@@ -469,15 +448,9 @@ async def test_import_from_obsolete_collection(find_products_mock: Mock):
     async with database_connection() as connection:
         # given: one existing product
         products = get_test_products()
-        product_existing = await create_product(
-            connection, Product(code=products[1]["code"], process_id=0)
-        )
-        await create_tag(
-            connection, "ingredients_tags", product_existing, "old_ingredient"
-        )
-        await create_tag(
-            connection, "ingredients_tags", product_existing, "to_be_deleted"
-        )
+        product_existing = await create_product(connection, code=products[1]["code"], process_id=0)
+        await create_tag(connection, "ingredients_tags", product_existing, "old_ingredient")
+        await create_tag(connection, "ingredients_tags", product_existing, "to_be_deleted")
 
         # when importing from mongodb where existing product is obsolete then it is marked as such
         patch_context_manager(
@@ -491,9 +464,9 @@ async def test_import_from_obsolete_collection(find_products_mock: Mock):
         assert call_args_list[0][0][2] == False
         assert call_args_list[1][0][2] == True
 
-        found_product = await get_product(connection, product_existing.code)
+        found_product = await get_product_by_id(product_existing['id'])
         assert found_product["obsolete"] == True
-        found_tags = await get_tags(connection, "ingredients_tags", found_product["id"])
+        found_tags = await get_tags(connection, "ingredients_tags", found_product)
         assert all(tag for tag in found_tags if tag["obsolete"] == True)
         assert (
             any(tag for tag in found_tags if tag["value"] == "to_be_deleted") == False
@@ -588,7 +561,7 @@ async def test_ignores_duplicate_tags(find_products_mock: Mock):
         found_product = await get_product(connection, test_product['code'])
         assert found_product
 
-        found_tags = await get_tags(connection, "ingredients_tags", found_product['id'])
+        found_tags = await get_tags(connection, "ingredients_tags", found_product)
         assert len(found_tags) == 2
         
         

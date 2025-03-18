@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from query.database import database_connection, get_rows_affected
+from query.database import create_record, database_connection, get_rows_affected
 
 
 async def test_rows_affected_returned_correctly():
@@ -20,3 +20,11 @@ async def test_rows_affected_returned_correctly():
         result = await connection.execute("DELETE FROM product_temp WHERE id < $1", 3)
         assert get_rows_affected(result) == 2
 
+
+async def test_create_record():
+    async with database_connection() as connection:
+        await connection.execute("CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)")
+        record = await create_record(connection, "product_temp", id=1, data={"x":6})
+        assert record['id'] == 1
+        assert record['data'] == {"x":6}
+        assert record['last_updated'] == None

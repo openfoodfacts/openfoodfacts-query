@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 from asyncpg import Connection
 
-from query.database import get_rows_affected
-from query.models.product import Product, Source
+from query.database import create_record, database_connection, get_rows_affected
+from query.models.product import Source
 from query.tables.product_ingredient import delete_ingredients
 from query.tables.product_tags import delete_tags
 
@@ -97,25 +97,17 @@ async def create_minimal_product(connection, code):
     )
 
 
-async def create_product(connection: Connection, product: Product):
-    statement = "INSERT INTO product (obsolete, process_id, source, last_processed"
-    values = ") VALUES ($1, $2, $3, $4"
-    args = [
-        product.obsolete,
-        product.process_id,
-        product.source,
-        product.last_processed,
-    ]
-    for column in product_columns:
-        args.append(getattr(product, column))
-        statement += f", {column}"
-        values += f", ${len(args)}"
-    product.id = await connection.fetchval(f"{statement}{values}) RETURNING id", *args)
-    return product
+async def create_product(connection, **params):
+    return await create_record(connection, "product", **params)
 
 
 async def get_product(connection: Connection, code):
     return await connection.fetchrow("SELECT * FROM product WHERE code = $1", code)
+
+
+async def get_product_by_id(id):
+    async with database_connection() as connection:
+        return await connection.fetchrow("SELECT * FROM product WHERE id = $1", id)
 
 
 async def delete_products(connection, process_id, source, codes=None):
