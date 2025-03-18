@@ -37,6 +37,7 @@ tests:
 
 lint:
 	npm run lint
+	black query
 
 # Refresh the countries.json file from the ProductOwner taxonomy
 refresh_countries:
