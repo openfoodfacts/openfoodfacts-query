@@ -1,11 +1,12 @@
 import asyncio
+from datetime import datetime, timezone
 import logging
 import math
 import time
 from unittest.mock import Mock, patch
 
 from redis.asyncio import Redis, ResponseError
-from query.redis import STREAM_NAME, redis_client, redis_listener
+from query.redis import STREAM_NAME, messages_received, redis_client, redis_listener
 from query.test_helper import random_code
 
 logger = logging.getLogger(__name__)
@@ -70,12 +71,61 @@ async def test_listener_calls_subscriber_function(
         # TODO: Would like to find a better way to wait for other tasks to process...
         await asyncio.sleep(0.1)
 
-        # Settings shou;d be updated with the last message id
+        # Settings should be updated with the last message id
         assert set_id.call_args[0][1] == message_id2
 
-        messages = messages_received.call_args[0][0]
+        streams = messages_received.call_args[0][0]
+        assert len(streams) == 1
+        assert streams[0][0] == STREAM_NAME
+
+        messages = streams[0][1]
         assert len(messages) == 2
 
         # Messages should be in order
         assert messages[0][0] == message_id1
-        assert messages[0][1]['code'] == product_code
+        assert messages[0][1]["code"] == product_code
+
+
+@patch("query.redis.process_events")
+async def test_process_messages_should_strip_nulls(process_events: Mock):
+    async with redis_client() as redis:
+        test_message = {
+            "timestamp": 1692032161,
+            "code": random_code(),
+            "rev": 1,
+            "flavor": "off",
+            "product_type": "food",
+            "user_id": "test_user",
+            "action": "updated",
+            "comment": "Test \0 after null",
+            "diffs": '{"fields":{"change":["categories\0 after null"],"delete":["product_name"]}}',
+        }
+
+        await messages_received([["test-stream",[["test-id", test_message]]]])
+
+        assert process_events.called
+        assert process_events.call_args[0][0]
+        event = process_events.call_args[0][0][0]
+        assert event.id == "test-id"
+        assert event.timestamp == datetime.fromtimestamp(
+            test_message["timestamp"], timezone.utc
+        )
+        assert event.payload["comment"] == "Test  after null"
+        assert event.payload["diffs"]["fields"]["change"][0] == "categories after null"
+
+
+@patch("query.redis.process_events")
+async def test_copes_with_missing_fields(process_events: Mock):
+    async with redis_client() as redis:
+        test_message = {
+        }
+
+        await messages_received([["test-stream",[[f"0-1692032161", test_message]]]])
+
+        assert process_events.called
+        assert process_events.call_args[0][0]
+        event = process_events.call_args[0][0][0]
+        assert event.id == "0-1692032161"
+        assert event.timestamp == datetime.fromtimestamp(
+            1692032161, timezone.utc
+        )
