@@ -77,4 +77,14 @@ async def messages_received(streams):
             
         await process_events(events)
         
+def get_message_timestamp(id, payload):
+    try:
+        timestamp = datetime.fromtimestamp(payload['timestamp'], timezone.utc)
+    except:
+        try:
+            timestamp = datetime.fromtimestamp(int(id.split('-')[0]), timezone.utc)
+        except:
+            timestamp = datetime.now(timezone.utc)
+
+    return timestamp
     
