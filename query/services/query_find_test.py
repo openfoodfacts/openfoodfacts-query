@@ -4,6 +4,7 @@ from query.models.query import Filter, FindQuery
 from query.services import query
 from query.services.query_count_test import create_test_tags
 from query.tables.country import get_country
+from query.tables.product_country import CURRENT_YEAR
 from query.tables.product_scans_by_country import create_scan
 from query.test_helper import mock_cursor, patch_context_manager
 
@@ -131,15 +132,15 @@ async def create_tags_and_scans():
         tags = await create_test_tags(connection)
         world = await get_country(connection, "en:world")
         # Country sequence should be: 3,2,1. World sequence: 2,3,1
-        await create_scan(connection, tags.product1, tags.country, 2024, 10)
-        await create_scan(connection, tags.product2, tags.country, 2024, 100)
-        await create_scan(connection, tags.product3, tags.country, 2024, 100)
-        await create_scan(connection, tags.product3, tags.country, 2023, 1)
-        await create_scan(connection, tags.product4, tags.country, 2024, 50)
-        await create_scan(connection, tags.product1, world, 2024, 20)
-        await create_scan(connection, tags.product2, world, 2024, 201)
-        await create_scan(connection, tags.product3, world, 2024, 200)
-        await create_scan(connection, tags.product3, world, 2023, 100)
-        await create_scan(connection, tags.product4, world, 2024, 50)
+        await create_scan(connection, tags.product1, tags.country, CURRENT_YEAR, 10)
+        await create_scan(connection, tags.product2, tags.country, CURRENT_YEAR, 100)
+        await create_scan(connection, tags.product3, tags.country, CURRENT_YEAR, 100)
+        await create_scan(connection, tags.product3, tags.country, CURRENT_YEAR - 1, 1)
+        await create_scan(connection, tags.product4, tags.country, CURRENT_YEAR, 50)
+        await create_scan(connection, tags.product1, world, CURRENT_YEAR, 20)
+        await create_scan(connection, tags.product2, world, CURRENT_YEAR, 201)
+        await create_scan(connection, tags.product3, world, CURRENT_YEAR, 200)
+        await create_scan(connection, tags.product3, world, CURRENT_YEAR - 1, 100)
+        await create_scan(connection, tags.product4, world, CURRENT_YEAR, 50)
 
         return tags

@@ -1,5 +1,9 @@
 from query.database import create_record, database_connection
 
+OLDEST_YEAR = 2019
+CURRENT_YEAR = 2024
+PRODUCT_COUNTRY_TAG = "product_country"
+
 
 async def create_table(connection):
     await connection.execute(
@@ -71,30 +75,32 @@ async def fixup_product_countries(connection, obsolete):
     )
 
 
-async def fixup_product_countries_for_product(connection, product_id):
+async def fixup_product_countries_for_products(connection, ids_updated):
+    # TODO: need to reset recent_scans and total_scans to zero if there are none in the
+    # relevant time-frame
     await connection.execute(
-        """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
-        SELECT product_id, p.obsolete, country_id, unique_scans, unique_scans
-        FROM product_scans_by_country
-        JOIN product p ON p.id = product_id
-        WHERE product_id = $1
-        AND year = $2
-        ON CONFLICT (product_id, country_id)
-        DO UPDATE SET recent_scans = EXCLUDED.recent_scans, obsolete = EXCLUDED.obsolete""",
-        product_id,
-        2024,
+        """insert into product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+            select product_id, p.obsolete, country_id, unique_scans, unique_scans
+            from product_scans_by_country
+            join product p on p.id = product_id
+            where product_id = ANY($1)
+            and year = $2
+            on conflict (product_id, country_id)
+            do update set recent_scans = excluded.recent_scans, obsolete = excluded.obsolete""",
+        ids_updated,
+        CURRENT_YEAR,
     )
 
     await connection.execute(
-        """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
-        SELECT product_id, p.obsolete, country_id, 0, sum(unique_scans)
-        FROM product_scans_by_country
-        JOIN product p ON p.id = product_id
-        WHERE product_id = $1
-        AND year >= $2
-        GROUP BY product_id, p.obsolete, country_id
-        ON CONFLICT (product_id, country_id)
-        DO UPDATE SET total_scans = EXCLUDED.total_scans, obsolete = EXCLUDED.obsolete""",
-        product_id,
-        2019,
+        """insert into product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+            select product_id, p.obsolete, country_id, 0, sum(unique_scans)
+            from product_scans_by_country
+            join product p on p.id = product_id
+            where product_id = ANY($1)
+            and year >= $2
+            group by product_id, p.obsolete, country_id
+            on conflict (product_id, country_id)
+            do update set total_scans = excluded.total_scans, obsolete = excluded.obsolete""",
+        ids_updated,
+        OLDEST_YEAR,
     )
