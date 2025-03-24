@@ -1,8 +1,9 @@
 import asyncio
 from contextlib import asynccontextmanager
 import logging
-from typing import Dict, List
+from typing import Annotated, Dict, List
 from fastapi import FastAPI, Query
+from pydantic import Field
 
 from query.database import database_connection
 from query.migrator import migrate_database
@@ -14,9 +15,11 @@ from query.models.query import (
     Stage,
 )
 from query.models.health import Health
+from query.models.scan import ScanCounts
 from query.redis import redis_listener
 from query.services import ingestion, query
 from query.services.health import check_health
+from query.services.scan import import_scans
 
 logger = logging.getLogger(__name__)
 
@@ -60,3 +63,8 @@ async def find(find_query: FindQuery, obsolete: bool = False) -> List[Dict]:
 @app.get("/importfrommongo")
 async def importfrommongo(start_from: str = Query(None, alias="from")):
     return await ingestion.import_from_mongo(start_from)
+
+# TODO: Get OpenAPI looking nicer
+@app.post("/scans")
+async def scans(scans: Dict[str, Dict[int, ScanCounts]], fullyloaded = False):
+    await import_scans(scans, fullyloaded)
