@@ -47,8 +47,3 @@ async def setup(request):
 
         async with database_connection() as conn:
             await migrate_database(conn)
-
-    # Make sure the redis stream exists by adding and removing a dummy message
-    async with redis_client() as redis:
-        message_id = await add_test_message(redis, random_code())
-        await redis.xdel(STREAM_NAME, message_id)
