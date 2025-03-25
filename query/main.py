@@ -15,7 +15,7 @@ from query.models.query import (
     Stage,
 )
 from query.models.health import Health
-from query.models.scan import ScanCounts
+from query.models.scan import ScanCounts, ProductScans
 from query.redis import redis_listener
 from query.services import ingestion, query
 from query.services.health import check_health
@@ -66,5 +66,5 @@ async def importfrommongo(start_from: str = Query(None, alias="from")):
 
 # TODO: Get OpenAPI looking nicer
 @app.post("/scans")
-async def scans(scans: Dict[str, Dict[int, ScanCounts]], fullyloaded = False):
+async def scans(scans: ProductScans, fullyloaded = False):
     await import_scans(scans, fullyloaded)

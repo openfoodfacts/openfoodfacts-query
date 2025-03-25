@@ -1,6 +1,6 @@
 from typing import Dict
 from query.database import create_record
-from query.models.scan import ScanCounts
+from query.models.scan import ScanCounts, ProductScans
 from query.tables.product_country import fixup_product_countries_for_products
 
 
@@ -30,11 +30,11 @@ async def create_scan(connection, product, country, year, unique_scans):
     return scan
 
 
-async def create_scans(connection, scans: Dict[str, Dict[int, ScanCounts]]):
+async def create_scans(connection, scans: ProductScans):
     scans_by_country = []
-    for code, years in scans.items():
-        for year, scan_counts in years.items():
-            for country, count in scan_counts.unique_scans_n_by_country.items():
+    for code, years in scans.root.items():
+        for year, scan_counts in years.root.items():
+            for country, count in scan_counts.unique_scans_n_by_country.root.items():
                 # TODO: Normalize code
                 scans_by_country.append([code, str(year), country, str(count)])
 
