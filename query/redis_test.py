@@ -5,6 +5,7 @@ import math
 import time
 from unittest.mock import Mock, patch
 
+import pytest
 from redis.asyncio import Redis, ResponseError
 from query.redis import (
     STREAM_NAME,
@@ -92,46 +93,73 @@ async def test_listener_calls_subscriber_function(
         assert messages[0][1]["code"] == product_code
 
 
+@patch("query.redis.get_last_message_id")
+@patch("query.redis.set_last_message_id")
+@patch("query.redis.messages_received")
+async def test_listener_keeps_track_of_last_message_id(
+    messages_received: Mock, set_id: Mock, get_id: Mock
+):
+    async with redis_client() as redis:
+        # Get the most recent message id so we don't pick up old messages
+        get_id.return_value = await get_last_message_id(redis, STREAM_NAME)
+
+        # Add a messages
+        product_code = random_code()
+        await add_test_message(redis, product_code)
+
+        # Start the redis listener
+        redis_listener_task = asyncio.create_task(redis_listener())
+
+        # TODO: Would like to find a better way to wait for other tasks to process...
+        await asyncio.sleep(0.1)
+        redis_listener_task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await redis_listener_task
+
+        # Settings should only have been called once
+        assert set_id.call_count == 1
+        # messages_received should only have been called once
+        assert messages_received.call_count == 1
+
+
 @patch("query.redis.process_events")
 async def test_messages_received_strips_nulls(process_events: Mock):
-    async with redis_client() as redis:
-        test_message = {
-            "timestamp": 1692032161,
-            "code": random_code(),
-            "rev": 1,
-            "flavor": "off",
-            "product_type": "food",
-            "user_id": "test_user",
-            "action": "updated",
-            "comment": "Test \0 after null",
-            "diffs": '{"fields":{"change":["categories\0 after null"],"delete":["product_name"]}}',
-        }
+    test_message = {
+        "timestamp": 1692032161,
+        "code": random_code(),
+        "rev": 1,
+        "flavor": "off",
+        "product_type": "food",
+        "user_id": "test_user",
+        "action": "updated",
+        "comment": "Test \0 after null",
+        "diffs": '{"fields":{"change":["categories\0 after null"],"delete":["product_name"]}}',
+    }
 
-        await messages_received([["test-stream", [["test-id", test_message]]]])
+    await messages_received([["test-stream", [["test-id", test_message]]]])
 
-        assert process_events.called
-        assert process_events.call_args[0][0]
-        event = process_events.call_args[0][0][0]
-        assert event.id == "test-id"
-        assert event.timestamp == datetime.fromtimestamp(
-            test_message["timestamp"], timezone.utc
-        )
-        assert event.payload["comment"] == "Test  after null"
-        assert event.payload["diffs"]["fields"]["change"][0] == "categories after null"
+    assert process_events.called
+    assert process_events.call_args[0][0]
+    event = process_events.call_args[0][0][0]
+    assert event.id == "test-id"
+    assert event.timestamp == datetime.fromtimestamp(
+        test_message["timestamp"], timezone.utc
+    )
+    assert event.payload["comment"] == "Test  after null"
+    assert event.payload["diffs"]["fields"]["change"][0] == "categories after null"
 
 
 @patch("query.redis.process_events")
 async def test_copes_with_missing_fields(process_events: Mock):
-    async with redis_client() as redis:
-        test_message = {}
+    test_message = {}
 
-        await messages_received([["test-stream", [[f"0-1692032161", test_message]]]])
+    await messages_received([["test-stream", [[f"0-1692032161", test_message]]]])
 
-        assert process_events.called
-        assert process_events.call_args[0][0]
-        event = process_events.call_args[0][0][0]
-        assert event.id == "0-1692032161"
-        assert event.timestamp == datetime.fromtimestamp(1692032161, timezone.utc)
+    assert process_events.called
+    assert process_events.call_args[0][0]
+    event = process_events.call_args[0][0][0]
+    assert event.id == "0-1692032161"
+    assert event.timestamp == datetime.fromtimestamp(1692032161, timezone.utc)
 
 
 def test_message_timestamp_returns_a_date_from_a_message_id():

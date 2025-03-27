@@ -32,7 +32,13 @@ async def lifespan(_):
 
     redis_listener_task = asyncio.create_task(redis_listener())
     yield
+    logger.info("Shutting down")
     redis_listener_task.cancel()
+    try:
+        await redis_listener_task
+    except asyncio.CancelledError:
+        logger.info("Redis cancelled successfully")
+        pass
 
 
 app = FastAPI(lifespan=lifespan)

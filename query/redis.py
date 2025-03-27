@@ -30,7 +30,7 @@ STREAM_NAME = "product_updates"
 async def redis_listener():
     async with redis_client() as redis:
         async with database_connection() as connection:
-            last_message_id = await get_last_message_id()
+            last_message_id = await get_last_message_id(connection)
             while True:
                 try:
                     response = await redis.xread(
@@ -40,14 +40,12 @@ async def redis_listener():
                     if response:
                         await messages_received(response)
                         # Each message is a tuple of the message id followed by a dict that is the payload
-                        last_message = response[0][1][-1]
-                        await set_last_message_id(connection, last_message[0])
+                        last_message_id = response[0][1][-1][0]
+                        await set_last_message_id(connection, last_message_id)
 
-                    # Add a sleep here so that asyncio can drop out when the task is cancelled
-                    await asyncio.sleep(0.001)
-                except Exception as e:
+                except BaseException as e:
                     logger.error(repr(e))
-                    break
+                    raise e
 
 
 async def messages_received(streams):
