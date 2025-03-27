@@ -29,7 +29,7 @@ async def lifespan(_):
     # Run migrations
     async with database_connection() as conn:
         await migrate_database(conn)
-    
+
     redis_listener_task = asyncio.create_task(redis_listener())
     yield
     redis_listener_task.cancel()
@@ -64,7 +64,8 @@ async def find(find_query: FindQuery, obsolete: bool = False) -> List[Dict]:
 async def importfrommongo(start_from: str = Query(None, alias="from")):
     return await ingestion.import_from_mongo(start_from)
 
+
 # TODO: Get OpenAPI looking nicer
 @app.post("/scans")
-async def scans(scans: ProductScans, fullyloaded = False):
+async def scans(scans: ProductScans, fullyloaded=False):
     await import_scans(scans, fullyloaded)

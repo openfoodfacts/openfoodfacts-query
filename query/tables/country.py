@@ -41,14 +41,21 @@ async def get_country(connection, tag):
 def lower_or_none(value):
     return None if value == None else value.lower()
 
+
 async def add_all_countries(connection: Connection):
     with open(f"{os.path.dirname(__file__)}/../assets/countries.json") as f:
         countries = json.load(f)
-    
-    country_codes = [[country_id, lower_or_none(country.get('country_code_2', {}).get('en'))] for country_id, country in countries.items()]
 
-    await connection.executemany("""insert into country (tag, code) select tag, code 
+    country_codes = [
+        [country_id, lower_or_none(country.get("country_code_2", {}).get("en"))]
+        for country_id, country in countries.items()
+    ]
+
+    await connection.executemany(
+        """insert into country (tag, code) select tag, code 
         from (values ($1, $2)) as source (tag, code)
         where not exists (select * from country where tag = source.tag and code = source.code)
         on conflict (tag) 
-        do update set code = excluded.code""", country_codes)
+        do update set code = excluded.code""",
+        country_codes,
+    )

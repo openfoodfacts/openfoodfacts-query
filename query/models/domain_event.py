@@ -9,4 +9,3 @@ class DomainEvent(BaseModel):
     type: str
     timestamp: datetime
     payload: Dict
-    

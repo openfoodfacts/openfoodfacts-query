@@ -6,7 +6,13 @@ import time
 from unittest.mock import Mock, patch
 
 from redis.asyncio import Redis, ResponseError
-from query.redis import STREAM_NAME, get_message_timestamp, messages_received, redis_client, redis_listener
+from query.redis import (
+    STREAM_NAME,
+    get_message_timestamp,
+    messages_received,
+    redis_client,
+    redis_listener,
+)
 from query.test_helper import random_code
 
 logger = logging.getLogger(__name__)
@@ -101,7 +107,7 @@ async def test_messages_received_strips_nulls(process_events: Mock):
             "diffs": '{"fields":{"change":["categories\0 after null"],"delete":["product_name"]}}',
         }
 
-        await messages_received([["test-stream",[["test-id", test_message]]]])
+        await messages_received([["test-stream", [["test-id", test_message]]]])
 
         assert process_events.called
         assert process_events.call_args[0][0]
@@ -117,35 +123,36 @@ async def test_messages_received_strips_nulls(process_events: Mock):
 @patch("query.redis.process_events")
 async def test_copes_with_missing_fields(process_events: Mock):
     async with redis_client() as redis:
-        test_message = {
-        }
+        test_message = {}
 
-        await messages_received([["test-stream",[[f"0-1692032161", test_message]]]])
+        await messages_received([["test-stream", [[f"0-1692032161", test_message]]]])
 
         assert process_events.called
         assert process_events.call_args[0][0]
         event = process_events.call_args[0][0][0]
         assert event.id == "0-1692032161"
-        assert event.timestamp == datetime.fromtimestamp(
-            1692032161, timezone.utc
-        )
+        assert event.timestamp == datetime.fromtimestamp(1692032161, timezone.utc)
+
 
 def test_message_timestamp_returns_a_date_from_a_message_id():
     time_number = math.floor(time.time())
     test_timestamp = get_message_timestamp(f"{time_number}-0", None)
     assert test_timestamp == datetime.fromtimestamp(time_number, timezone.utc)
 
+
 def test_message_timestamp_returns_the_current_date_for_an_invalid_message_id():
     timestamp = datetime.now(timezone.utc)
     test_timestamp = get_message_timestamp("invalid", None)
     assert test_timestamp >= timestamp
-    
+
+
 def test_message_timestamp_copes_with_a_null_id():
     timestamp = datetime.now(timezone.utc)
     test_timestamp = get_message_timestamp(None, None)
     assert test_timestamp >= timestamp
 
+
 def test_message_timestamp_uses_timestamp_if_provided():
     time_number = math.floor(time.time())
-    test_timestamp = get_message_timestamp("100-0", {"timestamp": time_number })
+    test_timestamp = get_message_timestamp("100-0", {"timestamp": time_number})
     assert test_timestamp == datetime.fromtimestamp(time_number, timezone.utc)

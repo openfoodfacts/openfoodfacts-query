@@ -20,6 +20,7 @@ class SettingsForTests(BaseSettings):
 
 test_settings = SettingsForTests()
 
+
 @pytest.fixture(scope="session", autouse=True)
 async def setup(request):
     if test_settings.USE_TESTCONTAINERS:

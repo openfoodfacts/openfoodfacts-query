@@ -17,7 +17,7 @@ async def create_table(connection):
 
 
 async def create_scan(connection, product, country, year, unique_scans):
-    """ This is only currently used in tests """
+    """This is only currently used in tests"""
     scan = await create_record(
         connection,
         "product_scans_by_country",
@@ -39,16 +39,19 @@ async def create_scans(connection, scans: ProductScans):
                 scans_by_country.append([code, str(year), country, str(count)])
 
     if scans_by_country:
-        inserted = await connection.fetchmany("""insert into product_scans_by_country (product_id, year, country_id, unique_scans) 
+        inserted = await connection.fetchmany(
+            """insert into product_scans_by_country (product_id, year, country_id, unique_scans) 
             select product.id, source.year::int, country.id, source.scans::int 
             from (values ($1, $2, $3, $4)) as source (code, year, country, scans)
             join product on product.code = source.code
             join country on country.code = source.country
             on conflict (product_id, year, country_id) 
             do update set unique_scans = excluded.unique_scans
-            returning product_id""", scans_by_country)
+            returning product_id""",
+            scans_by_country,
+        )
 
-        ids_updated = list({ i['product_id'] for i in inserted })
+        ids_updated = list({i["product_id"] for i in inserted})
         # TODO: remove country entries that are not referenced by a counties_tag
 
         await fixup_product_countries_for_products(connection, ids_updated)
