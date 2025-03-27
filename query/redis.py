@@ -31,6 +31,7 @@ async def redis_listener():
     async with redis_client() as redis:
         async with database_connection() as connection:
             last_message_id = await get_last_message_id(connection)
+            error_count = 0
             while True:
                 try:
                     response = await redis.xread(
@@ -43,9 +44,31 @@ async def redis_listener():
                         last_message_id = response[0][1][-1][0]
                         await set_last_message_id(connection, last_message_id)
 
-                except BaseException as e:
+                except Exception as e:
                     logger.error(repr(e))
-                    raise e
+                    # Retry up to 3 times
+                    if error_count < 3:
+                        error_count += 1
+                        await asyncio.sleep(1)
+                    else:
+                        raise e
+
+
+redis_listener_task = None
+def start_redis_listener():
+    global redis_listener_task
+    redis_listener_task = asyncio.create_task(redis_listener())
+
+
+async def stop_redis_listener():
+    global redis_listener_task
+    if redis_listener_task and not redis_listener_task.done():
+        redis_listener_task.cancel()
+        try:
+            await redis_listener_task
+        except asyncio.CancelledError:
+            logger.debug("Redis listener cancelled successfully")
+            pass
 
 
 async def messages_received(streams):

@@ -4,9 +4,10 @@ import logging
 import math
 import time
 from unittest.mock import Mock, patch
+from testcontainers.redis import RedisContainer
 
 import pytest
-from redis.asyncio import Redis, ResponseError
+from redis.asyncio import Redis, ResponseError, from_url
 from query.redis import (
     STREAM_NAME,
     get_message_timestamp,
@@ -120,6 +121,67 @@ async def test_listener_keeps_track_of_last_message_id(
         assert set_id.call_count == 1
         # messages_received should only have been called once
         assert messages_received.call_count == 1
+
+
+@patch("query.redis.get_last_message_id")
+@patch("query.redis.set_last_message_id")
+@patch("query.redis.messages_received")
+@patch("query.redis.redis_client")
+@patch("query.redis.logger.error")
+async def test_listener_retrys_on_error(
+    error_log: Mock,
+    redis_mock: Mock,
+    messages_received: Mock,
+    set_id: Mock,
+    get_id: Mock,
+):
+    # Create a separate redis container for this test
+    redis_container = RedisContainer()
+
+    redis_container.start()
+    redis_port = redis_container.get_exposed_port(6379)
+    redis_url = f"redis://{redis_container.get_container_host_ip()}:{redis_port}"
+    try:
+        redis = from_url(redis_url, decode_responses=True)
+
+        # Start from message id 0
+        get_id.return_value = "0"
+
+        # Stop our redis instance
+        redis_container.stop()
+
+        # Make the redis listener use our stopped instance
+        redis_mock.return_value = redis
+        try:
+            # Start the redis listener
+            redis_listener_task = asyncio.create_task(redis_listener())
+
+            # TODO: Would like to find a better way to wait for other tasks to process...
+            await asyncio.sleep(0.1)
+
+            # Error should be logged
+            assert not messages_received.called
+            assert error_log.called
+        finally:
+            # Re-start the redis container on the same port
+            redis_container.with_bind_ports(6379, redis_port).start()
+
+        # Add a message
+        product_code = random_code()
+        message_id = await add_test_message(redis, product_code)
+
+        # Wait for retry
+        await asyncio.sleep(1)
+
+        assert messages_received.called
+        assert set_id.call_args[0][1] == message_id
+
+    finally:
+        redis_listener_task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await redis_listener_task
+
+        redis_container.stop()
 
 
 @patch("query.redis.process_events")

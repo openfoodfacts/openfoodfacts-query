@@ -16,7 +16,7 @@ from query.models.query import (
 )
 from query.models.health import Health
 from query.models.scan import ScanCounts, ProductScans
-from query.redis import redis_listener
+from query.redis import redis_listener, start_redis_listener, stop_redis_listener
 from query.services import ingestion, query
 from query.services.health import check_health
 from query.services.scan import import_scans
@@ -30,15 +30,10 @@ async def lifespan(_):
     async with database_connection() as conn:
         await migrate_database(conn)
 
-    redis_listener_task = asyncio.create_task(redis_listener())
+    start_redis_listener()
     yield
     logger.info("Shutting down")
-    redis_listener_task.cancel()
-    try:
-        await redis_listener_task
-    except asyncio.CancelledError:
-        logger.info("Redis cancelled successfully")
-        pass
+    await stop_redis_listener()
 
 
 app = FastAPI(lifespan=lifespan)
