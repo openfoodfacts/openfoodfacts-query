@@ -1,4 +1,5 @@
 import json
+import os
 
 from asyncpg import Connection
 
@@ -41,7 +42,7 @@ def lower_or_none(value):
     return None if value == None else value.lower()
 
 async def add_all_countries(connection: Connection):
-    with open("src/assets/countries.json") as f:
+    with open(f"{os.path.dirname(__file__)}/../assets/countries.json") as f:
         countries = json.load(f)
     
     country_codes = [[country_id, lower_or_none(country.get('country_code_2', {}).get('en'))] for country_id, country in countries.items()]

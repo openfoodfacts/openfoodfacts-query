@@ -2,7 +2,7 @@ import { writeFileSync } from 'fs';
 import stringify from 'json-stable-stringify';
 
 writeFileSync(
-  'src/assets/countries.json',
+  'query/assets/countries.json',
   stringify(
     await (
       await fetch(

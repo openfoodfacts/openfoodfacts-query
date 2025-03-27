@@ -159,5 +159,4 @@ This doesn't abstract away the underlying database model from the code, but give
 
 # TODO
 
- - redis import
- - import scans
+ - CRON for routine import
