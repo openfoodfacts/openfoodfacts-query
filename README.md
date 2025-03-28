@@ -46,6 +46,8 @@ The service is exposed on port 5510, to avoid clashing with Robotoff.
 
 [FastAPI](https://fastapi.tiangolo.com/) is used to support the REST APIs. Non-blocking I/O is achieved using [asyncio](https://docs.python.org/3/library/asyncio.html) and this influences the PostgreSQL. MongoDB and Redis clients used.
 
+[Pydantic](https://docs.pydantic.dev/) is used to model externally visible schemas. The generated OpenAPI documentation can be found [here](http://localhost:5510/docs). There is also a [redoc](http://localhost:5510/redoc) version.
+
 Other than that the reliance on external code is kept to a minimum so that the project is easy for someone new to understand what's going on.
 
 ## Project Structure
