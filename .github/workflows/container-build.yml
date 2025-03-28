@@ -23,14 +23,15 @@ jobs:
           version: v0.6.0
           buildkitd-flags: --debug
 
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - name: Use Python
+        uses: actions/setup-python@v5
         with:
-          node-version: 20
+          python-version: 3.11
+          cache: 'poetry'
 
-      - run: npm ci
+      - run: make install
 
-      - run: npm test
+      - run: make tests
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -56,7 +57,7 @@ jobs:
         with:
           context: .
           push: true
-          file: Dockerfile
+          file: Dockerfile_python
           cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache,mode=max
           tags: ${{ steps.meta.outputs.tags }}
