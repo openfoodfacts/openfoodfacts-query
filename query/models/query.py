@@ -1,6 +1,6 @@
 import typing
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
@@ -47,14 +47,14 @@ if not typing.TYPE_CHECKING:
     )
 
 
-class GroupStage(BaseModel, populate_by_name=True, extra="forbid"):
+class GroupStage(BaseModel, populate_by_name=True):
     id: GroupField = Field(alias="_id", default=None)
 
 
-class Stage(BaseModel, populate_by_name=True, extra="forbid"):
+class Stage(BaseModel, populate_by_name=True):
     match: Filter = Field(alias="$match", default=None)
     group: GroupStage = Field(alias="$group", default=None)
-    count: int = Field(alias="$count", default=None, multiple_of=1, le=1, ge=1)
+    count: Any = Field(alias="$count", default=None, examples=[1])
     limit: int = Field(alias="$limit", default=None)
     skip: int = Field(alias="$skip", default=None)
 
