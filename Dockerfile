@@ -1,4 +1,4 @@
-FROM python:3.11-buster as builder
+FROM python:3.11-buster AS builder
 
 RUN pip install poetry
 ENV POETRY_NO_INTERACTION=1 \
@@ -11,7 +11,7 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --without dev --no-root
 
 # The runtime image, used to just run the code provided its virtual environment
-FROM python:3.11-slim-buster as runtime
+FROM python:3.11-slim-buster AS runtime
 
 WORKDIR /code
 

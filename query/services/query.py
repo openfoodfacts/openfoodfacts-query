@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, List
 
+from asyncpg import Connection
 from fastapi import HTTPException, status
 from query.database import database_connection
 from query.models.query import (
@@ -8,7 +9,6 @@ from query.models.query import (
     AggregateResult,
     Filter,
     FindQuery,
-    GroupStage,
     Stage,
 )
 from query.mongodb import find_products
@@ -20,6 +20,11 @@ from query.tables.loaded_tag import get_loaded_tags
 logger = logging.getLogger(__name__)
 
 
+async def fetch_and_log(connection: Connection, sql, *params):
+    logger.debug(f"Args: {repr(params)}, SQL: {sql}")
+    return await connection.fetch(sql, *params)
+
+
 async def count(filter: Filter = None, obsolete=False):
     async with database_connection() as conn:
         sql_fragments = []
@@ -29,9 +34,7 @@ async def count(filter: Filter = None, obsolete=False):
             append_sql_fragments(filter, loaded_tags, "id", params, sql_fragments)
 
         sql = f"SELECT count(*) count FROM product p WHERE {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)}"
-        logger.debug(f"Count: SQL:  {sql}")
-        logger.debug(f"Count: Args: {repr(params)}")
-        return await conn.fetchval(sql, *params)
+        return ((await fetch_and_log(conn, sql, *params)) or [{}])[0].get("count", 0)
 
 
 async def aggregate(stages: List[Stage], obsolete=False):
@@ -74,9 +77,7 @@ async def aggregate(stages: List[Stage], obsolete=False):
             sql = f"""SELECT {column_name} id, count(*) count FROM {table_name} p
                 WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)}
                 GROUP BY {column_name} ORDER BY 2 DESC, 1{limit_clause}"""
-        logger.debug(f"Aggregate: SQL:  {sql}")
-        logger.debug(f"Aggregate: Args: {repr(params)}")
-        results = await conn.fetch(sql, *params)
+        results = await fetch_and_log(conn, sql, *params)
         if is_count:
             result = AggregateCountResult()
             setattr(result, tag, results[0]["count"])
@@ -127,11 +128,10 @@ async def find(query: FindQuery, obsolete=False):
                 ORDER BY p.recent_scans DESC, p.total_scans DESC, p.product_id
                 {limit_clause})
             ORDER BY pc.recent_scans DESC, pc.total_scans DESC, pc.product_id"""
-        logger.info(f"Find: SQL:  {sql}")
-        logger.info(f"Find: Args: {repr(params)}")
-        results = await conn.fetch(sql, *params)
+        results = await fetch_and_log(conn, sql, *params)
         product_codes = [result["code"] for result in results]
-        logger.info(f"Find: Codes: {repr(product_codes)}")
+        logger.debug(f"Find: Codes: {repr(product_codes)}")
+
         mongodb_filter = {"_id": {"$in": product_codes}}
         mongodb_results = [None] * len(product_codes)
         if "code" not in query.projection:
