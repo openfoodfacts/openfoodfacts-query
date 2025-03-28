@@ -35,6 +35,13 @@ async def create_table(connection):
         "create index product_country_ix1 on product_country (obsolete, country_id, recent_scans DESC, total_scans DESC, product_id);",
     )
 
+async def fix_index(connection):
+    """ Change column order so it is quicker to delete rogue countries """
+    await connection.execute("drop index product_country_ix1")
+    await connection.execute(
+        "create index product_country_ix1 on product_country (country_id, obsolete, recent_scans DESC, total_scans DESC, product_id);",
+    )
+
 
 async def create_product_country(
     connection, product, country, recent_scans, total_scans
