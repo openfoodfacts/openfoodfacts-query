@@ -6,16 +6,3 @@ services:
       # Use shared-services MongoDB and REDIS
       - MONGO_URI=mongodb://mongodb:27017
       - REDIS_URL=redis://redis:6379
-
-    volumes:
-      - ./data:/data
-
-  query_python:
-    build: 
-      context: .
-      dockerfile: Dockerfile_python
-    image: openfoodfacts-query:python_dev
-    environment:
-      # Use shared-services MongoDB and REDIS
-      - MONGO_URI=mongodb://mongodb:27017
-      - REDIS_URL=redis://redis:6379
