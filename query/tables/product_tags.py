@@ -1,7 +1,7 @@
 from query.database import create_record, get_rows_affected
 
 
-tag_tables = {
+TAG_TABLES = {
     "countries_tags": "product_countries_tag",
     "nutrition_grades_tags": "product_nutrition_grades_tag",
     "nova_groups_tags": "product_nova_groups_tag",
@@ -70,7 +70,7 @@ tag_tables = {
 
 
 async def create_tables(connection):
-    for table_name in tag_tables.values():
+    for table_name in TAG_TABLES.values():
         await connection.execute(
             f"""create table {table_name} (
                 product_id int not null,
@@ -89,7 +89,7 @@ async def create_tables(connection):
 async def create_tag(connection, tag, product, value):
     return await create_record(
         connection,
-        tag_tables[tag],
+        TAG_TABLES[tag],
         product_id=product["id"],
         value=value,
         obsolete=product["obsolete"],
@@ -97,7 +97,7 @@ async def create_tag(connection, tag, product, value):
 
 
 async def create_tags_from_staging(connection, log, obsolete):
-    for tag, tag_table in tag_tables.items():
+    for tag, tag_table in TAG_TABLES.items():
         log_text = f"Updated {tag}"
 
         # Delete existing tags for products that were imported on this run
@@ -118,7 +118,7 @@ async def create_tags_from_staging(connection, log, obsolete):
 
 
 async def delete_tags(connection, product_ids):
-    for tag_table in tag_tables.values():
+    for tag_table in TAG_TABLES.values():
         await connection.fetch(
             f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id = ANY($1::int[])",
             product_ids,
@@ -126,7 +126,7 @@ async def delete_tags(connection, product_ids):
 
 
 async def get_tags(connection, tag, product):
-    tag_table = tag_tables[tag]
+    tag_table = TAG_TABLES[tag]
     return await connection.fetch(
         f"SELECT * FROM {tag_table} WHERE product_id = $1", product["id"]
     )

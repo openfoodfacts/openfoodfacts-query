@@ -10,7 +10,7 @@ from query.tables.country import get_country
 from query.tables.product import create_product, get_product, get_product_by_id
 from query.tables.product_country import create_product_country, get_product_countries
 from query.tables.product_ingredient import get_ingredients
-from query.tables.product_tags import create_tag, get_tags, tag_tables
+from query.tables.product_tags import create_tag, get_tags, TAG_TABLES
 from query.tables.settings import get_last_updated, set_last_updated
 from query.test_helper import mock_cursor, patch_context_manager, random_code
 
@@ -353,32 +353,6 @@ async def test_import_from_event_source_should_always_update_product(
         assert product_existing["source"] == Source.event
         assert product_existing["process_id"] != 10
         assert product_existing["last_processed"] > last_processed
-
-
-@patch("query.services.ingestion.get_loaded_tags", return_value=[])
-@patch("query.services.ingestion.import_from_mongo")
-async def test_scheduled_import_from_mongo_should_do_a_full_import_if_loaded_tags_arent_complete(
-    import_mock: Mock,
-    _: Mock,
-):
-    await ingestion.scheduled_import_from_mongo()
-    assert import_mock.called
-    assert len(import_mock.call_args[0]) == 0
-
-
-# add an extra tag to ensure this doesn't break things
-@patch(
-    "query.services.ingestion.get_loaded_tags",
-    return_value=list(tag_tables.keys()) + ["dummy_tag"],
-)
-@patch("query.services.ingestion.import_from_mongo")
-async def test_scheduled_import_from_mongo_should_do_an_incremental_import_if_loaded_tags_are_complete(
-    import_mock: Mock,
-    _: Mock,
-):
-    await ingestion.scheduled_import_from_mongo()
-    assert import_mock.called
-    assert import_mock.call_args[0][0] == ""
 
 
 async def test_not_get_an_error_with_concurrent_imports():

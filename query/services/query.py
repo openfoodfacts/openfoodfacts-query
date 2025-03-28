@@ -14,7 +14,7 @@ from query.models.query import (
 from query.mongodb import find_products
 from query.tables.country import get_country
 from query.tables.product import product_filter_fields, product_fields
-from query.tables.product_tags import tag_tables
+from query.tables.product_tags import TAG_TABLES
 from query.tables.loaded_tag import get_loaded_tags
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ async def aggregate(stages: List[Stage], obsolete=False):
             params.append(skip[0])
             limit_clause += f" OFFSET ${len(params)}"
 
-        table_name = "product" if is_product_filter else tag_tables[tag]
+        table_name = "product" if is_product_filter else TAG_TABLES[tag]
         column_name = product_fields[tag] if is_product_filter else "value"
         if filter:
             append_sql_fragments(
@@ -210,5 +210,5 @@ def append_sql_fragments(
 
                 else:
                     sql_fragments.append(
-                        f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {tag_tables[tag]} WHERE product_id = p.{parent_id_column}{where_expression})"
+                        f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {TAG_TABLES[tag]} WHERE product_id = p.{parent_id_column}{where_expression})"
                     )

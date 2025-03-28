@@ -11,6 +11,7 @@ from redis.asyncio import Redis, ResponseError, from_url
 from query.redis import (
     STREAM_NAME,
     get_message_timestamp,
+    get_retry_interval,
     messages_received,
     redis_client,
     redis_listener,
@@ -93,6 +94,10 @@ async def test_listener_calls_subscriber_function(
         assert messages[0][0] == message_id1
         assert messages[0][1]["code"] == product_code
 
+        redis_listener_task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await redis_listener_task
+
 
 @patch("query.redis.get_last_message_id")
 @patch("query.redis.set_last_message_id")
@@ -123,12 +128,20 @@ async def test_listener_keeps_track_of_last_message_id(
         assert messages_received.call_count == 1
 
 
+def test_retry_interval():
+    interval1 = get_retry_interval()
+    interval2 = get_retry_interval()
+    assert interval2 == interval1 * 2
+
+
 @patch("query.redis.get_last_message_id")
 @patch("query.redis.set_last_message_id")
 @patch("query.redis.messages_received")
 @patch("query.redis.redis_client")
 @patch("query.redis.logger.error")
+@patch("query.redis.get_retry_interval")
 async def test_listener_retrys_on_error(
+    get_retry_interval: Mock,
     error_log: Mock,
     redis_mock: Mock,
     messages_received: Mock,
@@ -153,6 +166,9 @@ async def test_listener_retrys_on_error(
         # Make the redis listener use our stopped instance
         redis_mock.return_value = redis
         try:
+            # Set fast retry for test
+            get_retry_interval.return_value = 0.1
+
             # Start the redis listener
             redis_listener_task = asyncio.create_task(redis_listener())
 
@@ -171,7 +187,7 @@ async def test_listener_retrys_on_error(
         message_id = await add_test_message(redis, product_code)
 
         # Wait for retry
-        await asyncio.sleep(1)
+        await asyncio.sleep(0.1)
 
         assert messages_received.called
         assert set_id.call_args[0][1] == message_id

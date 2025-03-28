@@ -8,10 +8,10 @@ from asyncpg import Connection
 from query.database import database_connection
 from query.models.product import Source
 from query.mongodb import find_products
-from query.tables.loaded_tag import append_loaded_tags, get_loaded_tags
+from query.tables.loaded_tag import append_loaded_tags
 from query.tables.product_country import fixup_product_countries
 from query.tables.product_ingredient import create_ingredients_from_staging
-from query.tables.product_tags import create_tags_from_staging, tag_tables
+from query.tables.product_tags import create_tags_from_staging, TAG_TABLES
 from query.tables.product import (
     create_minimal_product,
     delete_products,
@@ -48,16 +48,13 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
             process_id = await get_process_id(connection)
             projection = {
                 key: True
-                for key in (list(tag_tables.keys()) + list(product_fields.keys()))
+                for key in (list(TAG_TABLES.keys()) + list(product_fields.keys()))
             }
             for obsolete in [False, True]:
-                product_count = 0
+                update_count = 0
+                skip_count = 0
                 async with find_products(filter, projection, obsolete) as cursor:
                     async for product_data in cursor:
-                        if product_count == 0:
-                            logger.info("Fetched first product")
-                        product_count += 1
-
                         # Fall back to last_modified_t if last_updated_t is not available
                         try:
                             last_updated = datetime.fromtimestamp(
@@ -72,6 +69,8 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                                 f"Product: {product_data['code']}. Invalid last_updated_t: {product_data.get('last_updated_t')}, or last_modified_t: {product_data.get('last_modified_t')}."
                             )
                             last_updated = min_datetime
+                        max_last_updated = max(last_updated, max_last_updated)
+
                         product_code = product_data["code"]
                         if codes_specified:
                             found_product_codes.append(product_code)
@@ -84,14 +83,18 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                             and source == Source.incremental_load
                             and existing_product["last_updated"] == last_updated
                         ):
+                            skip_count += 1
+                            if not (skip_count % batch_size):
+                                logger.info(f"Skipped {skip_count}{' obsolete' if obsolete else ''} products")
                             continue
+
                         if not existing_product:
                             existing_product = await create_minimal_product(
                                 connection, product_code
                             )
 
                         # Strip any nulls from tag text
-                        for tag in tag_tables.keys():
+                        for tag in TAG_TABLES.keys():
                             tag_data = product_data.get(tag, [])
                             for i, tag_value in enumerate(tag_data):
                                 if "\0" in tag_value:
@@ -105,17 +108,19 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                             last_updated,
                             product_data,
                         )
-                        if not (product_count % batch_size):
+
+                        update_count += 1
+                        if not (update_count % batch_size):
                             await apply_staged_changes(
-                                connection, obsolete, product_count, process_id, source
+                                connection, obsolete, update_count, process_id, source
                             )
 
-                        max_last_updated = max(last_updated, max_last_updated)
-
-                if product_count % batch_size:
+                if update_count % batch_size:
                     await apply_staged_changes(
-                        connection, obsolete, product_count, process_id, source
+                        connection, obsolete, update_count, process_id, source
                     )
+                if skip_count % batch_size:
+                    logger.info(f"Skipped {skip_count}{' obsolete' if obsolete else ''} products")
 
             # Mark all products specifically requested but not found as deleted
             if codes_specified:
@@ -132,7 +137,7 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
 
             if source == Source.full_load:
                 await delete_products(connection, process_id, source)
-                await append_loaded_tags(connection, tag_tables.keys())
+                await append_loaded_tags(connection, TAG_TABLES.keys())
         finally:
             await connection.execute("DROP TABLE product_temp")
 
@@ -140,17 +145,17 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
 
 
 async def apply_staged_changes(
-    connection: Connection, obsolete, product_count, process_id, source
+    connection: Connection, obsolete, update_count, process_id, source
 ):
     await connection.execute("ANALYZE product_temp")
-    log = logger.info
+    log = logger.debug
     await update_products_from_staging(connection, log, obsolete, process_id, source)
     await create_ingredients_from_staging(connection, log, obsolete)
     await create_tags_from_staging(connection, log, obsolete)
     await fixup_product_countries(connection, obsolete)
     await connection.execute("TRUNCATE TABLE product_temp")
 
-    logger.info(f"Imported {product_count}{' obsolete' if obsolete else ''} products")
+    logger.info(f"Imported {update_count}{' obsolete' if obsolete else ''} products")
 
 
 import_running = False
@@ -184,13 +189,3 @@ async def import_from_mongo(from_date: str = None):
                 await set_last_updated(connection, max_last_updated)
     finally:
         import_running = False
-
-
-async def scheduled_import_from_mongo():
-    async with database_connection() as connection:
-        loaded_tags = await get_loaded_tags(connection)
-        # If every tag is loaded then we do an incremental import. otherwise full
-        if any(tag for tag in tag_tables.keys() if tag not in loaded_tags):
-            await import_from_mongo()
-        else:
-            await import_from_mongo("")

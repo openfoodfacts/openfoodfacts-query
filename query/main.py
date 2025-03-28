@@ -1,9 +1,7 @@
-import asyncio
 from contextlib import asynccontextmanager
 import logging
-from typing import Annotated, Dict, List
+from typing import Dict, List
 from fastapi import FastAPI, Query
-from pydantic import Field
 
 from query.database import database_connection
 from query.migrator import migrate_database
@@ -15,8 +13,9 @@ from query.models.query import (
     Stage,
 )
 from query.models.health import Health
-from query.models.scan import ScanCounts, ProductScans
-from query.redis import redis_listener, start_redis_listener, stop_redis_listener
+from query.models.scan import ProductScans
+from query.redis import redis_lifespan
+from query.scheduler import scheduler_lifespan
 from query.services import ingestion, query
 from query.services.health import check_health
 from query.services.scan import import_scans
@@ -30,10 +29,10 @@ async def lifespan(_):
     async with database_connection() as conn:
         await migrate_database(conn)
 
-    start_redis_listener()
-    yield
-    logger.info("Shutting down")
-    await stop_redis_listener()
+    async with redis_lifespan():
+        with scheduler_lifespan():
+            yield
+            logger.info("Shutting down")
 
 
 app = FastAPI(lifespan=lifespan)

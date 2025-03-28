@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Dict, List, Tuple
 import typing
 from pydantic import BaseModel, ConfigDict, Field, create_model
-from query.tables.product_tags import tag_tables
+from query.tables.product_tags import TAG_TABLES
 from query.tables.product import product_filter_fields
 
 
@@ -23,7 +23,7 @@ class Fragment(BaseModel, extra="allow"):
 if not typing.TYPE_CHECKING:
     keys = {
         key.replace("_", "-"): (str | Qualify, Field(alias=key, default=None))
-        for key in (list(tag_tables.keys()) + product_filter_fields())
+        for key in (list(TAG_TABLES.keys()) + product_filter_fields())
     }
     keys["model_config"] = ConfigDict(extra="forbid")
     Fragment = create_model("Fragment", __base__=Fragment, **keys)
@@ -40,7 +40,7 @@ if not typing.TYPE_CHECKING:
         "GroupFields",
         [
             (key.replace("_", "-"), "$" + key)
-            for key in (list(tag_tables.keys()) + product_filter_fields())
+            for key in (list(TAG_TABLES.keys()) + product_filter_fields())
         ],
     )
 

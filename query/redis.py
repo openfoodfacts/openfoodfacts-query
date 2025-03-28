@@ -25,13 +25,21 @@ async def redis_client() -> AsyncGenerator[redis.Redis, Any]:
 
 
 STREAM_NAME = "product_updates"
+error_count = 0
+
+
+def get_retry_interval():
+    global error_count
+    error_count += 1
+    return 2**error_count
 
 
 async def redis_listener():
+    global error_count
+    error_count = 0
     async with redis_client() as redis:
         async with database_connection() as connection:
             last_message_id = await get_last_message_id(connection)
-            error_count = 0
             while True:
                 try:
                     response = await redis.xread(
@@ -46,15 +54,13 @@ async def redis_listener():
 
                 except Exception as e:
                     logger.error(repr(e))
-                    # Retry up to 3 times
-                    if error_count < 3:
-                        error_count += 1
-                        await asyncio.sleep(1)
-                    else:
-                        raise e
+                    # Exponential back-off indefinately, Listener will be completely stopped by scheduled import every 24 hours
+                    await asyncio.sleep(get_retry_interval())
 
 
 redis_listener_task = None
+
+
 def start_redis_listener():
     global redis_listener_task
     redis_listener_task = asyncio.create_task(redis_listener())
@@ -69,6 +75,16 @@ async def stop_redis_listener():
         except asyncio.CancelledError:
             logger.debug("Redis listener cancelled successfully")
             pass
+
+
+# Note we keep a global varible here so we can pause and result the listener during imports
+@asynccontextmanager
+async def redis_lifespan():
+    try:
+        start_redis_listener()
+        yield
+    finally:
+        await stop_redis_listener()
 
 
 async def messages_received(streams):

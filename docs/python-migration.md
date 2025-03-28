@@ -156,7 +156,6 @@ Started using for internal classes but wanted to avoid performance overhead of v
 
 This doesn't abstract away the underlying database model from the code, but given that a lot of the processing requires raw SQL anyway then it seems better to keep things simple without extra layers of abstraction.
 
+## Scheduling
 
-# TODO
-
- - CRON for routine import
+Used apscheduler as that is used by Robotoff and Taxonomy Editor
