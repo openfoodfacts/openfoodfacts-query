@@ -134,8 +134,8 @@ async def find(query: FindQuery, obsolete=False):
         logger.info(f"Find: Codes: {repr(product_codes)}")
         mongodb_filter = {"_id": {"$in": product_codes}}
         mongodb_results = [None] * len(product_codes)
-        if 'code' not in query.projection:
-            query.projection['code'] = 1
+        if "code" not in query.projection:
+            query.projection["code"] = 1
         async with find_products(mongodb_filter, query.projection, obsolete) as cursor:
             async for result in cursor:
                 code_index = product_codes.index(result["code"])

@@ -85,7 +85,9 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                         ):
                             skip_count += 1
                             if not (skip_count % batch_size):
-                                logger.info(f"Skipped {skip_count}{' obsolete' if obsolete else ''} products")
+                                logger.info(
+                                    f"Skipped {skip_count}{' obsolete' if obsolete else ''} products"
+                                )
                             continue
 
                         if not existing_product:
@@ -120,7 +122,9 @@ async def import_with_filter(filter: Dict, source: Source) -> datetime:
                         connection, obsolete, update_count, process_id, source
                     )
                 if skip_count % batch_size:
-                    logger.info(f"Skipped {skip_count}{' obsolete' if obsolete else ''} products")
+                    logger.info(
+                        f"Skipped {skip_count}{' obsolete' if obsolete else ''} products"
+                    )
 
             # Mark all products specifically requested but not found as deleted
             if codes_specified:

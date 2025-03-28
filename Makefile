@@ -14,6 +14,9 @@ ifeq (${DEPS_DIR},)
 	export DEPS_DIR=${PWD}/deps
 endif
 
+install:
+	poetry install
+
 # Use this to start both the query service and associated database in Docker
 up: run_deps
 	docker compose up --build --wait
@@ -23,25 +26,22 @@ run: run_deps
 	COMPOSE_FILE=${COMPOSE_FILE_RUN} docker compose up -d
 
 # This task starts a Postgres database in Docker and then prepares the local environment for development
-dev: run_deps
+dev: run_deps install
 	docker compose up --wait query_postgres
-	npm install
-	npm run migration:up
 
 watch: run_deps
 	docker compose up --wait query_postgres
-	uvicorn query.main:app --reload --port 5513 --reload-dir query
+	poetry run uvicorn query.main:app --reload --port 5513 --reload-dir query
 
 tests:
-	npm test
+	poetry run pytest
 
 lint:
-	npm run lint
-	black query
+	poetry run black query
 
 # Refresh the countries.json file from the ProductOwner taxonomy
 refresh_countries:
-	node scripts/refresh_countries.mjs
+	python scripts/refresh_countries.py
 
 # Run dependent projects
 run_deps: clone_deps
