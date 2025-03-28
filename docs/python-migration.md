@@ -160,6 +160,3 @@ This doesn't abstract away the underlying database model from the code, but give
 
 Used apscheduler as that is used by Robotoff and Taxonomy Editor
 
-# TODO
-
- - GitHub Actions

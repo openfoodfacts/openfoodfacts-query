@@ -46,7 +46,6 @@ if not typing.TYPE_CHECKING:
 
 
 class GroupStage(BaseModel, populate_by_name=True, extra="forbid"):
-    # TODO: str below should be an enum of valid fields prefixed with dollar
     id: GroupField = Field(alias="_id", default=None)
 
 

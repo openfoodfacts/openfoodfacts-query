@@ -65,7 +65,6 @@ async def importfrommongo(start_from: str = Query(None, alias="from")):
     return await ingestion.import_from_mongo(start_from)
 
 
-# TODO: Get OpenAPI looking nicer
 @app.post("/scans")
 async def scans(scans: ProductScans, fullyloaded=False):
     await import_scans(scans, fullyloaded)
