@@ -15,6 +15,7 @@ ifeq (${DEPS_DIR},)
 endif
 
 install:
+	pipx install poetry
 	poetry install
 
 # Use this to start both the query service and associated database in Docker
