@@ -34,7 +34,7 @@ watch: run_deps
 	poetry run uvicorn query.main:app --reload --port 5513 --reload-dir query
 
 tests:
-	poetry run pytest
+	poetry run pytest ${args}
 
 lint:
 	poetry run black query
