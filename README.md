@@ -31,31 +31,40 @@ When connecting to a PostgreSQL database running on a Windows host from a WSL2 i
 Run the following:
 
 ```
-npm install
-npm run migration:up
+make dev
 ```
 
 You can then start in watch mode with:
 
 ```
-npm run start:dev
+make watch
 ```
 
-The service is exposed on port 5510, to avoid clashing with Robotoff.
+The service is exposed on port 5513, to avoid clashing with Robotoff.
+
+## Frameworks and libraries
+
+[FastAPI](https://fastapi.tiangolo.com/) is used to support the REST APIs. Non-blocking I/O is achieved using [asyncio](https://docs.python.org/3/library/asyncio.html) and this influences the PostgreSQL. MongoDB and Redis clients used.
+
+Other than that the reliance on external code is kept to a minimum so that the project is easy for someone new to understand what's going on.
 
 ## Project Structure
 
-The project uses the [NestJS](https://docs.nestjs.com/) framework with [Mikro-ORM](https://mikro-orm.io/docs/installation).
+This is mainly an SQL-based project so the Python application framework is kept to a minimum. The main folders (inside the `query` folder) are as follows:
 
-The entrypoint is main.js which runs database migrations and starts the service.
+ - tables: Each table, or set of very similar tables (like tags) has a module. This contains all of the SQL for modifying the data and structure of the table, so even `migrations` call out to functions in these modules. The `tables` modules will contain limited business logic, mostly where this might be the equivalent of a database trigger
+ - migrations: These manage database schema updates. Note in most cases the SQL itself is in the relevant `tables` module. The migration history is stored in a table called `mikro_orm-migrations` for backward compatibility witht he previous NestJS / Mikro-ORM implementation of this project
+  - services: This is where most of the complex business logic lives, where interactions betwen multiple tables are coordinated
+  - models: These are the [Pydantic](https://docs.pydantic.dev/) classes used to validate API requests and generate OpenAPI documentation. Note that Pydantic models are only used for outward-facing models. Internally data is mainly passed around using dictionaries
+   - views: The SQL definition for any views that are created in the database
 
-The main business logic is in the domain/services folder and the controllers route through to here. Extensive use is made of the Mikro-ORM [EntityManager](https://mikro-orm.io/docs/entity-manager) here to interact with the database, although in some cases more raw SQL is used to optimise performance.
-
-The domain/entities folder defines the main entities and is used to automatically generate migrations using the [migration:create](https://mikro-orm.io/docs/migrations#initial-migration) npm task.
+The entrypoint is main.py which runs database migrations and starts the service and scheduler.
 
 ## Testing
 
-The unit tests use testcontainers to create a temporary Postgres database in Docker, which lasts for the duration of the test run. The tests share the same database while running, so ensure that tests are independant from one another by using randmoised product codes / tags.
+The unit tests use testcontainers to create a temporary Postgres database and Redis instance in Docker, which lasts for the duration of the test run. The tests share the same database while running, so ensure that tests are independent from one another by using randomized product codes / tags.
+
+Tests are mingled in with the project structure to make it easier to find them. A TDD approach to development is recommended.
 
 ## Calling from Product Opener
 
@@ -67,7 +76,7 @@ QUERY_URL=http://host.docker.internal:5510
 
 ## Running in Docker
 
-The project joins the Product Opener "po_default" network.
+The project joins the Product Opener `COMMON_NET_NAME` network.
 
 The project still uses its own Postgres database but will connect to shared-services Mongo database using the "mongodb" host.
 
@@ -81,35 +90,29 @@ docker-compose up -d --build
 
 ## Adding new tags
 
-Support for new tags can be done by simply adding a further entity definition in the product-tags.ts file.
+Support for new tags can be done by simply adding a further entity definition in the product_tags.py file. Extra migration logic will be needed to create the table.
 
 The tag won't be picked up for queries until a full import is done (when it will be added to the loaded_tag table).
 
 # Deployment vs Development
 
-The main docker-compose.yml creates the openfoodfacts-query service and associated Postres database and expects MongoDB to already exist.
-
-The dev.yml Docker Compose joins the services to the po_default network to ease communication with Product Opener and MongoDB. In staging and production comminication with MongoDB is done with an explicit network address.
+The main docker-compose.yml creates the openfoodfacts-query service and associated Postgres database and expects MongoDB to already exist.
 
 # Use
 
 ## Import from Mongo
 
-The `make refresh_product_tags` command from Product Opener will refresh the Query Postgres database with the current tags from MongoDB. This can also be invoked from a browser with:
+To refresh the Query Postgres database with the current tags from MongoDB you can invoked a browser with:
 
 ```
 http://localhost:5510/importfrommongo?from
 ```
 
-The "from" option ensures that an incremental import is performed. If no date is supplied then the query service will look at the latest modified time for products it already has and only fetch products from MongoDB that have been modified since then. An explicit date can also be specified in the from parameter, e.g. "from=2023-02-23". If no from parameter is applied then all data in the Postgres database will be deleted and a full import will be performed.
-
-## Import from File
-
-There is also an importfromfile endpoint which will import from a file called openfoodfacts-products.jsonl in the data directory. This local folder is mapped to the container in dev.yml.
+The "from" option ensures that an incremental import is performed. If no date is supplied then the query service will look at the latest updated time for products it has already processed and only fetch products from MongoDB that have been updated since then. An explicit date can also be specified in the from parameter, e.g. "from=2023-02-23". If no from parameter is applied then all data in the Postgres database will be deleted and a full import will be performed.
 
 ## Performing queries
 
-The "count" and "aggregate" POST endpoints accept a MongoDB style filter and aggregate pipeline respectively. Syntax support is only basic and is limted to what Product Opener currently uses. See the tests for some examples of what is supported.
+The "count", "aggregate" and "find" POST endpoints accept a MongoDB style filter and aggregate pipeline respectively. Syntax support is only basic and is limited to what Product Opener currently uses. See the tests for some examples of what is supported.
 
 You can test with curl with something like:
 ```bash
