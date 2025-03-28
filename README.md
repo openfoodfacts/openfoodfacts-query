@@ -40,7 +40,7 @@ You can then start in watch mode with:
 make watch
 ```
 
-The service is exposed on port 5510, to avoid clashing with Robotoff.
+The service is exposed on port 5510, to avoid clashing with Robotoff. You can check the service is running by viewing the [health check](http://localhost:5510/health) endpoint.
 
 ## Frameworks and libraries
 
@@ -54,11 +54,13 @@ Other than that the reliance on external code is kept to a minimum so that the p
 
 This is mainly an SQL-based project so the Python application framework is kept to a minimum. The main folders (inside the `query` folder) are as follows:
 
- - tables: Each table, or set of very similar tables (like tags) has a module. This contains all of the SQL for modifying the data and structure of the table, so even `migrations` call out to functions in these modules. The `tables` modules will contain limited business logic, mostly where this might be the equivalent of a database trigger
- - migrations: These manage database schema updates. Note in most cases the SQL itself is in the relevant `tables` module. The migration history is stored in a table called `mikro_orm-migrations` for backward compatibility witht he previous NestJS / Mikro-ORM implementation of this project
-  - services: This is where most of the complex business logic lives, where interactions betwen multiple tables are coordinated
-  - models: These are the [Pydantic](https://docs.pydantic.dev/) classes used to validate API requests and generate OpenAPI documentation. Note that Pydantic models are only used for outward-facing models. Internally data is mainly passed around using dictionaries
-   - views: The SQL definition for any views that are created in the database
+ - Root folder: API routes (in `main.py`), schedule definition and other core dependencies, i.e. PostgreSQL, MongoDB and Redis
+ - `tables`: Each table, or set of very similar tables (like tags) has a module. This contains all of the SQL for modifying the data and structure of the table, so even `migrations` call out to functions in these modules. The `tables` modules will contain limited business logic, mostly where this would be the equivalent of a database trigger
+ - `migrations`: These manage database schema updates. Note in most cases the SQL itself is in the relevant `tables` module. The migration history is stored in a table called `mikro_orm_migrations` for backward compatibility with the previous NestJS / Mikro-ORM implementation of this project
+ - `services`: This is where most of the complex business logic lives, where interactions between multiple tables are coordinated
+ - `models`: These are the [Pydantic](https://docs.pydantic.dev/) classes used to validate API requests and generate OpenAPI documentation. Note that Pydantic models are only used for outward-facing models. Internally, data is mainly passed around using dictionaries or the [asyncpg Record](https://magicstack.github.io/asyncpg/current/api/index.html#asyncpg.Record) structure (which behaves like a dictionary)
+ - `views`: The SQL definition for any views that are created in the database during migrations
+ - `assets`: Non-python resources
 
 The entrypoint is main.py which runs database migrations and starts the service and scheduler.
 
@@ -70,7 +72,7 @@ Tests are mingled in with the project structure to make it easier to find them. 
 
 ## Calling from Product Opener
 
-By default, product opener is configured to call the "query" host on the "po_default" network. To configure Product Opener to use a locally running instance update the following line in the Product Opener .env file:
+By default, product opener is configured to call the "query" host on the `COMMON_NET_NAME` network. To configure Product Opener to use a locally running instance update the following line in the Product Opener .env file:
 
 ```
 QUERY_URL=http://host.docker.internal:5510
@@ -87,7 +89,7 @@ The service is exposed to localhost on 5511 to avoid clashing with any locally r
 Use docker compose to start:
 
 ```
-docker-compose up -d --build
+make up
 ```
 
 ## Adding new tags
@@ -96,9 +98,13 @@ Support for new tags can be done by simply adding a further entity definition in
 
 The tag won't be picked up for queries until a full import is done (when it will be added to the loaded_tag table).
 
-# Deployment vs Development
+## Deployment vs Development
 
-The main docker-compose.yml creates the openfoodfacts-query service and associated Postgres database and expects MongoDB to already exist.
+The main `docker-compose.yml` creates the openfoodfacts-query service and associated Postgres database and expects MongoDB to already exist.
+
+The `docker-compose-run.yml` override explicitly sets the `MONGO_URI` and `REDIS_URL` variables to access those services within Docker.
+
+The `dev.yml` override simply adds the Docker build instruction.
 
 # Use
 
@@ -119,9 +125,9 @@ The "count", "aggregate" and "find" POST endpoints accept a MongoDB style filter
 You can test with curl with something like:
 ```bash
 # selection
-curl -d '{"categories_tags": "en:teas"}' -H "Content-Type: application/json" https://query.openfoodfacts.org/select
+curl -d '{"categories_tags": "en:teas"}' -H "Content-Type: application/json" http://localhost:5510/select
 # aggergation
-curl -d '[{"$match": {"countries_tags": "en:france"}},{"$group":{"_id":"$brands_tags"}}]' -H "Content-Type: application/json" https://query.openfoodfacts.org/aggregate
+curl -d '[{"$match": {"countries_tags": "en:france"}},{"$group":{"_id":"$brands_tags"}}]' -H "Content-Type: application/json" http://localhost:5510/aggregate
 ```
 
 
