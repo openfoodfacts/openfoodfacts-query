@@ -1,5 +1,5 @@
 from query.database import database_connection
-from query.models.scan import ScanCounts, ProductScans
+from query.models.scan import ProductScans
 from query.services.scan import import_scans
 from query.tables.country import add_all_countries
 from query.tables.product_country import CURRENT_YEAR, OLDEST_YEAR

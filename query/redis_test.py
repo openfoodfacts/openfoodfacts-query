@@ -1,13 +1,14 @@
 import asyncio
-from datetime import datetime, timezone
 import logging
 import math
 import time
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
-from testcontainers.redis import RedisContainer
 
 import pytest
 from redis.asyncio import Redis, ResponseError, from_url
+from testcontainers.redis import RedisContainer
+
 from query.redis import (
     STREAM_NAME,
     get_message_timestamp,

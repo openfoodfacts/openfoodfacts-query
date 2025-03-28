@@ -1,9 +1,10 @@
 import asyncio
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 import json
 import logging
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Dict, List
+
 import redis.asyncio as redis
 
 from query.config import config_settings
@@ -74,7 +75,6 @@ async def stop_redis_listener():
             await redis_listener_task
         except asyncio.CancelledError:
             logger.debug("Redis listener cancelled successfully")
-            pass
 
 
 # Note we keep a global varible here so we can pause and result the listener during imports

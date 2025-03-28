@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncGenerator
 
 import asyncpg
+
 from query.config import config_settings
 from query.database import database_connection
 from query.services.event_test import sample_event

@@ -1,7 +1,9 @@
 import logging
 import os
 from importlib import import_module
+
 from asyncpg import Connection
+
 from query.config import config_settings
 
 MIGRATIONS_TABLE = "mikro_orm_migrations"

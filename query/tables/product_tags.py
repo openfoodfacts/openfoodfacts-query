@@ -1,6 +1,5 @@
 from query.database import create_record, get_rows_affected
 
-
 TAG_TABLES = {
     "countries_tags": "product_countries_tag",
     "nutrition_grades_tags": "product_nutrition_grades_tag",

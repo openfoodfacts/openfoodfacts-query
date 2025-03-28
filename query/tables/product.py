@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+
 from asyncpg import Connection
 
 from query.database import create_record, database_connection, get_rows_affected

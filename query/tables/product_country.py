@@ -1,4 +1,4 @@
-from query.database import create_record, database_connection
+from query.database import create_record
 
 OLDEST_YEAR = 2019
 CURRENT_YEAR = 2024

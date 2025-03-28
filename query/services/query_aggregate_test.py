@@ -1,5 +1,6 @@
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
+
 from query.database import database_connection
 from query.models.query import Filter, GroupStage, Qualify, Stage
 from query.services import query

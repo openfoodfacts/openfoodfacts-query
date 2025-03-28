@@ -37,6 +37,8 @@ tests:
 	poetry run pytest ${args}
 
 lint:
+	poetry run autoflake --recursive --in-place --remove-all-unused-imports --remove-unused-variables query
+	poetry run isort --profile black query
 	poetry run black query
 
 # Refresh the countries.json file from the ProductOwner taxonomy

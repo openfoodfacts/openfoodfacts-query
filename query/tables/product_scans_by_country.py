@@ -1,6 +1,5 @@
-from typing import Dict
 from query.database import create_record
-from query.models.scan import ScanCounts, ProductScans
+from query.models.scan import ProductScans
 from query.tables.product_country import fixup_product_countries_for_products
 
 

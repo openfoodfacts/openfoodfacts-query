@@ -3,6 +3,7 @@ from typing import Dict, List
 
 from asyncpg import Connection
 from fastapi import HTTPException, status
+
 from query.database import database_connection
 from query.models.query import (
     AggregateCountResult,
@@ -13,9 +14,9 @@ from query.models.query import (
 )
 from query.mongodb import find_products
 from query.tables.country import get_country
-from query.tables.product import product_filter_fields, product_fields
-from query.tables.product_tags import TAG_TABLES
 from query.tables.loaded_tag import get_loaded_tags
+from query.tables.product import product_fields, product_filter_fields
+from query.tables.product_tags import TAG_TABLES
 
 logger = logging.getLogger(__name__)
 

@@ -1,13 +1,14 @@
 from dataclasses import dataclass
 from unittest.mock import patch
 
+import pytest
 from asyncpg import Record
 from fastapi import HTTPException, status
 from pydantic import ValidationError
-import pytest
+
+import query.services.query as query
 from query.database import database_connection
 from query.models.query import Filter, Qualify
-import query.services.query as query
 from query.tables.country import create_country
 from query.tables.product import create_product
 from query.tables.product_tags import create_tag

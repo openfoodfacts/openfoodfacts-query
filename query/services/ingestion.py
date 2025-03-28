@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
 import logging
 import math
+from datetime import datetime, timezone
 from typing import Dict
 
 from asyncpg import Connection
@@ -9,9 +9,6 @@ from query.database import database_connection
 from query.models.product import Source
 from query.mongodb import find_products
 from query.tables.loaded_tag import append_loaded_tags
-from query.tables.product_country import fixup_product_countries
-from query.tables.product_ingredient import create_ingredients_from_staging
-from query.tables.product_tags import create_tags_from_staging, TAG_TABLES
 from query.tables.product import (
     create_minimal_product,
     delete_products,
@@ -19,8 +16,10 @@ from query.tables.product import (
     product_fields,
     update_products_from_staging,
 )
+from query.tables.product_country import fixup_product_countries
+from query.tables.product_ingredient import create_ingredients_from_staging
+from query.tables.product_tags import TAG_TABLES, create_tags_from_staging
 from query.tables.settings import get_last_updated, set_last_updated
-
 
 logger = logging.getLogger(__name__)
 min_datetime = datetime(1, 1, 1, tzinfo=timezone.utc)

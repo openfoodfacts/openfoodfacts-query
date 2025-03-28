@@ -1,12 +1,14 @@
-from motor.motor_asyncio import AsyncIOMotorClient
+import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict
-import logging
+
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from query.config import config_settings
 
 # Limit the MongoDB logging as it is a bit verbose
-logging.getLogger('pymongo').setLevel(logging.WARNING)
+logging.getLogger("pymongo").setLevel(logging.WARNING)
+
 
 @asynccontextmanager
 async def find_products(

@@ -1,4 +1,5 @@
 from unittest.mock import patch
+
 from query.database import database_connection
 from query.models.query import Filter, FindQuery
 from query.services import query

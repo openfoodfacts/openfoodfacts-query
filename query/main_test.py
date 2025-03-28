@@ -1,5 +1,6 @@
-from fastapi.testclient import TestClient
 from fastapi import status
+from fastapi.testclient import TestClient
+
 from query.database import database_connection
 from query.main import app
 from query.services.query_count_test import create_test_tags

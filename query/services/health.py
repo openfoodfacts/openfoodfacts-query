@@ -1,8 +1,8 @@
 import redis.asyncio as redis
-from query.database import database_connection
+
 from query.config import config_settings
+from query.database import database_connection
 from query.models.health import Health, HealthItemStatusEnum
-from query.models.query import Filter
 from query.mongodb import find_products
 
 

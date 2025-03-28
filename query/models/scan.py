@@ -1,4 +1,5 @@
 from typing import Annotated, Dict
+
 from pydantic import BaseModel, Field, RootModel
 
 

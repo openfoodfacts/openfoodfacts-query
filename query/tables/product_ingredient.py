@@ -1,4 +1,5 @@
 from asyncpg import Connection
+
 from query.database import get_rows_affected
 
 

@@ -1,13 +1,11 @@
+import pytest
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
-import pytest
+
+from query.config import config_settings
 from query.database import database_connection
 from query.migrator import migrate_database
-from query.config import config_settings
-from query.redis import STREAM_NAME, redis_client
-from query.redis_test import add_test_message
-from query.test_helper import random_code
 
 
 # Don't prefix with "Test" as otherwise pytest thinks this is a test class

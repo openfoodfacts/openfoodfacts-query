@@ -1,10 +1,12 @@
-from contextlib import asynccontextmanager
 import logging
+from contextlib import asynccontextmanager
 from typing import Dict, List
+
 from fastapi import FastAPI, Query
 
 from query.database import database_connection
 from query.migrator import migrate_database
+from query.models.health import Health
 from query.models.query import (
     AggregateCountResult,
     AggregateResult,
@@ -12,7 +14,6 @@ from query.models.query import (
     FindQuery,
     Stage,
 )
-from query.models.health import Health
 from query.models.scan import ProductScans
 from query.redis import redis_lifespan
 from query.scheduler import scheduler_lifespan

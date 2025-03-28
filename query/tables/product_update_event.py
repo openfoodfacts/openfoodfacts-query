@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import List
 
 from asyncpg import Connection
+
 from query.models.domain_event import DomainEvent
 from query.tables.product_update import create_updates_from_events
 

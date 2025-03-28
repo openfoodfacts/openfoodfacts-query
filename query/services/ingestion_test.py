@@ -1,8 +1,9 @@
 import asyncio
-from datetime import datetime, timezone
 import math
 import time
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
+
 from query.database import database_connection
 from query.models.product import Source
 from query.services import ingestion
@@ -10,7 +11,7 @@ from query.tables.country import get_country
 from query.tables.product import create_product, get_product, get_product_by_id
 from query.tables.product_country import create_product_country, get_product_countries
 from query.tables.product_ingredient import get_ingredients
-from query.tables.product_tags import create_tag, get_tags, TAG_TABLES
+from query.tables.product_tags import create_tag, get_tags
 from query.tables.settings import get_last_updated, set_last_updated
 from query.test_helper import mock_cursor, patch_context_manager, random_code
 

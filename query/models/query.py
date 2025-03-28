@@ -1,9 +1,11 @@
+import typing
 from enum import Enum
 from typing import Dict, List, Tuple
-import typing
+
 from pydantic import BaseModel, ConfigDict, Field, create_model
-from query.tables.product_tags import TAG_TABLES
+
 from query.tables.product import product_filter_fields
+from query.tables.product_tags import TAG_TABLES
 
 
 class Qualify(BaseModel, populate_by_name=True, extra="forbid"):

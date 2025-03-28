@@ -1,16 +1,15 @@
 from query.tables import (
-    product,
-    product_tags,
-    loaded_tag,
-    product_ingredient,
-    settings,
-    product_update_event,
     contributor,
-    update_type,
+    loaded_tag,
+    product,
+    product_ingredient,
+    product_tags,
     product_update,
+    product_update_event,
+    settings,
+    update_type,
 )
-
-from query.views import views, product_updates_by_owner
+from query.views import product_updates_by_owner, views
 
 
 async def up(connection):

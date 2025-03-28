@@ -1,5 +1,6 @@
-from contextlib import contextmanager
 import logging
+from contextlib import contextmanager
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from query.database import database_connection
