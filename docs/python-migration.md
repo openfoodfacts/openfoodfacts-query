@@ -37,7 +37,7 @@ Then set this path using the "Python: Select Interpreter" command in VSCode
 
 To run server:
 ```
-poetry run fastapi dev --port 5513 query/main.py
+poetry run fastapi dev --port 5510 query/main.py
 ```
 Addded `**/__pycache__/` to .gitignore and .dockerignore
 
@@ -66,7 +66,7 @@ Added the following configuration to launch.json:
             "args": [
                 "dev",
                 "--port",
-                "5513",
+                "5510",
                 "query/main.py"
             ],
             "env": {

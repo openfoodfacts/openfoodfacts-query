@@ -40,7 +40,7 @@ You can then start in watch mode with:
 make watch
 ```
 
-The service is exposed on port 5513, to avoid clashing with Robotoff.
+The service is exposed on port 5510, to avoid clashing with Robotoff.
 
 ## Frameworks and libraries
 

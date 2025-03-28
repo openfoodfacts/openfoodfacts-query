@@ -31,7 +31,7 @@ dev: run_deps install
 
 watch: run_deps
 	docker compose up --wait query_postgres
-	poetry run uvicorn query.main:app --reload --port 5513 --reload-dir query
+	poetry run uvicorn query.main:app --reload --port 5510 --reload-dir query
 
 tests:
 	poetry run pytest ${args}

@@ -22,4 +22,4 @@ COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY query ./query
 
-CMD ["uvicorn", "query.main:app", "--host", "0.0.0.0", "--port", "5513"]
+CMD ["uvicorn", "query.main:app", "--host", "0.0.0.0", "--port", "5510"]
