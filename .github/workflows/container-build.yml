@@ -23,6 +23,9 @@ jobs:
           version: v0.6.0
           buildkitd-flags: --debug
 
+      - name: Install poetry
+        run: pipx install poetry
+  
       - name: Use Python
         uses: actions/setup-python@v5
         with:
