@@ -96,35 +96,40 @@ async def messages_received(streams):
         # Reformat the messages and then pass them off to the service
         # All of the product-opener specific code is here, such as converting the diffs to JSON, removing nulls and interpreting the timestamp
         for message in messages:
-            id: str = message[0]
-            payload: Dict = message[1]
             try:
-                timestamp = datetime.fromtimestamp(payload["timestamp"], timezone.utc)
-            except:
+                id: str = message[0]
+                payload: Dict = message[1]
                 try:
-                    timestamp = datetime.fromtimestamp(
-                        int(id.split("-")[1]), timezone.utc
-                    )
+                    timestamp = datetime.fromtimestamp(payload["timestamp"], timezone.utc)
                 except:
-                    timestamp = datetime.now(timezone.utc)
+                    try:
+                        timestamp = datetime.fromtimestamp(
+                            int(id.split("-")[1]), timezone.utc
+                        )
+                    except:
+                        timestamp = datetime.now(timezone.utc)
 
-            comment = payload.get("comment")
-            if comment != None and "\0" in comment:
-                payload["comment"] = comment.replace("\0", "")
+                comment = payload.get("comment")
+                if comment != None and "\0" in comment:
+                    payload["comment"] = comment.replace("\0", "")
 
-            diffs = payload.get("diffs")
-            if diffs != None:
-                if "\0" in diffs:
-                    diffs = diffs.replace("\0", "")
-                payload["diffs"] = json.loads(diffs)
+                diffs = payload.get("diffs")
+                if diffs != None:
+                    if "\0" in diffs:
+                        diffs = diffs.replace("\0", "")
+                    payload["diffs"] = json.loads(diffs)
 
-            events.append(
-                DomainEvent(
-                    id=id, timestamp=timestamp, payload=payload, type=stream_name
+                events.append(
+                    DomainEvent(
+                        id=id, timestamp=timestamp, payload=payload, type=stream_name
+                    )
                 )
-            )
-
-        await process_events(events)
+            except Exception as e:
+                # Catch individual errors per message so that one message doesn't spoil the batch
+                logger.error(f"{repr(e)} for message: {repr(message)}")
+                
+        if events:
+            await process_events(events)
 
 
 def get_message_timestamp(id, payload):

@@ -179,7 +179,12 @@ async def import_from_mongo(from_date: str = None):
         async with database_connection() as connection:
             if not from_date and source == Source.incremental_load:
                 last_updated = await get_last_updated(connection)
-                from_date = last_updated.isoformat()
+                if last_updated:
+                    from_date = last_updated.isoformat()
+                else:
+                    # If we don't have a last_updated in teh database then we are doing a full load
+                    source = Source.full_load
+
             filter = {}
             if from_date:
                 # Note in python the timestamp is in whole seconds (matches Perl)

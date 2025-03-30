@@ -23,4 +23,4 @@ async def set_last_message_id(connection, message_id):
 
 
 async def get_last_message_id(connection) -> str:
-    return await connection.fetchval("SELECT last_message_id FROM settings")
+    return (await connection.fetchval("SELECT last_message_id FROM settings")) or '0'
