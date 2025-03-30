@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import re
 
 from asyncpg import Connection
 
@@ -130,3 +131,25 @@ async def delete_products(connection, process_id, source, codes=None):
     deleted_ids = [result["id"] for result in results]
     await delete_tags(connection, deleted_ids)
     await delete_ingredients(connection, deleted_ids)
+
+
+all_digits = re.compile(r"^\d+$")
+leading_digits = re.compile(r"^0+")
+
+def normalize_code(code):
+    # Logic re-created from https://github.com/openfoodfacts/openfoodfacts-server/blob/main/lib/ProductOpener/Products.pm#L313
+    # Return the code as-is if it is not all digits
+    if not all_digits.match(code):
+        return code
+
+    # Remove leading zeroes
+    code = leading_digits.sub('', code)
+
+    # Add leading zeroes to have at least 13 digits
+    code = code.zfill(13)
+
+    #  Remove leading zeroes for EAN8s to keep only 8 digits
+    if len(code) == 13 and code.startswith('00000'):
+        code = code[5:]
+
+    return code
