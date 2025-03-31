@@ -16,6 +16,7 @@ from query.mongodb import find_products
 from query.tables.country import get_country
 from query.tables.loaded_tag import get_loaded_tags
 from query.tables.product import product_fields, product_filter_fields
+from query.tables.product_country import PRODUCT_COUNTRY_TAG
 from query.tables.product_tags import TAG_TABLES
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,22 @@ async def aggregate(stages: List[Stage], obsolete=False):
 
 async def find(query: FindQuery, obsolete=False):
     async with database_connection() as conn:
+        loaded_tags = await get_loaded_tags(conn)
+        if PRODUCT_COUNTRY_TAG not in loaded_tags:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY, "Scans have not been fully loaded"
+            )
+
+        if (
+            len(query.sort) != 1
+            or query.sort[0][0] != "popularity_key"
+            or query.sort[0][1] != -1
+        ):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Only descending popularity_key sort is currently supported",
+            )
+
         country_tag = getattr(query.filter, "countries-tags")
         country = (
             await get_country(conn, country_tag)
@@ -102,7 +119,6 @@ async def find(query: FindQuery, obsolete=False):
 
         sql_fragments = []
         params = [country["id"]]
-        loaded_tags = await get_loaded_tags(conn)
         if query.filter:
             append_sql_fragments(
                 query.filter,

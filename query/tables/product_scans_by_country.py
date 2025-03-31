@@ -53,4 +53,5 @@ async def create_scans(connection, scans: ProductScans):
         ids_updated = list({i["product_id"] for i in inserted})
         # TODO: remove country entries that are not referenced by a counties_tag
 
-        await fixup_product_countries_for_products(connection, ids_updated)
+        if ids_updated:
+            await fixup_product_countries_for_products(connection, ids_updated)

@@ -1,5 +1,9 @@
 from unittest.mock import patch
 
+from fastapi import HTTPException, status
+from pydantic import ValidationError
+import pytest
+
 from query.database import database_connection
 from query.models.query import Filter, FindQuery
 from query.services import query
@@ -126,6 +130,64 @@ async def test_obsolete(mocked_mongo):
     assert call_args[0][2] == True
     assert len(results) == 1
     assert results[0]["code"] == tags.product4["code"]
+
+
+@patch("query.services.query.get_loaded_tags", return_value = [])
+async def test_exception_when_scans_not_loaded(_):
+    with pytest.raises(HTTPException) as e:
+        await query.find(
+            FindQuery(
+                filter=Filter(),
+                projection={"code": True},
+                sort=[("popularity_key", -1)],
+                limit=50
+            ),
+            True,
+        )
+    assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+async def test_exception_when_sort_not_popularity_key():
+    with pytest.raises(ValidationError) as e:
+        await query.find(
+            FindQuery(
+                filter=Filter(),
+                projection={"code": True},
+                sort=[("last_modified_t", -1)],
+                limit=50
+            ),
+            True,
+        )
+    main_error = e.value.errors()[0]
+    assert main_error["loc"][0] == "sort"
+
+
+async def test_exception_when_no_sort_specified():
+    with pytest.raises(HTTPException) as e:
+        await query.find(
+            FindQuery(
+                filter=Filter(),
+                projection={"code": True},
+                sort=[],
+                limit=50
+            ),
+            True,
+        )
+    assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+async def test_exception_when_ascending_sort_specified():
+    with pytest.raises(HTTPException) as e:
+        await query.find(
+            FindQuery(
+                filter=Filter(),
+                projection={"code": True},
+                sort=[("popularity_key", 1)],
+                limit=50
+            ),
+            True,
+        )
+    assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 async def create_tags_and_scans():
