@@ -58,11 +58,17 @@ This is mainly an SQL-based project so the Python application framework is kept 
  - `tables`: Each table, or set of very similar tables (like tags) has a module. This contains all of the SQL for modifying the data and structure of the table, so even `migrations` call out to functions in these modules. The `tables` modules will contain limited business logic, mostly where this would be the equivalent of a database trigger
  - `migrations`: These manage database schema updates. Note in most cases the SQL itself is in the relevant `tables` module. The migration history is stored in a table called `mikro_orm_migrations` for backward compatibility with the previous NestJS / Mikro-ORM implementation of this project
  - `services`: This is where most of the complex business logic lives, where interactions between multiple tables are coordinated
- - `models`: These are the [Pydantic](https://docs.pydantic.dev/) classes used to validate API requests and generate OpenAPI documentation. Note that Pydantic models are only used for outward-facing models. Internally, data is mainly passed around using dictionaries or the [asyncpg Record](https://magicstack.github.io/asyncpg/current/api/index.html#asyncpg.Record) structure (which behaves like a dictionary)
+ - `models`: These are the [Pydantic](https://docs.pydantic.dev/) classes used to validate API requests and generate OpenAPI documentation.
  - `views`: The SQL definition for any views that are created in the database during migrations
  - `assets`: Non-python resources
 
 The entrypoint is main.py which runs database migrations and starts the service and scheduler.
+
+## Design Philosophy
+
+Most of the logic in this project is in the actual SQL used to update and query data. There has therefore been conscious decision to avoid using any kind of ORM to hade the SQL from the code.
+
+Pydantic models are only used for outward-facing models to ensure we get good API documentation and validation. Internally, data is mainly passed around using dictionaries or the [asyncpg Record](https://magicstack.github.io/asyncpg/current/api/index.html#asyncpg.Record) structure (which behaves like a dictionary).
 
 ## Testing
 
