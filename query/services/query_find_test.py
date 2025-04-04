@@ -9,13 +9,14 @@ from query.models.query import Filter, FindQuery
 from query.services import query
 from query.services.query_count_test import create_test_tags
 from query.tables.country import get_country
-from query.tables.product_country import CURRENT_YEAR
+from query.tables.product_country import CURRENT_YEAR, PRODUCT_COUNTRY_TAG
 from query.tables.product_scans_by_country import create_scan
 from query.test_helper import mock_cursor, patch_context_manager
 
 
+@patch("query.services.query.get_loaded_tags", return_value = [PRODUCT_COUNTRY_TAG])
 @patch("query.services.query.find_products")
-async def test_sorts_by_country_scans(mocked_mongo):
+async def test_sorts_by_country_scans(mocked_mongo, _):
     tags = await create_tags_and_scans()
 
     patch_context_manager(
@@ -43,8 +44,9 @@ async def test_sorts_by_country_scans(mocked_mongo):
     assert results[2]["code"] == tags.product1["code"]
 
 
+@patch("query.services.query.get_loaded_tags", return_value = [PRODUCT_COUNTRY_TAG, "origins_tags"])
 @patch("query.services.query.find_products")
-async def test_sorts_by_world_scans(mocked_mongo):
+async def test_sorts_by_world_scans(mocked_mongo, _):
     tags = await create_tags_and_scans()
 
     patch_context_manager(
@@ -74,8 +76,9 @@ async def test_sorts_by_world_scans(mocked_mongo):
     assert results[2]["code"] == tags.product1["code"]
 
 
+@patch("query.services.query.get_loaded_tags", return_value = [PRODUCT_COUNTRY_TAG, "origins_tags"])
 @patch("query.services.query.find_products")
-async def test_limit_and_offset(mocked_mongo):
+async def test_limit_and_offset(mocked_mongo, _):
     tags = await create_tags_and_scans()
 
     # Using world so order should be 2,3,1 but skipping 2 and limiting to 1
@@ -104,8 +107,9 @@ async def test_limit_and_offset(mocked_mongo):
     assert results[0]["code"] == tags.product3["code"]
 
 
+@patch("query.services.query.get_loaded_tags", return_value = [PRODUCT_COUNTRY_TAG, "origins_tags"])
 @patch("query.services.query.find_products")
-async def test_obsolete(mocked_mongo):
+async def test_obsolete(mocked_mongo, _):
     tags = await create_tags_and_scans()
 
     patch_context_manager(
