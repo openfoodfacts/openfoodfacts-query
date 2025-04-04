@@ -32,7 +32,7 @@ async def test_sorts_by_country_scans(mocked_mongo, _):
     results = await query.find(
         FindQuery(
             filter=Filter(countries_tags=tags.country["tag"]),
-            projection={"code": True},
+            projection={"code": True, "product_name": True},
             sort=[("popularity_key", -1)],
         )
     )
@@ -62,14 +62,14 @@ async def test_sorts_by_world_scans(mocked_mongo, _):
     results = await query.find(
         FindQuery(
             filter=Filter(origins_tags=tags.origin_value),
-            projection={"code": True},
+            projection={"code": True, "product_name": True},
             sort=[("popularity_key", -1)],
         )
     )
     assert mocked_mongo.called
     call_args = mocked_mongo.call_args
     assert len(call_args[0][0]["_id"]["$in"]) == 3
-    assert call_args[0][1] == {"code": True}
+    assert call_args[0][1] == {"code": True, "product_name": True}
     assert len(results) == 3
     assert results[0]["code"] == tags.product2["code"]
     assert results[1]["code"] == tags.product3["code"]
@@ -93,7 +93,7 @@ async def test_limit_and_offset(mocked_mongo, _):
     results = await query.find(
         FindQuery(
             filter=Filter(origins_tags=tags.origin_value),
-            projection={"code": True},
+            projection={"code": True, "product_name": True},
             sort=[("popularity_key", -1)],
             skip=1,
             limit=1,
@@ -102,7 +102,7 @@ async def test_limit_and_offset(mocked_mongo, _):
     assert mocked_mongo.called
     call_args = mocked_mongo.call_args
     assert len(call_args[0][0]["_id"]["$in"]) == 1
-    assert call_args[0][1] == {"code": True}
+    assert call_args[0][1] == {"code": True, "product_name": True}
     assert len(results) == 1
     assert results[0]["code"] == tags.product3["code"]
 
@@ -123,7 +123,7 @@ async def test_obsolete(mocked_mongo, _):
     results = await query.find(
         FindQuery(
             filter=Filter(origins_tags=tags.origin_value),
-            projection={"code": True},
+            projection={"code": True, "product_name": True},
             sort=[("popularity_key", -1)],
         ),
         True,
@@ -192,6 +192,25 @@ async def test_exception_when_ascending_sort_specified():
             True,
         )
     assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+@patch("query.services.query.get_loaded_tags", return_value = [PRODUCT_COUNTRY_TAG, "origins_tags"])
+@patch("query.services.query.find_products")
+async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo, _):
+    tags = await create_tags_and_scans()
+
+    results = await query.find(
+        FindQuery(
+            filter=Filter(origins_tags=tags.origin_value),
+            projection={"code": True},
+            sort=[("popularity_key", -1)],
+        )
+    )
+    assert not mocked_mongo.called
+    assert len(results) == 3
+    assert results[0]["code"] == tags.product2["code"]
+    assert results[1]["code"] == tags.product3["code"]
+    assert results[2]["code"] == tags.product1["code"]
 
 
 async def create_tags_and_scans():

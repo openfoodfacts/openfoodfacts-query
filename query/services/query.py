@@ -149,17 +149,22 @@ async def find(query: FindQuery, obsolete=False):
         product_codes = [result["code"] for result in results]
         logger.debug(f"Find: Codes: {repr(product_codes)}")
 
-        mongodb_filter = {"_id": {"$in": product_codes}}
-        mongodb_results = [None] * len(product_codes)
         if "code" not in query.projection:
             query.projection["code"] = 1
-        async with find_products(mongodb_filter, query.projection, obsolete) as cursor:
-            async for result in cursor:
-                code_index = product_codes.index(result["code"])
-                mongodb_results[code_index] = result
+            
+        if len(query.projection.keys()) == 1:
+            # Only requesting code so we don't need to go to MongoDB. Could extend this for other fields we store in off-query
+            return results
+        else:
+            mongodb_filter = {"_id": {"$in": product_codes}}
+            mongodb_results = [None] * len(product_codes)
+            async with find_products(mongodb_filter, query.projection, obsolete) as cursor:
+                async for result in cursor:
+                    code_index = product_codes.index(result["code"])
+                    mongodb_results[code_index] = result
 
-        # Eliminate any None's from the result. Note this should only happen if there is a mismatch between off-query and MongoDB
-        return [result for result in mongodb_results if result]
+            # Eliminate any None's from the result. Note this should only happen if there is a mismatch between off-query and MongoDB
+            return [result for result in mongodb_results if result]
 
 
 def append_sql_fragments(
