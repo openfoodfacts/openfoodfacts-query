@@ -31,5 +31,4 @@ async def check_health():
     except Exception as e:
         health.add("redis", HealthItemStatusEnum.down, str(e))
 
-    # TODO: Should maybe throw and exception here and format with a custom exception handler: https://fastapi.tiangolo.com/tutorial/handling-errors/#install-custom-exception-handlers
     return health

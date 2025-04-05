@@ -81,9 +81,7 @@ async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock):
 
         # create a product
         code = random_code()
-        await connection.execute(
-            "insert into product (code) values ($1)", code
-        )
+        await connection.execute("insert into product (code) values ($1)", code)
 
         await import_scans(
             ProductScans.model_validate(
@@ -96,7 +94,8 @@ async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock):
                         },
                     },
                 }
-            ), True
+            ),
+            True,
         )
 
         append_loaded_tags.assert_called_with(ANY, [PRODUCT_COUNTRY_TAG])

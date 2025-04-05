@@ -34,7 +34,6 @@ async def create_scans(connection, scans: ProductScans):
     for code, years in scans.root.items():
         for year, scan_counts in years.root.items():
             for country, count in scan_counts.unique_scans_n_by_country.root.items():
-                # TODO: Normalize code
                 scans_by_country.append([code, str(year), country, str(count)])
 
     if scans_by_country:
@@ -51,7 +50,6 @@ async def create_scans(connection, scans: ProductScans):
         )
 
         ids_updated = list({i["product_id"] for i in inserted})
-        # TODO: remove country entries that are not referenced by a counties_tag
 
         if ids_updated:
             await fixup_product_countries_for_products(connection, ids_updated)

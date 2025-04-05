@@ -1,11 +1,23 @@
+import typing
+from enum import StrEnum, auto
 from typing import Annotated, Dict
 
 from pydantic import BaseModel, Field, RootModel
 
+from query.tables.country import country_codes
+
+
+class CountryCode(StrEnum):
+    world = auto()
+
+
+if not typing.TYPE_CHECKING:
+    CountryCode = StrEnum("CountryCode", country_codes())
+
 
 class ScansByCountry(RootModel):
     root: Dict[
-        Annotated[str, Field(description="Two character country code")],
+        Annotated[CountryCode, Field(description="Two character country code")],
         Annotated[int, Field(examples=[5, 8])],
     ]
 
@@ -13,7 +25,6 @@ class ScansByCountry(RootModel):
 class ScanCounts(BaseModel):
     scans_n: int = Field(examples=[10, 50])
     unique_scans_n: int = Field(examples=[8, 36])
-    # TODO: Could make the key to this dict a fixed enumeration of 2 character country codes
     unique_scans_n_by_country: ScansByCountry
 
 

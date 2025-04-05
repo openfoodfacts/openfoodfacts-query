@@ -1,8 +1,8 @@
 from unittest.mock import patch
 
+import pytest
 from fastapi import HTTPException, status
 from pydantic import ValidationError
-import pytest
 
 from query.database import database_connection
 from query.models.query import Filter, FindQuery
@@ -14,7 +14,7 @@ from query.tables.product_scans_by_country import create_scan
 from query.test_helper import mock_cursor, patch_context_manager
 
 
-@patch("query.services.query.get_loaded_tags", return_value = [PRODUCT_COUNTRY_TAG])
+@patch("query.services.query.get_loaded_tags", return_value=[PRODUCT_COUNTRY_TAG])
 @patch("query.services.query.find_products")
 async def test_sorts_by_country_scans(mocked_mongo, _):
     tags = await create_tags_and_scans()
@@ -44,7 +44,10 @@ async def test_sorts_by_country_scans(mocked_mongo, _):
     assert results[2]["code"] == tags.product1["code"]
 
 
-@patch("query.services.query.get_loaded_tags", return_value = [PRODUCT_COUNTRY_TAG, "origins_tags"])
+@patch(
+    "query.services.query.get_loaded_tags",
+    return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
+)
 @patch("query.services.query.find_products")
 async def test_sorts_by_world_scans(mocked_mongo, _):
     tags = await create_tags_and_scans()
@@ -76,7 +79,10 @@ async def test_sorts_by_world_scans(mocked_mongo, _):
     assert results[2]["code"] == tags.product1["code"]
 
 
-@patch("query.services.query.get_loaded_tags", return_value = [PRODUCT_COUNTRY_TAG, "origins_tags"])
+@patch(
+    "query.services.query.get_loaded_tags",
+    return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
+)
 @patch("query.services.query.find_products")
 async def test_limit_and_offset(mocked_mongo, _):
     tags = await create_tags_and_scans()
@@ -107,7 +113,10 @@ async def test_limit_and_offset(mocked_mongo, _):
     assert results[0]["code"] == tags.product3["code"]
 
 
-@patch("query.services.query.get_loaded_tags", return_value = [PRODUCT_COUNTRY_TAG, "origins_tags"])
+@patch(
+    "query.services.query.get_loaded_tags",
+    return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
+)
 @patch("query.services.query.find_products")
 async def test_obsolete(mocked_mongo, _):
     tags = await create_tags_and_scans()
@@ -136,7 +145,7 @@ async def test_obsolete(mocked_mongo, _):
     assert results[0]["code"] == tags.product4["code"]
 
 
-@patch("query.services.query.get_loaded_tags", return_value = [])
+@patch("query.services.query.get_loaded_tags", return_value=[])
 async def test_exception_when_scans_not_loaded(_):
     with pytest.raises(HTTPException) as e:
         await query.find(
@@ -144,7 +153,7 @@ async def test_exception_when_scans_not_loaded(_):
                 filter=Filter(),
                 projection={"code": True},
                 sort=[("popularity_key", -1)],
-                limit=50
+                limit=50,
             ),
             True,
         )
@@ -158,7 +167,7 @@ async def test_exception_when_sort_not_popularity_key():
                 filter=Filter(),
                 projection={"code": True},
                 sort=[("last_modified_t", -1)],
-                limit=50
+                limit=50,
             ),
             True,
         )
@@ -169,12 +178,7 @@ async def test_exception_when_sort_not_popularity_key():
 async def test_exception_when_no_sort_specified():
     with pytest.raises(HTTPException) as e:
         await query.find(
-            FindQuery(
-                filter=Filter(),
-                projection={"code": True},
-                sort=[],
-                limit=50
-            ),
+            FindQuery(filter=Filter(), projection={"code": True}, sort=[], limit=50),
             True,
         )
     assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -187,14 +191,17 @@ async def test_exception_when_ascending_sort_specified():
                 filter=Filter(),
                 projection={"code": True},
                 sort=[("popularity_key", 1)],
-                limit=50
+                limit=50,
             ),
             True,
         )
     assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-@patch("query.services.query.get_loaded_tags", return_value = [PRODUCT_COUNTRY_TAG, "origins_tags"])
+@patch(
+    "query.services.query.get_loaded_tags",
+    return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
+)
 @patch("query.services.query.find_products")
 async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo, _):
     tags = await create_tags_and_scans()

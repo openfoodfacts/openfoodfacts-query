@@ -29,16 +29,3 @@ def patch_context_manager(mock: Mock, *cursors):
         return cursor_list.pop() if cursor_list else mock_cursor([])
 
     mock.return_value.__aenter__.side_effect = next_cursor
-
-
-# class Cursor:
-#     def __init__(self, data: List[Any]):
-#         self.data = data
-#         self.index = -1
-
-#     async def next(self):
-#         self.index += 1
-#         return self.data[self.index] if self.index < len(self.data) else None
-
-#     async def close(self):
-#         pass

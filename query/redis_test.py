@@ -57,6 +57,18 @@ async def get_last_message_id(redis: Redis, stream):
         return "0"
 
 
+async def cancel_task(task: asyncio.Task):
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+
+async def messages_processed():
+    # Have tried a number of ways to wait for messages to be received,
+    # such as using a Future, but the sleep seems essential for it to work
+    await asyncio.sleep(0.1)
+
+
 @patch("query.redis.get_last_message_id")
 @patch("query.redis.set_last_message_id")
 @patch("query.redis.messages_received")
@@ -75,11 +87,7 @@ async def test_listener_calls_subscriber_function(
         # Start the redis listener
         redis_listener_task = asyncio.create_task(redis_listener())
 
-        # Cancel the redis listener as soon as the message is received so we don't have to wait another 5 seconds
-        messages_received.side_effect = redis_listener_task.cancel
-
-        # TODO: Would like to find a better way to wait for other tasks to process...
-        await asyncio.sleep(0.1)
+        await messages_processed()
 
         # Settings should be updated with the last message id
         assert set_id.call_args[0][1] == message_id2
@@ -95,9 +103,7 @@ async def test_listener_calls_subscriber_function(
         assert messages[0][0] == message_id1
         assert messages[0][1]["code"] == product_code
 
-        redis_listener_task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await redis_listener_task
+        await cancel_task(redis_listener_task)
 
 
 @patch("query.redis.get_last_message_id")
@@ -117,11 +123,8 @@ async def test_listener_keeps_track_of_last_message_id(
         # Start the redis listener
         redis_listener_task = asyncio.create_task(redis_listener())
 
-        # TODO: Would like to find a better way to wait for other tasks to process...
-        await asyncio.sleep(0.1)
-        redis_listener_task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await redis_listener_task
+        await messages_processed()
+        await cancel_task(redis_listener_task)
 
         # Settings should only have been called once
         assert set_id.call_count == 1
@@ -173,8 +176,7 @@ async def test_listener_retrys_on_error(
             # Start the redis listener
             redis_listener_task = asyncio.create_task(redis_listener())
 
-            # TODO: Would like to find a better way to wait for other tasks to process...
-            await asyncio.sleep(0.1)
+            await messages_processed()
 
             # Error should be logged
             assert not messages_received.called
@@ -188,15 +190,13 @@ async def test_listener_retrys_on_error(
         message_id = await add_test_message(redis, product_code)
 
         # Wait for retry
-        await asyncio.sleep(0.1)
+        await messages_processed()
 
         assert messages_received.called
         assert set_id.call_args[0][1] == message_id
 
     finally:
-        redis_listener_task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await redis_listener_task
+        await cancel_task(redis_listener_task)
 
         redis_container.stop()
 

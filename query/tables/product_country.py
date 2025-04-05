@@ -35,8 +35,9 @@ async def create_table(connection):
         "create index product_country_ix1 on product_country (obsolete, country_id, recent_scans DESC, total_scans DESC, product_id);",
     )
 
+
 async def fix_index(connection):
-    """ Change column order so it is quicker to delete rogue countries """
+    """Change column order so it is quicker to delete rogue countries"""
     await connection.execute("drop index product_country_ix1")
     await connection.execute(
         "create index product_country_ix1 on product_country (country_id, obsolete, recent_scans DESC, total_scans DESC, product_id);",
@@ -83,31 +84,18 @@ async def fixup_product_countries(connection, obsolete):
 
 
 async def fixup_product_countries_for_products(connection, ids_updated):
-    # TODO: need to reset recent_scans and total_scans to zero if there are none in the
-    # relevant time-frame
     await connection.execute(
         """insert into product_country (product_id, obsolete, country_id, recent_scans, total_scans)
-            select product_id, p.obsolete, country_id, unique_scans, unique_scans
+            select product_id, p.obsolete, country_id, sum(CASE WHEN year = $3 THEN unique_scans ELSE 0 END), sum(CASE WHEN year >= $2 THEN unique_scans ELSE 0 END)
             from product_scans_by_country
             join product p on p.id = product_id
             where product_id = ANY($1)
-            and year = $2
-            on conflict (product_id, country_id)
-            do update set recent_scans = excluded.recent_scans, obsolete = excluded.obsolete""",
-        ids_updated,
-        CURRENT_YEAR,
-    )
-
-    await connection.execute(
-        """insert into product_country (product_id, obsolete, country_id, recent_scans, total_scans)
-            select product_id, p.obsolete, country_id, 0, sum(unique_scans)
-            from product_scans_by_country
-            join product p on p.id = product_id
-            where product_id = ANY($1)
-            and year >= $2
             group by product_id, p.obsolete, country_id
             on conflict (product_id, country_id)
-            do update set total_scans = excluded.total_scans, obsolete = excluded.obsolete""",
+            do update set recent_scans = excluded.recent_scans, total_scans = excluded.total_scans, obsolete = excluded.obsolete""",
         ids_updated,
         OLDEST_YEAR,
+        CURRENT_YEAR,
     )
+    
+    # Note that the product_counties_tag table and product_country table could potentially get of of sync a bit, but don't worry about this for now

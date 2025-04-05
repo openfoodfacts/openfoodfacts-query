@@ -32,9 +32,13 @@ log_name_to_level = {
     "error": logging.ERROR,
 }
 
-# TODO: Could add coloured logging here
-# TODO: Figure out how to use the same logger as FastAPI / uvicorn
+# Could add coloured logging here
 logging.basicConfig(
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
     level=log_name_to_level[config_settings.LOG_LEVEL],
 )
+
+# Get all loggers to use the same format
+root_logger = logging.getLogger()
+for name in logging.root.manager.loggerDict:
+    logging.getLogger(name).handlers = root_logger.handlers

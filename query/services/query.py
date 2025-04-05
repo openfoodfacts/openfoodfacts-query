@@ -151,14 +151,16 @@ async def find(query: FindQuery, obsolete=False):
 
         if "code" not in query.projection:
             query.projection["code"] = 1
-            
+
         if len(query.projection.keys()) == 1:
             # Only requesting code so we don't need to go to MongoDB. Could extend this for other fields we store in off-query
             return results
         else:
             mongodb_filter = {"_id": {"$in": product_codes}}
             mongodb_results = [None] * len(product_codes)
-            async with find_products(mongodb_filter, query.projection, obsolete) as cursor:
+            async with find_products(
+                mongodb_filter, query.projection, obsolete
+            ) as cursor:
                 async for result in cursor:
                     code_index = product_codes.index(result["code"])
                     mongodb_results[code_index] = result
@@ -204,7 +206,7 @@ def append_sql_fragments(
                         in_list = None
                         is_not = False
                     values = [in_list]
-                # TODO throw exception if unknown object (although Pydantic may never allow this)
+                # Pydantic should catch any disallowed operations
 
             for tag_value in values:
                 where_expression = ""

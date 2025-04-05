@@ -100,7 +100,9 @@ async def messages_received(streams):
                 id: str = message[0]
                 payload: Dict = message[1]
                 try:
-                    timestamp = datetime.fromtimestamp(payload["timestamp"], timezone.utc)
+                    timestamp = datetime.fromtimestamp(
+                        payload["timestamp"], timezone.utc
+                    )
                 except:
                     try:
                         timestamp = datetime.fromtimestamp(
@@ -127,7 +129,7 @@ async def messages_received(streams):
             except Exception as e:
                 # Catch individual errors per message so that one message doesn't spoil the batch
                 logger.error(f"{repr(e)} for message: {repr(message)}")
-                
+
         if events:
             await process_events(events)
 

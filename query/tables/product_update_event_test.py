@@ -107,17 +107,3 @@ async def test_create_events_appends_events_from_multiple_payloads():
             code1,
         )
         assert len(results) == 2
-
-
-# //this_is_just_needed_for_backward_compatibility_with_po_versions_that_don't_send_rev_in_the_event_it('should_get_revision_from_product_if_not_in_message',async()=>{await_create_testing_module([domain_module],async(app)=>{messages=app.get(messages_service)
-# //create_a_product_code1=random_code()
-# await_sql`insertinto_product${sql([{code:code1,revision:123,},])}`
-# //create_a_message_with_no_rev_let_id_count=0
-# next_id=()=>`${date.now()}${id_count++}`
-# await_messages.create([{id:next_id(),message:{code:code1,action:'created',user_id:'test',},},],true,)
-# results=await_sql`select_product_update.revision_from_product_update_join_product_on_product.id=product_update.product_id_where_code=${code1}`
-# expect(results).to_have_length(1)
-# expect(results[0].revision).to_be(123)
-# })
-# })
-# })
