@@ -6,6 +6,8 @@ This project extracts key product data from MongoDB into a Postgres database in 
 
 ## Running locally
 
+Make sure you use the same version of python that is mentioned in the `Dockerfile`. I used [pyenv](https://github.com/pyenv/pyenv) to install it. This also required installing the build dependencies mentioned in the pyenv [wiki](https://github.com/pyenv/pyenv/wiki#suggested-build-environment). If you switch to a different version of python you may need to run `poetry env use <version>` and also update the interpreter path in your IDE.
+
 When running locally the project expects a Postgres database to be available on port 5512 and a Mongo database on port 27017, both on localhost. Running docker-compose will create a suitable Postgres database if needed. The database name can be set in the environment, but the schema name is always "query".
 
 To get started...
