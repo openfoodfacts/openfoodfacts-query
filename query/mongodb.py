@@ -24,4 +24,3 @@ async def find_products(
         yield cursor
     finally:
         await cursor.close()
-        # await client.close()
