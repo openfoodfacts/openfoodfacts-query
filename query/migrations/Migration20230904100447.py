@@ -12,16 +12,16 @@ from query.tables import (
 from query.views import product_updates_by_owner, views
 
 
-async def up(connection):
-    await product.create_table(connection)
-    await product_tags.create_tables(connection)
-    await loaded_tag.create_table(connection)
-    await product_ingredient.create_table(connection)
-    await settings.create_table(connection)
-    await product_update_event.create_table(connection)
-    await contributor.create_table(connection)
-    await update_type.create_table(connection)
-    await product_update.create_table(connection)
+async def up(transaction):
+    await product.create_table(transaction)
+    await product_tags.create_tables(transaction)
+    await loaded_tag.create_table(transaction)
+    await product_ingredient.create_table(transaction)
+    await settings.create_table(transaction)
+    await product_update_event.create_table(transaction)
+    await contributor.create_table(transaction)
+    await update_type.create_table(transaction)
+    await product_update.create_table(transaction)
 
-    await views.create_schema(connection)
-    await product_updates_by_owner.create_view(connection)
+    await views.create_schema(transaction)
+    await product_updates_by_owner.create_view(transaction)

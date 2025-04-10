@@ -1,6 +1,6 @@
 from unittest.mock import ANY, Mock, patch
 
-from query.database import transaction
+from query.database import get_transaction
 from query.models.scan import ProductScans
 from query.services.scan import import_scans
 from query.tables.country import add_all_countries
@@ -11,14 +11,14 @@ from query.test_helper import random_code
 
 @patch("query.services.scan.normalize_code", side_effect=normalize_code)
 async def test_create_product_scans(normalize_code_wrapper: Mock):
-    async with transaction() as connection:
+    async with get_transaction() as transaction:
         # refresh country table
-        await add_all_countries(connection)
+        await add_all_countries(transaction)
 
         # create some products
         code1 = random_code()
         code2 = random_code()
-        await connection.execute(
+        await transaction.execute(
             "insert into product (code) values ($1),($2)", code1, code2
         )
 
@@ -54,14 +54,14 @@ async def test_create_product_scans(normalize_code_wrapper: Mock):
         )
     )
 
-    async with transaction() as connection:
-        result = await connection.fetch(
+    async with get_transaction() as transaction:
+        result = await transaction.fetch(
             "select * from product_scans_by_country where product_id = (select id from product where code = $1)",
             code1,
         )
         assert len(result) == 7
 
-        product_countries = await connection.fetch(
+        product_countries = await transaction.fetch(
             """select * from product_country pc
         join country c on c.id = pc.country_id 
         where product_id = (select id from product where code = $1)
@@ -77,13 +77,13 @@ async def test_create_product_scans(normalize_code_wrapper: Mock):
 
 @patch("query.services.scan.append_loaded_tags")
 async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock):
-    async with transaction() as connection:
+    async with get_transaction() as transaction:
         # refresh country table
-        await add_all_countries(connection)
+        await add_all_countries(transaction)
 
         # create a product
         code = random_code()
-        await connection.execute("insert into product (code) values ($1)", code)
+        await transaction.execute("insert into product (code) values ($1)", code)
 
         await import_scans(
             ProductScans.model_validate(

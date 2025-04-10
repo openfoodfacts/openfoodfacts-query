@@ -8,7 +8,7 @@ from query.config import config_settings
 
 
 @asynccontextmanager
-async def transaction() -> AsyncGenerator[asyncpg.Connection, Any]:
+async def get_transaction() -> AsyncGenerator[asyncpg.Connection, Any]:
     connection: asyncpg.Connection = await asyncpg.connect(
         user=config_settings.POSTGRES_USER,
         password=config_settings.POSTGRES_PASSWORD,
@@ -34,7 +34,7 @@ def get_rows_affected(response: str):
     return int(parts[1])
 
 
-async def create_record(connection, table_name, returning=None, **params):
+async def create_record(transaction, table_name, returning=None, **params):
     """ " This is mainly used for creating test data"""
     statement = f"INSERT INTO {table_name} ({','.join(params.keys())}) VALUES ({','.join(f'${i + 1}' for i in range(len(params)))}) RETURNING *"
-    return await connection.fetchrow(statement, *params.values())
+    return await transaction.fetchrow(statement, *params.values())

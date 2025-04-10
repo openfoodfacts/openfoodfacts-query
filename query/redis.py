@@ -8,7 +8,7 @@ from typing import Any, AsyncGenerator, Dict, List
 import redis.asyncio as redis
 
 from query.config import config_settings
-from query.database import transaction
+from query.database import get_transaction
 from query.models.domain_event import DomainEvent
 from query.services.event import process_events
 from query.tables.settings import get_last_message_id, set_last_message_id
@@ -38,8 +38,8 @@ def get_retry_interval():
 async def redis_listener():
     global error_count
     error_count = 0
-    async with transaction() as connection:
-        last_message_id = await get_last_message_id(connection)
+    async with get_transaction() as transaction:
+        last_message_id = await get_last_message_id(transaction)
 
     async with redis_client() as redis:
         while True:
@@ -47,11 +47,11 @@ async def redis_listener():
                 response = await redis.xread({STREAM_NAME: last_message_id}, 1000, 5000)
                 # response is an array of tuples of stream name and array of messages
                 if response:
-                    async with transaction() as connection:
-                        await messages_received(connection, response)
+                    async with get_transaction() as transaction:
+                        await messages_received(transaction, response)
                         # Each message is a tuple of the message id followed by a dict that is the payload
                         last_message_id = response[0][1][-1][0]
-                        await set_last_message_id(connection, last_message_id)
+                        await set_last_message_id(transaction, last_message_id)
 
             except Exception as e:
                 logger.error(repr(e))
@@ -87,7 +87,7 @@ async def redis_lifespan():
         await stop_redis_listener()
 
 
-async def messages_received(connection, streams):
+async def messages_received(transaction, streams):
     for stream in streams:
         stream_name = stream[0]
         messages = stream[1]
@@ -131,7 +131,7 @@ async def messages_received(connection, streams):
                 logger.error(f"{repr(e)} for message: {repr(message)}")
 
         if events:
-            await process_events(connection, events)
+            await process_events(transaction, events)
 
 
 def get_message_timestamp(id, payload):

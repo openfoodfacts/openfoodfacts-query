@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
-from query.database import transaction
+from query.database import get_transaction
 from query.models.query import Filter, FindQuery
 from query.services import query
 from query.services.query_count_test import create_test_tags
@@ -221,19 +221,19 @@ async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo, _):
 
 
 async def create_tags_and_scans():
-    async with transaction() as connection:
-        tags = await create_test_tags(connection)
-        world = await get_country(connection, "en:world")
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
+        world = await get_country(transaction, "en:world")
         # Country sequence should be: 3,2,1. World sequence: 2,3,1
-        await create_scan(connection, tags.product1, tags.country, CURRENT_YEAR, 10)
-        await create_scan(connection, tags.product2, tags.country, CURRENT_YEAR, 100)
-        await create_scan(connection, tags.product3, tags.country, CURRENT_YEAR, 100)
-        await create_scan(connection, tags.product3, tags.country, CURRENT_YEAR - 1, 1)
-        await create_scan(connection, tags.product4, tags.country, CURRENT_YEAR, 50)
-        await create_scan(connection, tags.product1, world, CURRENT_YEAR, 20)
-        await create_scan(connection, tags.product2, world, CURRENT_YEAR, 201)
-        await create_scan(connection, tags.product3, world, CURRENT_YEAR, 200)
-        await create_scan(connection, tags.product3, world, CURRENT_YEAR - 1, 100)
-        await create_scan(connection, tags.product4, world, CURRENT_YEAR, 50)
+        await create_scan(transaction, tags.product1, tags.country, CURRENT_YEAR, 10)
+        await create_scan(transaction, tags.product2, tags.country, CURRENT_YEAR, 100)
+        await create_scan(transaction, tags.product3, tags.country, CURRENT_YEAR, 100)
+        await create_scan(transaction, tags.product3, tags.country, CURRENT_YEAR - 1, 1)
+        await create_scan(transaction, tags.product4, tags.country, CURRENT_YEAR, 50)
+        await create_scan(transaction, tags.product1, world, CURRENT_YEAR, 20)
+        await create_scan(transaction, tags.product2, world, CURRENT_YEAR, 201)
+        await create_scan(transaction, tags.product3, world, CURRENT_YEAR, 200)
+        await create_scan(transaction, tags.product3, world, CURRENT_YEAR - 1, 100)
+        await create_scan(transaction, tags.product4, world, CURRENT_YEAR, 50)
 
         return tags

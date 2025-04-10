@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from asyncpg import Connection
 
-from query.database import create_record, get_rows_affected, transaction
+from query.database import create_record, get_rows_affected, get_transaction
 from query.models.product import Source
 from query.tables.product_ingredient import delete_ingredients
 from query.tables.product_tags import delete_tags
@@ -29,8 +29,8 @@ def product_filter_fields():
 product_columns = [value for value in product_fields.values() if value]
 
 
-async def create_table(connection: Connection):
-    await connection.execute(
+async def create_table(transaction: Connection):
+    await transaction.execute(
         """create table product (
             id serial not null,
             name text null,
@@ -47,23 +47,23 @@ async def create_table(connection: Connection):
             process_id bigint null,
             constraint product_pkey primary key (id));""",
     )
-    await connection.execute(
+    await transaction.execute(
         "create index product_code_index on product (code);",
     )
-    await connection.execute(
+    await transaction.execute(
         "create index product_process_id_index on product (process_id);"
     )
-    await connection.execute("create index product_creator_index on product (creator);")
-    await connection.execute(
+    await transaction.execute("create index product_creator_index on product (creator);")
+    await transaction.execute(
         "create index product_owners_tags_index on product (owners_tags);"
     )
 
 
 async def update_products_from_staging(
-    connection: Connection, log, obsolete, process_id, source
+    transaction: Connection, log, obsolete, process_id, source
 ):
     # Apply updates to products
-    product_results = await connection.execute(
+    product_results = await transaction.execute(
         f"""
       update product
       set name = tp.data->>'product_name',
@@ -87,35 +87,35 @@ async def update_products_from_staging(
     log(f"Updated {get_rows_affected(product_results)} products")
 
 
-async def get_minimal_product(connection, code):
-    return await connection.fetchrow(
+async def get_minimal_product(transaction, code):
+    return await transaction.fetchrow(
         "SELECT id, last_updated FROM product WHERE code = $1", code
     )
 
 
-async def create_minimal_product(connection, code):
-    return await connection.fetchrow(
+async def create_minimal_product(transaction, code):
+    return await transaction.fetchrow(
         "INSERT INTO product (code) VALUES ($1) RETURNING id", code
     )
 
 
-async def create_product(connection, **params):
-    return await create_record(connection, "product", **params)
+async def create_product(transaction, **params):
+    return await create_record(transaction, "product", **params)
 
 
-async def get_product(connection: Connection, code):
-    return await connection.fetchrow("SELECT * FROM product WHERE code = $1", code)
+async def get_product(transaction: Connection, code):
+    return await transaction.fetchrow("SELECT * FROM product WHERE code = $1", code)
 
 
-async def get_product_by_id(connection, id):
-    return await connection.fetchrow("SELECT * FROM product WHERE id = $1", id)
+async def get_product_by_id(transaction, id):
+    return await transaction.fetchrow("SELECT * FROM product WHERE id = $1", id)
 
 
-async def delete_products(connection, process_id, source, codes=None):
+async def delete_products(transaction, process_id, source, codes=None):
     args = [process_id, datetime.now(timezone.utc), source]
     if codes:
         args.append(codes)
-    results = await connection.fetch(
+    results = await transaction.fetch(
         f"""UPDATE product SET 
                 obsolete = NULL,
                 process_id = $1,
@@ -128,8 +128,8 @@ async def delete_products(connection, process_id, source, codes=None):
         *args,
     )
     deleted_ids = [result["id"] for result in results]
-    await delete_tags(connection, deleted_ids)
-    await delete_ingredients(connection, deleted_ids)
+    await delete_tags(transaction, deleted_ids)
+    await delete_ingredients(transaction, deleted_ids)
 
 
 all_digits = re.compile(r"^\d+$")

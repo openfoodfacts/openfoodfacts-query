@@ -1,8 +1,8 @@
 from query.database import config_settings
 
 
-async def create_view(connection):
-    await connection.execute(
+async def create_view(transaction):
+    await transaction.execute(
         """CREATE OR REPLACE VIEW views.product_updates_by_owner AS
       SELECT pu.updated_date,
         p.owners_tags owner_tag,
@@ -16,6 +16,6 @@ async def create_view(connection):
         p.owners_tags,
         ut.code"""
     )
-    await connection.execute(
+    await transaction.execute(
         f"""GRANT SELECT ON views.product_updates_by_owner TO {config_settings.VIEW_USER}"""
     )

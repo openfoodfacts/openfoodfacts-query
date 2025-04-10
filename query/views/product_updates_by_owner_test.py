@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator
 import asyncpg
 
 from query.config import config_settings
-from query.database import transaction
+from query.database import get_transaction
 from query.services.event_test import sample_event
 from query.tables.product_update_event import create_events
 from query.test_helper import random_code
@@ -12,7 +12,7 @@ from query.test_helper import random_code
 
 @asynccontextmanager
 async def readonly_connection() -> AsyncGenerator[asyncpg.Connection, Any]:
-    connection = await asyncpg.connect(
+    transaction = await asyncpg.connect(
         user=config_settings.VIEW_USER,
         password=config_settings.VIEW_PASSWORD,
         database=config_settings.POSTGRES_DB,
@@ -20,18 +20,18 @@ async def readonly_connection() -> AsyncGenerator[asyncpg.Connection, Any]:
         port=config_settings.POSTGRES_HOST.split(":")[-1],
     )
     try:
-        yield connection
+        yield transaction
     finally:
-        await connection.close()
+        await transaction.close()
 
 
 async def test_aggregate_events_by_count_and_distinct_products():
-    async with transaction() as connection:
+    async with get_transaction() as transaction:
         # create some products
         code1 = random_code()
         code2 = random_code()
         owner1 = random_code()
-        await connection.execute(
+        await transaction.execute(
             "insert into product (code, owners_tags) values ($1, $3), ($2, $3)",
             code1,
             code2,
@@ -40,7 +40,7 @@ async def test_aggregate_events_by_count_and_distinct_products():
 
         # create some messages
         await create_events(
-            connection,
+            transaction,
             [
                 sample_event(
                     {"code": code1, "user_id": "user1", "action": "updated", "rev": 1}
@@ -68,15 +68,15 @@ async def test_aggregate_events_by_count_and_distinct_products():
 
 
 async def test_update_existing_aggregate_counts():
-    async with transaction() as connection:
+    async with get_transaction() as transaction:
         # create a product
         code1 = random_code()
-        await connection.execute("insert into product (code) values ($1)", code1)
+        await transaction.execute("insert into product (code) values ($1)", code1)
 
         # create an existing message
         action1 = random_code()
         await create_events(
-            connection,
+            transaction,
             [
                 sample_event(
                     {"code": code1, "user_id": "user1", "action": action1, "rev": 1}
@@ -86,7 +86,7 @@ async def test_update_existing_aggregate_counts():
 
         # add another message
         await create_events(
-            connection,
+            transaction,
             [
                 sample_event(
                     {"code": code1, "user_id": "user1", "action": action1, "rev": 2}

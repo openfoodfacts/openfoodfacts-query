@@ -3,8 +3,8 @@ from typing import List
 from asyncpg import Connection
 
 
-async def create_table(connection):
-    await connection.execute(
+async def create_table(transaction):
+    await transaction.execute(
         """CREATE TABLE IF NOT EXISTS contributor (
       id serial,
       code text,
@@ -13,8 +13,8 @@ async def create_table(connection):
     )
 
 
-async def create_contributors_from_events(connection: Connection, event_ids: List[int]):
-    await connection.execute(
+async def create_contributors_from_events(transaction: Connection, event_ids: List[int]):
+    await transaction.execute(
         """insert into contributor (code)
       select distinct message->>'user_id'
       from product_update_event 

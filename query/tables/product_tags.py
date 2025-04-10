@@ -68,26 +68,26 @@ TAG_TABLES = {
 }
 
 
-async def create_tables(connection):
+async def create_tables(transaction):
     for table_name in TAG_TABLES.values():
-        await connection.execute(
+        await transaction.execute(
             f"""create table {table_name} (
                 product_id int not null,
                 value text not null,
                 obsolete boolean null default false,
                 constraint {table_name}_pkey primary key (value, product_id))""",
         )
-        await connection.execute(
+        await transaction.execute(
             f"create index {table_name}_product_id_index on {table_name} (product_id);"
         )
-        await connection.execute(
+        await transaction.execute(
             f"alter table {table_name} add constraint {table_name}_product_id_foreign foreign key (product_id) references product (id) on update cascade on delete cascade;",
         )
 
 
-async def create_tag(connection, tag, product, value):
+async def create_tag(transaction, tag, product, value):
     return await create_record(
-        connection,
+        transaction,
         TAG_TABLES[tag],
         product_id=product["id"],
         value=value,
@@ -95,19 +95,19 @@ async def create_tag(connection, tag, product, value):
     )
 
 
-async def create_tags_from_staging(connection, log, obsolete):
+async def create_tags_from_staging(transaction, log, obsolete):
     for tag, tag_table in TAG_TABLES.items():
         log_text = f"Updated {tag}"
 
         # Delete existing tags for products that were imported on this run
-        deleted = await connection.execute(
+        deleted = await transaction.execute(
             f"""delete from {tag_table}
             where product_id in (select id from product_temp)"""
         )
         log_text += f" deleted {get_rows_affected(deleted)},"
 
         # Add tags back in with the updated information
-        results = await connection.execute(
+        results = await transaction.execute(
             f"""insert into {tag_table} (product_id, value, obsolete)
           select DISTINCT id, tag.value, {obsolete} from product_temp 
           cross join jsonb_array_elements_text(data->'{tag}') tag"""
@@ -116,16 +116,16 @@ async def create_tags_from_staging(connection, log, obsolete):
         log(log_text)
 
 
-async def delete_tags(connection, product_ids):
+async def delete_tags(transaction, product_ids):
     for tag_table in TAG_TABLES.values():
-        await connection.fetch(
+        await transaction.fetch(
             f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id = ANY($1::int[])",
             product_ids,
         )
 
 
-async def get_tags(connection, tag, product):
+async def get_tags(transaction, tag, product):
     tag_table = TAG_TABLES[tag]
-    return await connection.fetch(
+    return await transaction.fetch(
         f"SELECT * FROM {tag_table} WHERE product_id = $1", product["id"]
     )

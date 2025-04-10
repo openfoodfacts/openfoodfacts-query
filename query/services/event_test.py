@@ -2,7 +2,7 @@ import math
 import time
 from unittest.mock import Mock, patch
 
-from query.database import transaction
+from query.database import get_transaction
 from query.models.domain_event import DomainEvent
 from query.models.product import Source
 from query.redis import STREAM_NAME
@@ -22,10 +22,10 @@ def sample_event(payload={}):
 
 @patch("query.services.event.import_with_filter")
 async def test_process_events_calls_import_with_filter(import_with_filter: Mock):
-    async with transaction() as connection:
+    async with get_transaction() as transaction:
         event = sample_event({"product_type": "food", "rev": "1"})
         code1 = event.payload["code"]
-        await process_events(connection, [event])
+        await process_events(transaction, [event])
 
         assert import_with_filter.called
         import_args = import_with_filter.call_args[0]
@@ -33,7 +33,7 @@ async def test_process_events_calls_import_with_filter(import_with_filter: Mock)
         assert import_args[2] == Source.event
 
         # Update events are created
-        events = await connection.fetch(
+        events = await transaction.fetch(
             "SELECT * FROM product_update_event WHERE message->>'code' = $1", code1
         )
 
@@ -41,7 +41,7 @@ async def test_process_events_calls_import_with_filter(import_with_filter: Mock)
         assert events[0]["message_id"] == event.id
 
         # product_update is not created as we have no contributor or action
-        updates = await connection.fetch(
+        updates = await transaction.fetch(
             "SELECT * FROM product_update WHERE event_id = $1", events[0]["id"]
         )
         assert len(updates) == 0
@@ -51,15 +51,15 @@ async def test_process_events_calls_import_with_filter(import_with_filter: Mock)
 async def test_process_events_not_include_non_food_products_in_call_to_import_with_filter(
     import_with_filter: Mock,
 ):
-    async with transaction() as connection:
+    async with get_transaction() as transaction:
         food_event = sample_event({"product_type": "food", "rev": "1"})
         food_code = food_event.payload["code"]
         beauty_event = sample_event({"product_type": "beauty", "rev": "1"})
         beauty_code = beauty_event.payload["code"]
-        await process_events(connection, [food_event, beauty_event])
+        await process_events(transaction, [food_event, beauty_event])
 
         # Update events are created for all product types
-        events = await connection.fetch(
+        events = await transaction.fetch(
             "SELECT * FROM product_update_event WHERE message->>'code' in ($1, $2)",
             food_code,
             beauty_code,
@@ -76,9 +76,9 @@ async def test_process_events_not_include_non_food_products_in_call_to_import_wi
 async def test_process_events_does_not_import_with_filter_at_all_if_no_food_products(
     import_with_filter: Mock,
 ):
-    async with transaction() as connection:
+    async with get_transaction() as transaction:
         beauty_event = sample_event({"product_type": "beauty", "rev": "1"})
-        await process_events(connection, [beauty_event])
+        await process_events(transaction, [beauty_event])
 
         # Import is not called
         assert not import_with_filter.called

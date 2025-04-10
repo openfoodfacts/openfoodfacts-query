@@ -3,7 +3,7 @@ from contextlib import contextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from query.database import transaction
+from query.database import get_transaction
 from query.redis import start_redis_listener, stop_redis_listener
 from query.services.ingestion import import_from_mongo
 from query.tables.loaded_tag import get_loaded_tags
@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 async def scheduled_import_from_mongo():
-    async with transaction() as connection:
+    async with get_transaction() as transaction:
         try:
             # Pause redis while we are importing
             await stop_redis_listener()
-            loaded_tags = await get_loaded_tags(connection)
+            loaded_tags = await get_loaded_tags(transaction)
             # If every tag is loaded then we do an incremental import. otherwise full
             if any(tag for tag in TAG_TABLES.keys() if tag not in loaded_tags):
                 logger.info("Scheduled full import started")

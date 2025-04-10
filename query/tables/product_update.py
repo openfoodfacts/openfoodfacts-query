@@ -6,8 +6,8 @@ from query.tables.contributor import create_contributors_from_events
 from query.tables.update_type import create_update_types_from_events
 
 
-async def create_table(connection: Connection):
-    await connection.execute(
+async def create_table(transaction: Connection):
+    await transaction.execute(
         """CREATE TABLE IF NOT EXISTS product_update (
 	    product_id int,
 	    revision int,
@@ -17,19 +17,19 @@ async def create_table(connection: Connection):
       event_id bigint,
      constraint product_update_pkey primary key (product_id, revision))"""
     )
-    await connection.execute(
+    await transaction.execute(
         "create index product_update_updated_date_index on product_update (updated_date);"
     )
 
 
-async def create_updates_from_events(connection: Connection, event_ids: List[int]):
-    await create_contributors_from_events(connection, event_ids)
+async def create_updates_from_events(transaction: Connection, event_ids: List[int]):
+    await create_contributors_from_events(transaction, event_ids)
 
-    await create_update_types_from_events(connection, event_ids)
+    await create_update_types_from_events(transaction, event_ids)
 
     # Update counts on product_update after products have been imported
     # Note coalesce on rev is only needed for transition if an older version of PO is deployed
-    await connection.execute(
+    await transaction.execute(
         """INSERT INTO product_update (
         product_id,
         revision,

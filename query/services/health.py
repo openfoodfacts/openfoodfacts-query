@@ -1,7 +1,7 @@
 import redis.asyncio as redis
 
 from query.config import config_settings
-from query.database import transaction
+from query.database import get_transaction
 from query.models.health import Health, HealthItemStatusEnum
 from query.mongodb import find_products
 
@@ -10,8 +10,8 @@ async def check_health():
     health = Health()
 
     try:
-        async with transaction() as conn:
-            await conn.fetch("SELECT 1 FROM product LIMIT 1")
+        async with get_transaction() as transaction:
+            await transaction.fetch("SELECT 1 FROM product LIMIT 1")
         health.add("postgres", HealthItemStatusEnum.up)
     except Exception as e:
         health.add("postgres", HealthItemStatusEnum.down, str(e))

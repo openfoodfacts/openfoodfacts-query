@@ -5,7 +5,7 @@ from typing import Dict
 
 from asyncpg import Connection
 
-from query.database import transaction
+from query.database import get_transaction
 from query.models.product import Source
 from query.mongodb import find_products
 from query.tables.loaded_tag import append_loaded_tags
@@ -27,24 +27,24 @@ MIN_DATETIME = datetime(1, 1, 1, tzinfo=timezone.utc)
 DEFAULT_BATCH_SIZE = 10000
 
 
-async def get_process_id(connection):
-    return await connection.fetchval("SELECT pg_current_xact_id()")
+async def get_process_id(transaction):
+    return await transaction.fetchval("SELECT pg_current_xact_id()")
 
 
 def int_or_none(value):
     return None if value == None else int(value)
 
 
-async def import_with_filter(connection, filter: Dict, source: Source, batch_size = DEFAULT_BATCH_SIZE) -> datetime:
+async def import_with_filter(transaction, filter: Dict, source: Source, batch_size = DEFAULT_BATCH_SIZE) -> datetime:
     max_last_updated = MIN_DATETIME
     found_product_codes = []
     codes_specified = "code" in filter and "$in" in filter["code"]
 
-    await connection.execute(
+    await transaction.execute(
         "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
     )
     try:
-        process_id = await get_process_id(connection)
+        process_id = await get_process_id(transaction)
         projection = {
             key: True for key in (list(TAG_TABLES.keys()) + list(product_fields.keys()))
         }
@@ -74,7 +74,7 @@ async def import_with_filter(connection, filter: Dict, source: Source, batch_siz
                         found_product_codes.append(product_code)
 
                     existing_product = await get_minimal_product(
-                        connection, product_code
+                        transaction, product_code
                     )
                     if (
                         existing_product
@@ -90,7 +90,7 @@ async def import_with_filter(connection, filter: Dict, source: Source, batch_siz
 
                     if not existing_product:
                         existing_product = await create_minimal_product(
-                            connection, product_code
+                            transaction, product_code
                         )
 
                     # Strip any nulls from tag text
@@ -102,7 +102,7 @@ async def import_with_filter(connection, filter: Dict, source: Source, batch_siz
                                     f"Product: {product_code}. Nuls stripped from {tag} value: {tag_value}"
                                 )
                                 tag_data[i] = tag_value.replace("\0", "")
-                    await connection.execute(
+                    await transaction.execute(
                         "INSERT INTO product_temp (id, last_updated, data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
                         existing_product["id"],
                         last_updated,
@@ -112,12 +112,12 @@ async def import_with_filter(connection, filter: Dict, source: Source, batch_siz
                     update_count += 1
                     if not (update_count % batch_size):
                         await apply_staged_changes(
-                            connection, obsolete, update_count, process_id, source
+                            transaction, obsolete, update_count, process_id, source
                         )
 
             if update_count % batch_size:
                 await apply_staged_changes(
-                    connection, obsolete, update_count, process_id, source
+                    transaction, obsolete, update_count, process_id, source
                 )
             if skip_count % batch_size:
                 logger.info(
@@ -134,32 +134,32 @@ async def import_with_filter(connection, filter: Dict, source: Source, batch_siz
             ]
             if missing_product_codes:
                 await delete_products(
-                    connection, process_id, source, missing_product_codes
+                    transaction, process_id, source, missing_product_codes
                 )
 
         if source == Source.full_load:
-            await delete_products(connection, process_id, source)
-            await append_loaded_tags(connection, TAG_TABLES.keys())
+            await delete_products(transaction, process_id, source)
+            await append_loaded_tags(transaction, TAG_TABLES.keys())
     finally:
-        await connection.execute("DROP TABLE product_temp")
+        await transaction.execute("DROP TABLE product_temp")
 
     return max_last_updated
 
 
 async def apply_staged_changes(
-    connection: Connection, obsolete, update_count, process_id, source
+    transaction: Connection, obsolete, update_count, process_id, source
 ):
-    await connection.execute("ANALYZE product_temp")
+    await transaction.execute("ANALYZE product_temp")
     log = logger.debug
-    await update_products_from_staging(connection, log, obsolete, process_id, source)
-    await create_ingredients_from_staging(connection, log, obsolete)
-    await create_tags_from_staging(connection, log, obsolete)
-    await fixup_product_countries(connection, obsolete)
-    await connection.execute("TRUNCATE TABLE product_temp")
+    await update_products_from_staging(transaction, log, obsolete, process_id, source)
+    await create_ingredients_from_staging(transaction, log, obsolete)
+    await create_tags_from_staging(transaction, log, obsolete)
+    await fixup_product_countries(transaction, obsolete)
+    await transaction.execute("TRUNCATE TABLE product_temp")
     
     # Start a new transaction for the next batch
-    await connection.execute("COMMIT")
-    await connection.execute("BEGIN TRANSACTION")
+    await transaction.execute("COMMIT")
+    await transaction.execute("BEGIN TRANSACTION")
 
     logger.info(f"Imported {update_count}{' obsolete' if obsolete else ''} products")
 
@@ -179,9 +179,9 @@ async def import_from_mongo(from_date: str = None):
         #   If the from parameter is supplied but it is empty then obtain the most
         #   recent modified time from the database and query MongoDB for products
         #   modified since then
-        async with transaction() as connection:
+        async with get_transaction() as transaction:
             if not from_date and source == Source.incremental_load:
-                last_updated = await get_last_updated(connection)
+                last_updated = await get_last_updated(transaction)
                 if last_updated:
                     from_date = last_updated.isoformat()
                 else:
@@ -195,8 +195,8 @@ async def import_from_mongo(from_date: str = None):
                 filter["last_updated_t"] = {"$gt": from_time}
                 logger.info(f"Starting import from {from_date}")
 
-            max_last_updated = await import_with_filter(connection, filter, source)
+            max_last_updated = await import_with_filter(transaction, filter, source)
             if max_last_updated != MIN_DATETIME:
-                await set_last_updated(connection, max_last_updated)
+                await set_last_updated(transaction, max_last_updated)
     finally:
         import_running = False

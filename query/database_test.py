@@ -3,16 +3,16 @@ from datetime import datetime, timezone
 from asyncpg import DataError, PostgresError
 import pytest
 
-from query.database import create_record, get_rows_affected, transaction
+from query.database import create_record, get_rows_affected, get_transaction
 from query.test_helper import random_code
 
 
 async def test_rows_affected_returned_correctly():
-    async with transaction() as connection:
-        await connection.execute(
+    async with get_transaction() as transaction:
+        await transaction.execute(
             "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
         )
-        result = await connection.execute(
+        result = await transaction.execute(
             "INSERT INTO product_temp (last_updated, id, data) VALUES ($1,$2,$3),($1,$4,$5),($1,$6,$7)",
             datetime(2023, 1, 1, tzinfo=timezone.utc),
             1,
@@ -25,21 +25,21 @@ async def test_rows_affected_returned_correctly():
 
         assert get_rows_affected(result) == 3
 
-        result = await connection.execute(
+        result = await transaction.execute(
             "UPDATE product_temp SET data = $1 WHERE id < $2", {"d": 4}, 3
         )
         assert get_rows_affected(result) == 2
 
-        result = await connection.execute("DELETE FROM product_temp WHERE id < $1", 3)
+        result = await transaction.execute("DELETE FROM product_temp WHERE id < $1", 3)
         assert get_rows_affected(result) == 2
 
 
 async def test_create_record():
-    async with transaction() as connection:
-        await connection.execute(
+    async with get_transaction() as transaction:
+        await transaction.execute(
             "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
         )
-        record = await create_record(connection, "product_temp", id=1, data={"x": 6})
+        record = await create_record(transaction, "product_temp", id=1, data={"x": 6})
         assert record["id"] == 1
         assert record["data"] == {"x": 6}
         assert record["last_updated"] == None
@@ -47,16 +47,16 @@ async def test_create_record():
 async def test_transaction_error_closes_connection():
     id = random_code()
     with pytest.raises(PostgresError):
-        async with transaction() as connection:
+        async with get_transaction() as transaction:
             # Valid SQL
-            await connection.execute("UPDATE settings SET last_message_id = $1", id)
+            await transaction.execute("UPDATE settings SET last_message_id = $1", id)
             
             # Invalid SQL, should cause rollback
-            await connection.execute("UPDATE settings SET invalid_column = $1", id)
+            await transaction.execute("UPDATE settings SET invalid_column = $1", id)
     
-    assert connection.is_closed()
+    assert transaction.is_closed()
 
-    async with transaction() as connection:
-        fetched_id = await connection.fetchval("SELECT last_message_id FROM settings")
+    async with get_transaction() as transaction:
+        fetched_id = await transaction.fetchval("SELECT last_message_id FROM settings")
         # Verify the transaction was rolled back
         assert fetched_id != str(id)

@@ -4,7 +4,7 @@ from typing import Dict, List
 from asyncpg import Connection
 from fastapi import HTTPException, status
 
-from query.database import transaction
+from query.database import get_transaction
 from query.models.query import (
     AggregateCountResult,
     AggregateResult,
@@ -22,28 +22,28 @@ from query.tables.product_tags import TAG_TABLES
 logger = logging.getLogger(__name__)
 
 
-async def fetch_and_log(connection: Connection, sql, *params):
+async def fetch_and_log(transaction: Connection, sql, *params):
     logger.debug(f"Args: {repr(params)}, SQL: {sql}")
-    return await connection.fetch(sql, *params)
+    return await transaction.fetch(sql, *params)
 
 
 async def count(filter: Filter = None, obsolete=False):
-    async with transaction() as conn:
+    async with get_transaction() as transaction:
         sql_fragments = []
         params = []
-        loaded_tags = await get_loaded_tags(conn)
+        loaded_tags = await get_loaded_tags(transaction)
         if filter:
             append_sql_fragments(filter, loaded_tags, "id", params, sql_fragments)
 
         sql = f"SELECT count(*) count FROM product p WHERE {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)}"
-        return ((await fetch_and_log(conn, sql, *params)) or [{}])[0].get("count", 0)
+        return ((await fetch_and_log(transaction, sql, *params)) or [{}])[0].get("count", 0)
 
 
 async def aggregate(stages: List[Stage], obsolete=False):
-    async with transaction() as conn:
+    async with get_transaction() as transaction:
         sql_fragments = []
         params = []
-        loaded_tags = await get_loaded_tags(conn)
+        loaded_tags = await get_loaded_tags(transaction)
         group = [stage.group for stage in stages if stage.group][0]
         filter = [stage.match for stage in stages if stage.match][0]
         is_count = [stage.count for stage in stages if stage.count]
@@ -79,7 +79,7 @@ async def aggregate(stages: List[Stage], obsolete=False):
             sql = f"""SELECT {column_name} id, count(*) count FROM {table_name} p
                 WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)}
                 GROUP BY {column_name} ORDER BY 2 DESC, 1{limit_clause}"""
-        results = await fetch_and_log(conn, sql, *params)
+        results = await fetch_and_log(transaction, sql, *params)
         if is_count:
             result = AggregateCountResult()
             setattr(result, tag, results[0]["count"])
@@ -91,8 +91,8 @@ async def aggregate(stages: List[Stage], obsolete=False):
 
 
 async def find(query: FindQuery, obsolete=False):
-    async with transaction() as conn:
-        loaded_tags = await get_loaded_tags(conn)
+    async with get_transaction() as transaction:
+        loaded_tags = await get_loaded_tags(transaction)
         if PRODUCT_COUNTRY_TAG not in loaded_tags:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY, "Scans have not been fully loaded"
@@ -110,9 +110,9 @@ async def find(query: FindQuery, obsolete=False):
 
         country_tag = getattr(query.filter, "countries-tags")
         country = (
-            await get_country(conn, country_tag)
+            await get_country(transaction, country_tag)
             if country_tag
-            else await get_country(conn, "en:world")
+            else await get_country(transaction, "en:world")
         )
         if country_tag:
             delattr(query.filter, "countries-tags")
@@ -145,7 +145,7 @@ async def find(query: FindQuery, obsolete=False):
                 ORDER BY p.recent_scans DESC, p.total_scans DESC, p.product_id
                 {limit_clause})
             ORDER BY pc.recent_scans DESC, pc.total_scans DESC, pc.product_id"""
-        results = await fetch_and_log(conn, sql, *params)
+        results = await fetch_and_log(transaction, sql, *params)
         product_codes = [result["code"] for result in results]
         logger.debug(f"Find: Codes: {repr(product_codes)}")
 

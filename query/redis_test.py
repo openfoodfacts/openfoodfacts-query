@@ -9,7 +9,7 @@ import pytest
 from redis.asyncio import Redis, ResponseError, from_url
 from testcontainers.redis import RedisContainer
 
-from query.database import transaction
+from query.database import get_transaction
 from query.redis import (
     STREAM_NAME,
     get_message_timestamp,
@@ -207,7 +207,7 @@ async def test_listener_retrys_on_error(
 
 @patch("query.redis.process_events")
 async def test_messages_received_strips_nulls(process_events: Mock):
-    async with transaction() as connection:
+    async with get_transaction() as transaction:
         test_message = {
             "timestamp": 1692032161,
             "code": random_code(),
@@ -221,7 +221,7 @@ async def test_messages_received_strips_nulls(process_events: Mock):
         }
 
         await messages_received(
-            connection, [["test-stream", [["test-id", test_message]]]]
+            transaction, [["test-stream", [["test-id", test_message]]]]
         )
 
         assert process_events.called
@@ -237,11 +237,11 @@ async def test_messages_received_strips_nulls(process_events: Mock):
 
 @patch("query.redis.process_events")
 async def test_copes_with_missing_fields(process_events: Mock):
-    async with transaction() as connection:
+    async with get_transaction() as transaction:
         test_message = {}
 
         await messages_received(
-            connection, [["test-stream", [[f"0-1692032161", test_message]]]]
+            transaction, [["test-stream", [[f"0-1692032161", test_message]]]]
         )
 
         assert process_events.called

@@ -6,22 +6,22 @@ from asyncpg import Connection
 from query.database import create_record
 
 
-async def create_table(connection):
-    await connection.execute(
+async def create_table(transaction):
+    await transaction.execute(
         'create table "country" ("id" serial primary key, "code" text null, "tag" text not null);',
     )
-    await connection.execute(
+    await transaction.execute(
         'alter table "country" add constraint "country_code_unique" unique ("code");',
     )
-    await connection.execute(
+    await transaction.execute(
         'alter table "country" add constraint "country_tag_unique" unique ("tag");',
     )
     # insert world countries for tests.
-    await connection.execute(
+    await transaction.execute(
         """insert into country (code, tag) values ('world','en:world')"""
     )
     # create countries from existing data
-    await connection.execute(
+    await transaction.execute(
         """insert into country (tag)
         select distinct pct.value
         from product_countries_tag pct
@@ -30,12 +30,12 @@ async def create_table(connection):
     )
 
 
-async def create_country(connection, **params):
-    return await create_record(connection, "country", **params)
+async def create_country(transaction, **params):
+    return await create_record(transaction, "country", **params)
 
 
-async def get_country(connection, tag):
-    return await connection.fetchrow("select * from country where tag = $1", tag)
+async def get_country(transaction, tag):
+    return await transaction.fetchrow("select * from country where tag = $1", tag)
 
 
 def lower_or_none(value):
@@ -57,8 +57,8 @@ def country_codes():
     return [country[1] for country in country_data() if country[1]]
 
 
-async def add_all_countries(connection: Connection):
-    await connection.executemany(
+async def add_all_countries(transaction: Connection):
+    await transaction.executemany(
         """insert into country (tag, code) select tag, code 
         from (values ($1, $2)) as source (tag, code)
         where not exists (select * from country where tag = source.tag and code = source.code)

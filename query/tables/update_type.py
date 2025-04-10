@@ -3,8 +3,8 @@ from typing import List
 from asyncpg import Connection
 
 
-async def create_table(connection):
-    await connection.execute(
+async def create_table(transaction):
+    await transaction.execute(
         """CREATE TABLE IF NOT EXISTS update_type (
       id serial,
       code text,
@@ -12,13 +12,13 @@ async def create_table(connection):
       constraint action_code unique (code))"""
     )
 
-    await connection.execute(
+    await transaction.execute(
         """INSERT INTO update_type (code) VALUES ('created'), ('updated'), ('archived'), ('unarchived'), ('deleted'), ('reprocessed'), ('unknown')"""
     )
 
 
-async def create_update_types_from_events(connection: Connection, event_ids: List[int]):
-    await connection.execute(
+async def create_update_types_from_events(transaction: Connection, event_ids: List[int]):
+    await transaction.execute(
         """insert into update_type (code)
       select distinct message->>'action'
       from product_update_event 

@@ -1,15 +1,15 @@
 import pytest
 from pydantic import ValidationError
 
-from query.database import transaction
+from query.database import get_transaction
 from query.models.query import Filter, GroupStage, Qualify, Stage
 from query.services import query
 from query.services.query_count_test import create_test_tags
 
 
 async def test_group_products_with_a_tag():
-    async with transaction() as connection:
-        tags = await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
 
     response = await query.aggregate(
         [Stage(match=Filter()), Stage(group=GroupStage(id="$origins_tags"))]
@@ -20,8 +20,8 @@ async def test_group_products_with_a_tag():
 
 
 async def test_filter_products_when_grouping():
-    async with transaction() as connection:
-        tags = await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
 
     response = await query.aggregate(
         [
@@ -35,8 +35,8 @@ async def test_filter_products_when_grouping():
 
 
 async def test_filter_products_when_grouping_by_a_product_field():
-    async with transaction() as connection:
-        tags = await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
 
     response = await query.aggregate(
         [
@@ -50,8 +50,8 @@ async def test_filter_products_when_grouping_by_a_product_field():
 
 
 async def test_group_products_when_filtering_by_a_product_field():
-    async with transaction() as connection:
-        tags = await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
 
     response = await query.aggregate(
         [
@@ -68,8 +68,8 @@ async def test_group_products_when_filtering_by_a_product_field():
 
 
 async def test_limit():
-    async with transaction() as connection:
-        tags = await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
 
     response = await query.aggregate(
         [
@@ -85,8 +85,8 @@ async def test_limit():
 
 
 async def test_skip():
-    async with transaction() as connection:
-        tags = await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
 
     response = await query.aggregate(
         [
@@ -103,8 +103,8 @@ async def test_skip():
 
 
 async def test_able_to_do_not_filtering():
-    async with transaction() as connection:
-        tags = await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
 
     response = await query.aggregate(
         [
@@ -120,8 +120,8 @@ async def test_able_to_do_not_filtering():
 
 
 async def test_able_to_just_count():
-    async with transaction() as connection:
-        await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        await create_test_tags(transaction)
 
     aggregate_query = [
         Stage(match=Filter()),
@@ -131,8 +131,8 @@ async def test_able_to_just_count():
     before_response = await query.aggregate(aggregate_query)
     before_count = getattr(before_response, "origins_tags")
 
-    async with transaction() as connection:
-        await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        await create_test_tags(transaction)
 
     after_response = await query.aggregate(aggregate_query)
     after_count = getattr(after_response, "origins_tags")
@@ -140,8 +140,8 @@ async def test_able_to_just_count():
 
 
 async def test_cope_with_multiple_filters():
-    async with transaction() as connection:
-        tags = await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
         
     response = await query.aggregate(
         [
@@ -160,8 +160,8 @@ async def test_cope_with_multiple_filters():
 
 
 async def test_able_to_group_obsolete_products():
-    async with transaction() as connection:
-        tags = await create_test_tags(connection)
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
 
     response = await query.aggregate(
         [
