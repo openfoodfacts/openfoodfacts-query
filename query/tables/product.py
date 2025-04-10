@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from asyncpg import Connection
 
-from query.database import create_record, get_rows_affected, get_transaction
+from query.database import create_record, get_rows_affected
 from query.models.product import Source
 from query.tables.product_ingredient import delete_ingredients
 from query.tables.product_tags import delete_tags
@@ -53,7 +53,9 @@ async def create_table(transaction: Connection):
     await transaction.execute(
         "create index product_process_id_index on product (process_id);"
     )
-    await transaction.execute("create index product_creator_index on product (creator);")
+    await transaction.execute(
+        "create index product_creator_index on product (creator);"
+    )
     await transaction.execute(
         "create index product_owners_tags_index on product (owners_tags);"
     )

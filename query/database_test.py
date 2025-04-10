@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
-from asyncpg import DataError, PostgresError
 import pytest
+from asyncpg import PostgresError
 
 from query.database import create_record, get_rows_affected, get_transaction
 from query.test_helper import random_code
@@ -44,16 +44,17 @@ async def test_create_record():
         assert record["data"] == {"x": 6}
         assert record["last_updated"] == None
 
+
 async def test_transaction_error_closes_connection():
     id = random_code()
     with pytest.raises(PostgresError):
         async with get_transaction() as transaction:
             # Valid SQL
             await transaction.execute("UPDATE settings SET last_message_id = $1", id)
-            
+
             # Invalid SQL, should cause rollback
             await transaction.execute("UPDATE settings SET invalid_column = $1", id)
-    
+
     assert transaction.is_closed()
 
     async with get_transaction() as transaction:

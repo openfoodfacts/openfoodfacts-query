@@ -64,7 +64,7 @@ async def cancel_task(task: asyncio.Task):
         await task
 
 
-async def messages_processed(messages_received_mock: Mock, call_count = 1):
+async def messages_processed(messages_received_mock: Mock, call_count=1):
     # Have tried a number of ways to wait for messages to be received,
     # such as using a Future, but the sleep seems essential for it to work
     for i in range(10):

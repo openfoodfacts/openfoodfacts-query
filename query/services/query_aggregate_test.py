@@ -108,9 +108,7 @@ async def test_able_to_do_not_filtering():
 
     response = await query.aggregate(
         [
-            Stage(
-                match=Filter(amino_acids_tags=Qualify(qualify_ne=tags.amino_value))
-            ),
+            Stage(match=Filter(amino_acids_tags=Qualify(qualify_ne=tags.amino_value))),
             Stage(group=GroupStage(id="$origins_tags")),
         ]
     )
@@ -142,7 +140,7 @@ async def test_able_to_just_count():
 async def test_cope_with_multiple_filters():
     async with get_transaction() as transaction:
         tags = await create_test_tags(transaction)
-        
+
     response = await query.aggregate(
         [
             Stage(

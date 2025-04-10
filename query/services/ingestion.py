@@ -35,7 +35,9 @@ def int_or_none(value):
     return None if value == None else int(value)
 
 
-async def import_with_filter(transaction, filter: Dict, source: Source, batch_size = DEFAULT_BATCH_SIZE) -> datetime:
+async def import_with_filter(
+    transaction, filter: Dict, source: Source, batch_size=DEFAULT_BATCH_SIZE
+) -> datetime:
     max_last_updated = MIN_DATETIME
     found_product_codes = []
     codes_specified = "code" in filter and "$in" in filter["code"]
@@ -156,7 +158,7 @@ async def apply_staged_changes(
     await create_tags_from_staging(transaction, log, obsolete)
     await fixup_product_countries(transaction, obsolete)
     await transaction.execute("TRUNCATE TABLE product_temp")
-    
+
     # Start a new transaction for the next batch
     await transaction.execute("COMMIT")
     await transaction.execute("BEGIN TRANSACTION")

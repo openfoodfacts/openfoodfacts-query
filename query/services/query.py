@@ -36,7 +36,9 @@ async def count(filter: Filter = None, obsolete=False):
             append_sql_fragments(filter, loaded_tags, "id", params, sql_fragments)
 
         sql = f"SELECT count(*) count FROM product p WHERE {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)}"
-        return ((await fetch_and_log(transaction, sql, *params)) or [{}])[0].get("count", 0)
+        return ((await fetch_and_log(transaction, sql, *params)) or [{}])[0].get(
+            "count", 0
+        )
 
 
 async def aggregate(stages: List[Stage], obsolete=False):

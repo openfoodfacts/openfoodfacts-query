@@ -137,7 +137,9 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         )
 
         # check unchanged product has been "deleted"
-        found_old_product = await get_product_by_id(transaction, product_unchanged["id"])
+        found_old_product = await get_product_by_id(
+            transaction, product_unchanged["id"]
+        )
         assert found_old_product["obsolete"] == None
         ingredients_unchanged = await get_tags(
             transaction, "ingredients_tags", product_unchanged
@@ -598,36 +600,50 @@ async def test_each_batch_has_its_own_transaction(find_products_mock: Mock):
         last_updated = math.floor(time.time())
         for i in range(3):
             code = random_code()
-            await create_product(transaction, code = code)
+            await create_product(transaction, code=code)
             cursor.append({"code": code, "last_updated_t": last_updated})
 
-        first_code = cursor[0]['code']
-        last_code = cursor[-1]['code']
-        dummy_time = datetime.fromisoformat('2000-01-01T00:00:00Z')
+        first_code = cursor[0]["code"]
+        last_code = cursor[-1]["code"]
+        dummy_time = datetime.fromisoformat("2000-01-01T00:00:00Z")
 
     async with get_transaction() as transaction:
         async with get_transaction() as locking_transaction:
             # Lock the last product so that the import stalls there
-            await locking_transaction.execute("UPDATE product SET last_updated = $1 WHERE code = $2", dummy_time, last_code)
-        
+            await locking_transaction.execute(
+                "UPDATE product SET last_updated = $1 WHERE code = $2",
+                dummy_time,
+                last_code,
+            )
+
             patch_context_manager(find_products_mock, mock_cursor(cursor))
             # Start an import on a different transaction with the batch size as 2 so the last product is imported separately
-            import_task = asyncio.create_task(ingestion.import_with_filter(transaction, {}, Source.incremental_load, 2))
+            import_task = asyncio.create_task(
+                ingestion.import_with_filter(
+                    transaction, {}, Source.incremental_load, 2
+                )
+            )
             for i in range(10):
                 await asyncio.sleep(0.1)
                 # The first two products should be imported in one transaction so we should be able to access the last_updated
-                first_updated = await locking_transaction.fetchval("SELECT last_updated FROM product WHERE code = $1", first_code)
+                first_updated = await locking_transaction.fetchval(
+                    "SELECT last_updated FROM product WHERE code = $1", first_code
+                )
                 if first_updated != None:
                     break
 
             assert first_updated != None
-            last_updated = await locking_transaction.fetchval("SELECT last_updated FROM product WHERE code = $1", last_code)
+            last_updated = await locking_transaction.fetchval(
+                "SELECT last_updated FROM product WHERE code = $1", last_code
+            )
             assert last_updated == dummy_time
-        
+
         # Close our transaction locking the third product and wait for the import to finish
         await import_task
 
     # Check the last product was updated
     async with get_transaction() as transaction:
-        first_updated = await transaction.fetchval("SELECT last_updated FROM product WHERE code = $1", last_code)
+        first_updated = await transaction.fetchval(
+            "SELECT last_updated FROM product WHERE code = $1", last_code
+        )
         assert first_updated != dummy_time

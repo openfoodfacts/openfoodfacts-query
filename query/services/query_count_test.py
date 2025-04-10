@@ -214,7 +214,7 @@ async def test_cope_with_no_filters():
 async def test_be_able_to_count_obsolete_products():
     async with get_transaction() as transaction:
         tags = await create_test_tags(transaction)
-        
+
     response = await query.count(Filter(origins_tags=tags.origin_value), True)
     assert response == 1
 
@@ -233,9 +233,7 @@ async def test_cope_with_an_all_filter():
 
     response = await query.count(
         Filter(
-            amino_acids_tags=Qualify(
-                qualify_all=[tags.amino_value, tags.amino_value2]
-            )
+            amino_acids_tags=Qualify(qualify_all=[tags.amino_value, tags.amino_value2])
         )
     )
     assert response == 1
@@ -262,9 +260,7 @@ async def test_cope_with_an_in_value():
 
     response = await query.count(
         Filter(
-            amino_acids_tags=Qualify(
-                qualify_in=[tags.amino_value, tags.amino_value2]
-            )
+            amino_acids_tags=Qualify(qualify_in=[tags.amino_value, tags.amino_value2])
         )
     )
     assert response == 3
@@ -350,9 +346,7 @@ async def test_cope_with_nin():
     response = await query.count(
         Filter(
             origins_tags=tags.origin_value,
-            amino_acids_tags=Qualify(
-                qualify_nin=[tags.amino_value, tags.amino_value2]
-            ),
+            amino_acids_tags=Qualify(qualify_nin=[tags.amino_value, tags.amino_value2]),
         )
     )
     assert response == 0

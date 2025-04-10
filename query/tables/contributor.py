@@ -13,7 +13,9 @@ async def create_table(transaction):
     )
 
 
-async def create_contributors_from_events(transaction: Connection, event_ids: List[int]):
+async def create_contributors_from_events(
+    transaction: Connection, event_ids: List[int]
+):
     await transaction.execute(
         """insert into contributor (code)
       select distinct message->>'user_id'

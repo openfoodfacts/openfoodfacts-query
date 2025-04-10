@@ -17,7 +17,9 @@ async def create_table(transaction):
     )
 
 
-async def create_update_types_from_events(transaction: Connection, event_ids: List[int]):
+async def create_update_types_from_events(
+    transaction: Connection, event_ids: List[int]
+):
     await transaction.execute(
         """insert into update_type (code)
       select distinct message->>'action'
