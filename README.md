@@ -54,21 +54,13 @@ Other than that the reliance on external code is kept to a minimum so that the p
 
 ## Project Structure
 
-This is mainly an SQL-based project so the Python application framework is kept to a minimum. The main folders (inside the `query` folder) are as follows:
-
- - Root folder: API routes (in `main.py`), schedule definition and other core dependencies, i.e. PostgreSQL, MongoDB and Redis
- - `tables`: Each table, or set of very similar tables (like tags) has a module. This contains all of the SQL for modifying the data and structure of the table, so even `migrations` call out to functions in these modules. The `tables` modules will contain limited business logic, mostly where this would be the equivalent of a database trigger
- - `migrations`: These manage database schema updates. Note in most cases the SQL itself is in the relevant `tables` module. The migration history is stored in a table called `mikro_orm_migrations` for backward compatibility with the previous NestJS / Mikro-ORM implementation of this project
- - `services`: This is where most of the complex business logic lives, where interactions between multiple tables are coordinated
- - `models`: These are the [Pydantic](https://docs.pydantic.dev/) classes used to validate API requests and generate OpenAPI documentation.
- - `views`: The SQL definition for any views that are created in the database during migrations
- - `assets`: Non-python resources
+This is mainly an SQL-based project so the Python application framework is kept to a minimum. The docstring in the `__init__.py` in each of the folders describes its purpose.
 
 The entrypoint is main.py which runs database migrations and starts the service and scheduler.
 
 ## Design Philosophy
 
-Most of the logic in this project is in the actual SQL used to update and query data. There has therefore been conscious decision to avoid using any kind of ORM to hade the SQL from the code.
+Most of the logic in this project is in the actual SQL used to update and query data. There has therefore been conscious decision to avoid using any kind of ORM to hide the SQL from the code.
 
 Pydantic models are only used for outward-facing models to ensure we get good API documentation and validation. Internally, data is mainly passed around using dictionaries or the [asyncpg Record](https://magicstack.github.io/asyncpg/current/api/index.html#asyncpg.Record) structure (which behaves like a dictionary).
 
