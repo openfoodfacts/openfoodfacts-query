@@ -588,3 +588,46 @@ async def test_ignores_duplicate_tags(find_products_mock: Mock):
 
         found_tags = await get_tags(connection, "ingredients_tags", found_product)
         assert len(found_tags) == 2
+
+
+@patch("query.services.ingestion.find_products")
+async def test_each_batch_has_its_own_transaction(find_products_mock: Mock):
+    async with transaction() as connection:
+        # Create 3 products
+        cursor = []
+        last_updated = math.floor(time.time())
+        for i in range(3):
+            code = random_code()
+            await create_product(connection, code = code)
+            cursor.append({"code": code, "last_updated_t": last_updated})
+
+        first_code = cursor[0]['code']
+        last_code = cursor[-1]['code']
+        dummy_time = datetime.fromisoformat('2000-01-01T00:00:00Z')
+
+    async with transaction() as connection:
+        async with transaction() as locking_transaction:
+            # Lock the last product so that the import stalls there
+            await locking_transaction.execute("UPDATE product SET last_updated = $1 WHERE code = $2", dummy_time, last_code)
+        
+            patch_context_manager(find_products_mock, mock_cursor(cursor))
+            # Start an import on a different connection with the batch size as 2 so the last product is imported separately
+            import_task = asyncio.create_task(ingestion.import_with_filter(connection, {}, Source.incremental_load, 2))
+            for i in range(10):
+                await asyncio.sleep(0.1)
+                # The first two products should be imported in one transaction so we should be able to access the last_updated
+                first_updated = await locking_transaction.fetchval("SELECT last_updated FROM product WHERE code = $1", first_code)
+                if first_updated != None:
+                    break
+
+            assert first_updated != None
+            last_updated = await locking_transaction.fetchval("SELECT last_updated FROM product WHERE code = $1", last_code)
+            assert last_updated == dummy_time
+        
+        # Close our transaction locking the third product and wait for the import to finish
+        await import_task
+
+    # Check the last product was updated
+    async with transaction() as connection:
+        first_updated = await connection.fetchval("SELECT last_updated FROM product WHERE code = $1", last_code)
+        assert first_updated != dummy_time

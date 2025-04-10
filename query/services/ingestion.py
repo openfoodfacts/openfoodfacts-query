@@ -22,8 +22,9 @@ from query.tables.product_tags import TAG_TABLES, create_tags_from_staging
 from query.tables.settings import get_last_updated, set_last_updated
 
 logger = logging.getLogger(__name__)
-min_datetime = datetime(1, 1, 1, tzinfo=timezone.utc)
-batch_size = 10000
+
+MIN_DATETIME = datetime(1, 1, 1, tzinfo=timezone.utc)
+DEFAULT_BATCH_SIZE = 10000
 
 
 async def get_process_id(connection):
@@ -34,8 +35,8 @@ def int_or_none(value):
     return None if value == None else int(value)
 
 
-async def import_with_filter(connection, filter: Dict, source: Source) -> datetime:
-    max_last_updated = min_datetime
+async def import_with_filter(connection, filter: Dict, source: Source, batch_size = DEFAULT_BATCH_SIZE) -> datetime:
+    max_last_updated = MIN_DATETIME
     found_product_codes = []
     codes_specified = "code" in filter and "$in" in filter["code"]
 
@@ -65,7 +66,7 @@ async def import_with_filter(connection, filter: Dict, source: Source) -> dateti
                         logger.warning(
                             f"Product: {product_data['code']}. Invalid last_updated_t: {product_data.get('last_updated_t')}, or last_modified_t: {product_data.get('last_modified_t')}."
                         )
-                        last_updated = min_datetime
+                        last_updated = MIN_DATETIME
                     max_last_updated = max(last_updated, max_last_updated)
 
                     product_code = product_data["code"]
@@ -155,6 +156,10 @@ async def apply_staged_changes(
     await create_tags_from_staging(connection, log, obsolete)
     await fixup_product_countries(connection, obsolete)
     await connection.execute("TRUNCATE TABLE product_temp")
+    
+    # Start a new transaction for the next batch
+    await connection.execute("COMMIT")
+    await connection.execute("BEGIN TRANSACTION")
 
     logger.info(f"Imported {update_count}{' obsolete' if obsolete else ''} products")
 
@@ -191,7 +196,7 @@ async def import_from_mongo(from_date: str = None):
                 logger.info(f"Starting import from {from_date}")
 
             max_last_updated = await import_with_filter(connection, filter, source)
-            if max_last_updated != min_datetime:
+            if max_last_updated != MIN_DATETIME:
                 await set_last_updated(connection, max_last_updated)
     finally:
         import_running = False
