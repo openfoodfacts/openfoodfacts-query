@@ -64,10 +64,13 @@ async def cancel_task(task: asyncio.Task):
         await task
 
 
-async def messages_processed():
+async def messages_processed(messages_received_mock: Mock, call_count = 1):
     # Have tried a number of ways to wait for messages to be received,
     # such as using a Future, but the sleep seems essential for it to work
-    await asyncio.sleep(0.1)
+    for i in range(10):
+        await asyncio.sleep(0.2)
+        if messages_received_mock.call_count >= call_count:
+            break
 
 
 @patch("query.redis.get_last_message_id")
@@ -88,7 +91,7 @@ async def test_listener_calls_subscriber_function(
         # Start the redis listener
         redis_listener_task = asyncio.create_task(redis_listener())
 
-        await messages_processed()
+        await messages_processed(messages_received)
 
         # Settings should be updated with the last message id
         assert set_id.call_args[0][1] == message_id2
@@ -124,7 +127,7 @@ async def test_listener_keeps_track_of_last_message_id(
         # Start the redis listener
         redis_listener_task = asyncio.create_task(redis_listener())
 
-        await messages_processed()
+        await messages_processed(messages_received)
         await cancel_task(redis_listener_task)
 
         # Settings should only have been called once
@@ -177,7 +180,7 @@ async def test_listener_retrys_on_error(
             # Start the redis listener
             redis_listener_task = asyncio.create_task(redis_listener())
 
-            await messages_processed()
+            await messages_processed(messages_received, 0)
 
             # Error should be logged
             assert not messages_received.called
@@ -191,7 +194,7 @@ async def test_listener_retrys_on_error(
         message_id = await add_test_message(redis, product_code)
 
         # Wait for retry
-        await messages_processed()
+        await messages_processed(messages_received, 1)
 
         assert messages_received.called
         assert set_id.call_args[0][1] == message_id

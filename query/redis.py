@@ -40,6 +40,7 @@ async def redis_listener():
     error_count = 0
     async with transaction() as connection:
         last_message_id = await get_last_message_id(connection)
+
     async with redis_client() as redis:
         while True:
             try:
