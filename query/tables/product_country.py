@@ -97,5 +97,5 @@ async def fixup_product_countries_for_products(connection, ids_updated):
         OLDEST_YEAR,
         CURRENT_YEAR,
     )
-    
+
     # Note that the product_counties_tag table and product_country table could potentially get of of sync a bit, but don't worry about this for now

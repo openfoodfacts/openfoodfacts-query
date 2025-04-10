@@ -4,7 +4,7 @@ from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
 from query.config import config_settings
-from query.database import database_connection
+from query.database import transaction
 from query.migrator import migrate_database
 
 
@@ -44,5 +44,5 @@ async def setup(request):
             f"redis://{redis.get_container_host_ip()}:{redis.get_exposed_port(6379)}"
         )
 
-        async with database_connection() as conn:
+        async with transaction() as conn:
             await migrate_database(conn)

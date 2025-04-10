@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 
-from query.database import create_record, database_connection, get_rows_affected
+from query.database import create_record, get_rows_affected, transaction
 
 
 async def test_rows_affected_returned_correctly():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         await connection.execute(
             "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
         )
@@ -31,7 +31,7 @@ async def test_rows_affected_returned_correctly():
 
 
 async def test_create_record():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         await connection.execute(
             "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
         )

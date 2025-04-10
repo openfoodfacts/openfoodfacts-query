@@ -4,7 +4,7 @@ from typing import Dict, List
 from asyncpg import Connection
 from fastapi import HTTPException, status
 
-from query.database import database_connection
+from query.database import transaction
 from query.models.query import (
     AggregateCountResult,
     AggregateResult,
@@ -28,7 +28,7 @@ async def fetch_and_log(connection: Connection, sql, *params):
 
 
 async def count(filter: Filter = None, obsolete=False):
-    async with database_connection() as conn:
+    async with transaction() as conn:
         sql_fragments = []
         params = []
         loaded_tags = await get_loaded_tags(conn)
@@ -40,7 +40,7 @@ async def count(filter: Filter = None, obsolete=False):
 
 
 async def aggregate(stages: List[Stage], obsolete=False):
-    async with database_connection() as conn:
+    async with transaction() as conn:
         sql_fragments = []
         params = []
         loaded_tags = await get_loaded_tags(conn)
@@ -91,7 +91,7 @@ async def aggregate(stages: List[Stage], obsolete=False):
 
 
 async def find(query: FindQuery, obsolete=False):
-    async with database_connection() as conn:
+    async with transaction() as conn:
         loaded_tags = await get_loaded_tags(conn)
         if PRODUCT_COUNTRY_TAG not in loaded_tags:
             raise HTTPException(

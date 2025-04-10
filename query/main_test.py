@@ -1,13 +1,13 @@
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from query.database import database_connection
+from query.database import transaction
 from query.main import app
 from query.services.query_count_test import create_test_tags
 
 
 async def test_count_route():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         tags = await create_test_tags(connection)
 
     client = TestClient(app)
@@ -24,7 +24,7 @@ async def test_count_route():
 
 
 async def test_count_obsolete():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         tags = await create_test_tags(connection)
 
     client = TestClient(app)
@@ -53,7 +53,7 @@ async def test_count_invalid_qualifier():
 
 
 async def test_aggregate_obsolete():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         tags = await create_test_tags(connection)
     client = TestClient(app)
     response = client.post(

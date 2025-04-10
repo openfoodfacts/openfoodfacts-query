@@ -9,6 +9,7 @@ import pytest
 from redis.asyncio import Redis, ResponseError, from_url
 from testcontainers.redis import RedisContainer
 
+from query.database import transaction
 from query.redis import (
     STREAM_NAME,
     get_message_timestamp,
@@ -92,7 +93,7 @@ async def test_listener_calls_subscriber_function(
         # Settings should be updated with the last message id
         assert set_id.call_args[0][1] == message_id2
 
-        streams = messages_received.call_args[0][0]
+        streams = messages_received.call_args[0][1]
         assert len(streams) == 1
         assert streams[0][0] == STREAM_NAME
 
@@ -203,42 +204,48 @@ async def test_listener_retrys_on_error(
 
 @patch("query.redis.process_events")
 async def test_messages_received_strips_nulls(process_events: Mock):
-    test_message = {
-        "timestamp": 1692032161,
-        "code": random_code(),
-        "rev": 1,
-        "flavor": "off",
-        "product_type": "food",
-        "user_id": "test_user",
-        "action": "updated",
-        "comment": "Test \0 after null",
-        "diffs": '{"fields":{"change":["categories\0 after null"],"delete":["product_name"]}}',
-    }
+    async with transaction() as connection:
+        test_message = {
+            "timestamp": 1692032161,
+            "code": random_code(),
+            "rev": 1,
+            "flavor": "off",
+            "product_type": "food",
+            "user_id": "test_user",
+            "action": "updated",
+            "comment": "Test \0 after null",
+            "diffs": '{"fields":{"change":["categories\0 after null"],"delete":["product_name"]}}',
+        }
 
-    await messages_received([["test-stream", [["test-id", test_message]]]])
+        await messages_received(
+            connection, [["test-stream", [["test-id", test_message]]]]
+        )
 
-    assert process_events.called
-    assert process_events.call_args[0][0]
-    event = process_events.call_args[0][0][0]
-    assert event.id == "test-id"
-    assert event.timestamp == datetime.fromtimestamp(
-        test_message["timestamp"], timezone.utc
-    )
-    assert event.payload["comment"] == "Test  after null"
-    assert event.payload["diffs"]["fields"]["change"][0] == "categories after null"
+        assert process_events.called
+        assert process_events.call_args[0][1]
+        event = process_events.call_args[0][1][0]
+        assert event.id == "test-id"
+        assert event.timestamp == datetime.fromtimestamp(
+            test_message["timestamp"], timezone.utc
+        )
+        assert event.payload["comment"] == "Test  after null"
+        assert event.payload["diffs"]["fields"]["change"][0] == "categories after null"
 
 
 @patch("query.redis.process_events")
 async def test_copes_with_missing_fields(process_events: Mock):
-    test_message = {}
+    async with transaction() as connection:
+        test_message = {}
 
-    await messages_received([["test-stream", [[f"0-1692032161", test_message]]]])
+        await messages_received(
+            connection, [["test-stream", [[f"0-1692032161", test_message]]]]
+        )
 
-    assert process_events.called
-    assert process_events.call_args[0][0]
-    event = process_events.call_args[0][0][0]
-    assert event.id == "0-1692032161"
-    assert event.timestamp == datetime.fromtimestamp(1692032161, timezone.utc)
+        assert process_events.called
+        assert process_events.call_args[0][1]
+        event = process_events.call_args[0][1][0]
+        assert event.id == "0-1692032161"
+        assert event.timestamp == datetime.fromtimestamp(1692032161, timezone.utc)
 
 
 def test_message_timestamp_returns_a_date_from_a_message_id():

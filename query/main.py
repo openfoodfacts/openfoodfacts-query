@@ -4,7 +4,7 @@ from typing import Dict, List
 
 from fastapi import FastAPI, Query
 
-from query.database import database_connection
+from query.database import transaction
 from query.migrator import migrate_database
 from query.models.health import Health
 from query.models.query import (
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(_):
     # Run migrations
-    async with database_connection() as conn:
+    async with transaction() as conn:
         await migrate_database(conn)
 
     async with redis_lifespan():

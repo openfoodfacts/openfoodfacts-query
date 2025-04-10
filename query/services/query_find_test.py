@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
-from query.database import database_connection
+from query.database import transaction
 from query.models.query import Filter, FindQuery
 from query.services import query
 from query.services.query_count_test import create_test_tags
@@ -221,7 +221,7 @@ async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo, _):
 
 
 async def create_tags_and_scans():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         tags = await create_test_tags(connection)
         world = await get_country(connection, "en:world")
         # Country sequence should be: 3,2,1. World sequence: 2,3,1

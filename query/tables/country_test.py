@@ -1,9 +1,9 @@
-from query.database import database_connection
+from query.database import transaction
 from query.tables.country import add_all_countries
 
 
 async def test_add_all_countries():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         await connection.execute(
             "insert into country (tag) values ('en:france') on conflict (tag) do update set code = null"
         )

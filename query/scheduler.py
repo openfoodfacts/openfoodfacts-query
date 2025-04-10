@@ -3,7 +3,7 @@ from contextlib import contextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from query.database import database_connection
+from query.database import transaction
 from query.redis import start_redis_listener, stop_redis_listener
 from query.services.ingestion import import_from_mongo
 from query.tables.loaded_tag import get_loaded_tags
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 async def scheduled_import_from_mongo():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         try:
             # Pause redis while we are importing
             await stop_redis_listener()

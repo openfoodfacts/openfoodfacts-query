@@ -1,4 +1,4 @@
-from query.database import database_connection
+from query.database import transaction
 from query.services.event_test import sample_event
 from query.tables.product_update_event import create_events
 from query.test_helper import random_code
@@ -6,7 +6,7 @@ from query.test_helper import random_code
 
 async def test_create_events_should_load_duplicates():
     event = sample_event()
-    async with database_connection() as connection:
+    async with transaction() as connection:
         await create_events(connection, [event, event])
 
         result = await connection.fetch(
@@ -17,7 +17,7 @@ async def test_create_events_should_load_duplicates():
 
 
 async def test_create_events_creates_contributors():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         user1 = random_code()
         user2 = random_code()
         # given an existing contributor record
@@ -37,7 +37,7 @@ async def test_create_events_creates_contributors():
 
 
 async def test_create_events_ignores_duplicate_revisions():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # create some products
         code1 = random_code()
         code2 = random_code()
@@ -77,7 +77,7 @@ async def test_create_events_ignores_duplicate_revisions():
 
 
 async def test_create_events_appends_events_from_multiple_payloads():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # create a product
         code1 = random_code()
         await connection.execute("insert into product (code) values ($1)", code1)

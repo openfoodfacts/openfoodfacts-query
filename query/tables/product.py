@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from asyncpg import Connection
 
-from query.database import create_record, database_connection, get_rows_affected
+from query.database import create_record, get_rows_affected, transaction
 from query.models.product import Source
 from query.tables.product_ingredient import delete_ingredients
 from query.tables.product_tags import delete_tags
@@ -107,9 +107,8 @@ async def get_product(connection: Connection, code):
     return await connection.fetchrow("SELECT * FROM product WHERE code = $1", code)
 
 
-async def get_product_by_id(id):
-    async with database_connection() as connection:
-        return await connection.fetchrow("SELECT * FROM product WHERE id = $1", id)
+async def get_product_by_id(connection, id):
+    return await connection.fetchrow("SELECT * FROM product WHERE id = $1", id)
 
 
 async def delete_products(connection, process_id, source, codes=None):

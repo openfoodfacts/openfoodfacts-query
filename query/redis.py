@@ -8,7 +8,7 @@ from typing import Any, AsyncGenerator, Dict, List
 import redis.asyncio as redis
 
 from query.config import config_settings
-from query.database import database_connection
+from query.database import transaction
 from query.models.domain_event import DomainEvent
 from query.services.event import process_events
 from query.tables.settings import get_last_message_id, set_last_message_id
@@ -38,25 +38,24 @@ def get_retry_interval():
 async def redis_listener():
     global error_count
     error_count = 0
+    async with transaction() as connection:
+        last_message_id = await get_last_message_id(connection)
     async with redis_client() as redis:
-        async with database_connection() as connection:
-            last_message_id = await get_last_message_id(connection)
-            while True:
-                try:
-                    response = await redis.xread(
-                        {STREAM_NAME: last_message_id}, 1000, 5000
-                    )
-                    # response is an array of tuples of stream name and array of messages
-                    if response:
-                        await messages_received(response)
+        while True:
+            try:
+                response = await redis.xread({STREAM_NAME: last_message_id}, 1000, 5000)
+                # response is an array of tuples of stream name and array of messages
+                if response:
+                    async with transaction() as connection:
+                        await messages_received(connection, response)
                         # Each message is a tuple of the message id followed by a dict that is the payload
                         last_message_id = response[0][1][-1][0]
                         await set_last_message_id(connection, last_message_id)
 
-                except Exception as e:
-                    logger.error(repr(e))
-                    # Exponential back-off indefinately, Listener will be completely stopped by scheduled import every 24 hours
-                    await asyncio.sleep(get_retry_interval())
+            except Exception as e:
+                logger.error(repr(e))
+                # Exponential back-off indefinately, Listener will be completely stopped by scheduled import every 24 hours
+                await asyncio.sleep(get_retry_interval())
 
 
 redis_listener_task = None
@@ -87,7 +86,7 @@ async def redis_lifespan():
         await stop_redis_listener()
 
 
-async def messages_received(streams):
+async def messages_received(connection, streams):
     for stream in streams:
         stream_name = stream[0]
         messages = stream[1]
@@ -131,7 +130,7 @@ async def messages_received(streams):
                 logger.error(f"{repr(e)} for message: {repr(message)}")
 
         if events:
-            await process_events(events)
+            await process_events(connection, events)
 
 
 def get_message_timestamp(id, payload):

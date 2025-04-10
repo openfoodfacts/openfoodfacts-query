@@ -8,8 +8,8 @@ from query.config import config_settings
 
 
 @asynccontextmanager
-async def database_connection() -> AsyncGenerator[asyncpg.Connection, Any]:
-    connection = await asyncpg.connect(
+async def transaction() -> AsyncGenerator[asyncpg.Connection, Any]:
+    connection: asyncpg.Connection = await asyncpg.connect(
         user=config_settings.POSTGRES_USER,
         password=config_settings.POSTGRES_PASSWORD,
         database=config_settings.POSTGRES_DB,
@@ -20,8 +20,9 @@ async def database_connection() -> AsyncGenerator[asyncpg.Connection, Any]:
         await connection.set_type_codec(
             "jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"
         )
-
-        yield connection
+        # TODO: Test that transactions are rolled back on error but connection is still closed
+        async with connection.transaction():
+            yield connection
     finally:
         await connection.close()
 

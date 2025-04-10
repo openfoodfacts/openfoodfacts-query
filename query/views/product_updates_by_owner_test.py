@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator
 import asyncpg
 
 from query.config import config_settings
-from query.database import database_connection
+from query.database import transaction
 from query.services.event_test import sample_event
 from query.tables.product_update_event import create_events
 from query.test_helper import random_code
@@ -26,7 +26,7 @@ async def readonly_connection() -> AsyncGenerator[asyncpg.Connection, Any]:
 
 
 async def test_aggregate_events_by_count_and_distinct_products():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # create some products
         code1 = random_code()
         code2 = random_code()
@@ -68,7 +68,7 @@ async def test_aggregate_events_by_count_and_distinct_products():
 
 
 async def test_update_existing_aggregate_counts():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # create a product
         code1 = random_code()
         await connection.execute("insert into product (code) values ($1)", code1)

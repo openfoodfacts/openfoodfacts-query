@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
-from query.database import database_connection
+from query.database import transaction
 from query.models.product import Source
 from query.services import ingestion
 from query.tables.country import get_country
@@ -17,8 +17,9 @@ from query.test_helper import mock_cursor, patch_context_manager, random_code
 
 
 async def test_get_process_id_is_monotonically_increasing():
-    async with database_connection() as connection:
+    async with transaction() as connection:
         transaction_id = await ingestion.get_process_id(connection)
+    async with transaction() as connection:
         assert await ingestion.get_process_id(connection) > transaction_id
 
 
@@ -50,7 +51,7 @@ def get_test_products():
 async def test_import_from_mongo_should_import_a_new_product_update_existing_products_and_delete_missing_products(
     append_loaded_tags: Mock, get_process_id_mock: Mock, find_products_mock: Mock
 ):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # mock the process id so it doesn't delete records from other tests
         current_process_id = 0
 
@@ -84,15 +85,16 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
             connection, code=random_code(), process_id=100
         )
 
-        # when:doing a full import from mongo_db
-        patch_context_manager(find_products_mock, mock_cursor(products))
-        start = datetime.now(timezone.utc)
+    # when:doing a full import from mongo_db
+    patch_context_manager(find_products_mock, mock_cursor(products))
+    start = datetime.now(timezone.utc)
 
-        await ingestion.import_from_mongo()
+    await ingestion.import_from_mongo()
 
-        # MongoDB called with no filter
-        assert find_products_mock.call_args[0][0] == {}
+    # MongoDB called with no filter
+    assert find_products_mock.call_args[0][0] == {}
 
+    async with transaction() as connection:
         # then: new product is added, updated product is updated and other product is unchanged
         product_new = await get_product(connection, products[0]["code"])
         assert product_new
@@ -135,14 +137,14 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         )
 
         # check unchanged product has been "deleted"
-        found_old_product = await get_product_by_id(product_unchanged["id"])
+        found_old_product = await get_product_by_id(connection, product_unchanged["id"])
         assert found_old_product["obsolete"] == None
         ingredients_unchanged = await get_tags(
             connection, "ingredients_tags", product_unchanged
         )
         assert ingredients_unchanged[0]["obsolete"] == None
 
-        found_later_product = await get_product_by_id(product_later["id"])
+        found_later_product = await get_product_by_id(connection, product_later["id"])
         assert found_later_product["obsolete"] == False
 
         assert append_loaded_tags.called
@@ -153,15 +155,17 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 async def test_incremental_import_should_not_update_loaded_tags(
     set_loaded_tags_mock, find_products_mock: Mock
 ):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # when: doing an incremental import from mongo_db
         products = get_test_products()
         patch_context_manager(find_products_mock, mock_cursor(products))
 
         last_updated = datetime.now(timezone.utc)
         await set_last_updated(connection, last_updated)
-        await ingestion.import_from_mongo("")
 
+    await ingestion.import_from_mongo("")
+
+    async with transaction() as connection:
         # then: set loaded tags is not updated
         assert not set_loaded_tags_mock.called
 
@@ -180,7 +184,7 @@ async def test_incremental_import_should_not_update_loaded_tags(
 async def test_import_with_no_change_should_not_update_the_source(
     find_products_mock: Mock,
 ):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         test = time.time()
         # given: product with data that matches mongo_db
         last_processed = datetime(2023, 1, 1, tzinfo=timezone.utc)
@@ -209,7 +213,7 @@ async def test_import_with_no_change_should_not_update_the_source(
 async def test_start_importing_from_the_last_import(
     find_products_mock: Mock,
 ):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # given: last_updated setting already set
         start_from = datetime(2023, 1, 1, tzinfo=timezone.utc)
         await set_last_updated(connection, start_from)
@@ -217,8 +221,10 @@ async def test_start_importing_from_the_last_import(
         # when: doing an incremental import from mongo_db
         products = get_test_products()
         patch_context_manager(find_products_mock, mock_cursor(products))
-        await ingestion.import_from_mongo("")
 
+    await ingestion.import_from_mongo("")
+
+    async with transaction() as connection:
         # MongoDB called with the correct filter
         call_args = find_products_mock.call_args[0][0]
         assert call_args == {
@@ -234,7 +240,7 @@ async def test_start_importing_from_the_last_import(
 async def test_cope_with_nul_characters(
     find_products_mock: Mock,
 ):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # when: importing data containing nul characters
         product_code = random_code()
         patch_context_manager(
@@ -263,7 +269,7 @@ async def test_cope_with_nul_characters(
 async def test_set_last_updated_correctly_if_one_product_has_an_invalid_date(
     find_products_mock: Mock,
 ):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # given: products with invalid date
         start_from = datetime(2023, 1, 1, tzinfo=timezone.utc)
         await set_last_updated(connection, start_from)
@@ -275,8 +281,10 @@ async def test_set_last_updated_correctly_if_one_product_has_an_invalid_date(
         patch_context_manager(
             find_products_mock, mock_cursor([products[0], invalid_product])
         )
-        await ingestion.import_from_mongo("")
 
+    await ingestion.import_from_mongo("")
+
+    async with transaction() as connection:
         # then: the last modified date is set correctly
         assert (await get_last_updated(connection)) == datetime.fromtimestamp(
             last_updated, timezone.utc
@@ -307,7 +315,7 @@ async def test_skip_if_already_importing(
 async def test_cope_with_duplicate_product_codes(
     find_products_mock: Mock,
 ):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # when: importing data containing duplicate product codes
         product = {
             "code": random_code(),
@@ -330,7 +338,7 @@ async def test_cope_with_duplicate_product_codes(
 async def test_import_from_event_source_should_always_update_product(
     find_products_mock: Mock,
 ):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # given: product with data that matches mongo_db
         last_processed = datetime(2023, 1, 1, tzinfo=timezone.utc)
         products = get_test_products()
@@ -345,7 +353,7 @@ async def test_import_from_event_source_should_always_update_product(
         )
         patch_context_manager(find_products_mock, mock_cursor(products))
         await ingestion.import_with_filter(
-            {"code": {"$in": [product_code]}}, Source.event
+            connection, {"code": {"$in": [product_code]}}, Source.event
         )
 
         # then: source is updated
@@ -361,18 +369,20 @@ async def test_not_get_an_error_with_concurrent_imports():
 
     async def one_import():
         with patch("query.services.ingestion.find_products") as find_products_mock:
-            patch_context_manager(find_products_mock, mock_cursor(products))
-            await ingestion.import_with_filter(
-                {"code": {"$in": [products[0]["code"], products[1]["code"]]}},
-                Source.event,
-            )
+            async with transaction() as connection:
+                patch_context_manager(find_products_mock, mock_cursor(products))
+                await ingestion.import_with_filter(
+                    connection,
+                    {"code": {"$in": [products[0]["code"], products[1]["code"]]}},
+                    Source.event,
+                )
 
     running_imports = []
     for i in range(11):
         running_imports.append(one_import())
 
     await asyncio.gather(*running_imports)
-    async with database_connection() as connection:
+    async with transaction() as connection:
         found_product = await connection.fetch(
             "SELECT * FROM product WHERE code = $1", products[0]["code"]
         )
@@ -383,7 +393,7 @@ async def test_not_get_an_error_with_concurrent_imports():
 async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
     find_products_mock: Mock,
 ):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # given: an existing product that doesn't exist in mongo_db
         product_code_to_delete = random_code()
         product_to_delete = await create_product(
@@ -404,6 +414,7 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
         products = get_test_products()
         patch_context_manager(find_products_mock, mock_cursor(products))
         await ingestion.import_with_filter(
+            connection,
             {
                 "code": {
                     "$in": [
@@ -431,7 +442,7 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
 
 @patch("query.services.ingestion.find_products")
 async def test_import_from_obsolete_collection(find_products_mock: Mock):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # given: one existing product
         products = get_test_products()
         product_existing = await create_product(
@@ -448,7 +459,7 @@ async def test_import_from_obsolete_collection(find_products_mock: Mock):
         patch_context_manager(
             find_products_mock, mock_cursor([products[0]]), mock_cursor([products[1]])
         )
-        await ingestion.import_with_filter({}, Source.incremental_load)
+        await ingestion.import_with_filter(connection, {}, Source.incremental_load)
 
         # MongoDB is called twice. Second time for the obsolete collection
         call_args_list = find_products_mock.call_args_list
@@ -456,7 +467,7 @@ async def test_import_from_obsolete_collection(find_products_mock: Mock):
         assert call_args_list[0][0][2] == False
         assert call_args_list[1][0][2] == True
 
-        found_product = await get_product_by_id(product_existing["id"])
+        found_product = await get_product_by_id(connection, product_existing["id"])
         assert found_product["obsolete"] == True
         found_tags = await get_tags(connection, "ingredients_tags", found_product)
         assert all(tag for tag in found_tags if tag["obsolete"] == True)
@@ -471,7 +482,7 @@ async def test_import_from_obsolete_collection(find_products_mock: Mock):
 
 @patch("query.services.ingestion.find_products")
 async def test_all_supported_fields(find_products_mock: Mock):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # when importing from mongodb where all fields are populated
         test_product = {
             "code": random_code(),
@@ -502,7 +513,7 @@ async def test_all_supported_fields(find_products_mock: Mock):
             ],
         }
         patch_context_manager(find_products_mock, mock_cursor([test_product]))
-        await ingestion.import_with_filter({}, Source.incremental_load)
+        await ingestion.import_with_filter(connection, {}, Source.incremental_load)
 
         found_product = await get_product(connection, test_product["code"])
         assert found_product["name"] == test_product["product_name"]
@@ -563,14 +574,14 @@ async def test_all_supported_fields(find_products_mock: Mock):
 
 @patch("query.services.ingestion.find_products")
 async def test_ignores_duplicate_tags(find_products_mock: Mock):
-    async with database_connection() as connection:
+    async with transaction() as connection:
         # when importing from mongodb where a tag is duplicated
         test_product = {
             "code": random_code(),
             "ingredients_tags": ["one", "two", "one"],
         }
         patch_context_manager(find_products_mock, mock_cursor([test_product]))
-        await ingestion.import_with_filter({}, Source.incremental_load)
+        await ingestion.import_with_filter(connection, {}, Source.incremental_load)
 
         found_product = await get_product(connection, test_product["code"])
         assert found_product
