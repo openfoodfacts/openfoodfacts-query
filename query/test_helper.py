@@ -1,4 +1,5 @@
 """Various helper functions used during tests"""
+
 from unittest.mock import Mock
 from uuid import uuid4
 

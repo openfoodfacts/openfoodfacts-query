@@ -1,4 +1,5 @@
 """Routines for interacting with MongoDB"""
+
 import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict

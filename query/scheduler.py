@@ -1,4 +1,5 @@
 """Runs scheduled (cron) tasks. Currently just an incremental import from MongoDB every evening."""
+
 import logging
 from contextlib import contextmanager
 

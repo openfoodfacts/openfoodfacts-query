@@ -3,10 +3,9 @@
 import logging
 from contextlib import asynccontextmanager
 from importlib.metadata import metadata
-from typing import Annotated, Dict, List
+from typing import Dict, List
 
 from fastapi import FastAPI, Query
-from pydantic import Field
 
 from query.database import get_transaction
 from query.migrator import migrate_database
@@ -57,6 +56,7 @@ async def get_health() -> Health:
 
 obsolete_param = Query(False, description="Whether to just search obsolete products")
 
+
 @app.post("/count")
 async def count(filter: Filter, obsolete: bool = obsolete_param) -> int:
     """Count the total number of products meeting the specified filter criteria"""
@@ -93,6 +93,12 @@ async def importfrommongo(
 
 
 @app.post("/scans")
-async def scans(scans: ProductScans, fullyloaded: bool = Query(False, description="Set to true when all scans are loaded and popularity queries can now be supported")):
+async def scans(
+    scans: ProductScans,
+    fullyloaded: bool = Query(
+        False,
+        description="Set to true when all scans are loaded and popularity queries can now be supported",
+    ),
+):
     """Used for bulk loading product scan data from logs"""
     await import_scans(scans, fullyloaded)

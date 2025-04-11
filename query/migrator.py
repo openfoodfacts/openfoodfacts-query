@@ -1,4 +1,5 @@
 """Manages keeping the database schema up to date"""
+
 import logging
 import os
 from importlib import import_module

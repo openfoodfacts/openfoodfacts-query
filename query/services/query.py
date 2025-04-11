@@ -38,7 +38,9 @@ async def count(filter: Filter = None, obsolete=False):
         if filter:
             append_sql_fragments(filter, loaded_tags, "id", params, sql_fragments)
 
-        sql = f"SELECT count(*) count FROM product p WHERE {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)}"
+        sql = f"""SELECT count(*) count FROM product p
+            WHERE {'' if obsolete else 'NOT '}obsolete
+            {''.join(sql_fragments)}"""
         return ((await fetch_and_log(transaction, sql, *params)) or [{}])[0].get(
             "count", 0
         )
@@ -83,10 +85,12 @@ async def aggregate(stages: List[Stage], obsolete=False):
         if is_count:
             sql = f"""SELECT count(*) count FROM 
                 (SELECT DISTINCT {column_name} FROM {table_name} p 
-                WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)})"""
+                WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete
+                {''.join(sql_fragments)})"""
         else:
             sql = f"""SELECT {column_name} id, count(*) count FROM {table_name} p
-                WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete{''.join(sql_fragments)}
+                WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete
+                {''.join(sql_fragments)}
                 GROUP BY {column_name} ORDER BY 2 DESC, 1{limit_clause}"""
         results = await fetch_and_log(transaction, sql, *params)
         if is_count:
@@ -202,8 +206,13 @@ async def find(query: FindQuery, obsolete=False):
 def append_sql_fragments(
     filter: Filter, loaded_tags, parent_id_column, params, sql_fragments
 ):
-    """Appends a list of where expressions based on the MongoDB filter to the supplied sql_fragments parameter.
-    The parent_id column determines how inner queries join to the product id"""
+    """Appends a list of where expressions and corresponding SQL bind variables based on the MongoDB filter
+    to the supplied sql_fragments and params parameter respectively.
+    loaded_tags is the list of tags that have currently been loaded. Any reference to a non-loaded tag
+    will raise an unprocessable entity exception which is caught by Product Opener which would then send the
+    query directly to MongoDB instead.
+    The parent_id_column determines how inner queries join to the product id of the parent table,
+    which is assumed to have an alias of 'p'"""
     fragments = filter.qualify_and or [filter]
     for fragment in fragments:
         for tag, value in fragment.model_dump(

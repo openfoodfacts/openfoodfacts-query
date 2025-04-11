@@ -4,7 +4,7 @@ import typing
 from enum import Enum
 from typing import Annotated, Any, Dict, List, Tuple
 
-from pydantic import BaseModel, ConfigDict, Field, create_model
+from pydantic import BaseModel, Field, create_model
 
 from query.tables.product import product_fields
 
@@ -49,7 +49,7 @@ if not typing.TYPE_CHECKING:
         key.replace("_", "-"): (str | Qualify, Field(alias=key, default=None))
         for key in product_fields()
     }
-    Fragment.model_config['extra'] = "forbid"
+    Fragment.model_config["extra"] = "forbid"
     Fragment = create_model("Fragment", __base__=Fragment, **keys)
 
 
