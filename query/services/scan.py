@@ -1,4 +1,5 @@
-"""Routines that operate on product scan data"""
+"""Routines that operate on product scan data. Scans are currently just loaded in a batch from logs
+but will hopefully be loaded from events in the future"""
 
 from query.database import get_transaction
 from query.models.scan import ProductScans

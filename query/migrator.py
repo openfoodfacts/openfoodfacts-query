@@ -1,5 +1,6 @@
 """Manages keeping the database schema up to date"""
 
+import asyncio
 import logging
 import os
 from importlib import import_module
@@ -7,6 +8,7 @@ from importlib import import_module
 from asyncpg import Connection
 
 from query.config import config_settings
+from query.database import get_transaction
 
 MIGRATIONS_TABLE = "mikro_orm_migrations"
 MIGRATIONS_FOLDER = "query/migrations"
@@ -32,22 +34,28 @@ async def ensure_migration_table(transaction: Connection):
     )
 
 
-async def migrate_database(transaction: Connection):
-    """Apply all necessary upgrade scripts to the database"""
-    await ensure_migration_table(transaction)
-    rows = await transaction.fetch(f"SELECT * FROM {MIGRATIONS_TABLE}")
-    existing_migrations = [r["name"] for r in rows]
-    for fname in sorted(os.listdir(MIGRATIONS_FOLDER)):
-        if fname.endswith(".py") and not fname.startswith("__"):
-            migration_name = fname.split(".")[0]
-            if migration_name not in existing_migrations:
-                logger.info(f"Applying {fname}")
-                module = import_module(
-                    f'{MIGRATIONS_FOLDER.replace("/",".")}.{migration_name}'
-                )
-                async with transaction.transaction():
-                    await module.up(transaction)
-                    await transaction.execute(
-                        f"INSERT INTO {MIGRATIONS_TABLE} (name) VALUES ($1)",
-                        migration_name,
+async def migrate_database():
+    async with get_transaction() as transaction:
+        """Apply all necessary upgrade scripts to the database"""
+        logger.info("Checking if any migrations need to be applied")
+        await ensure_migration_table(transaction)
+        rows = await transaction.fetch(f"SELECT * FROM {MIGRATIONS_TABLE}")
+        existing_migrations = [r["name"] for r in rows]
+        for fname in sorted(os.listdir(MIGRATIONS_FOLDER)):
+            if fname.endswith(".py") and not fname.startswith("__"):
+                migration_name = fname.split(".")[0]
+                if migration_name not in existing_migrations:
+                    logger.info(f"Applying {fname}")
+                    module = import_module(
+                        f'{MIGRATIONS_FOLDER.replace("/",".")}.{migration_name}'
                     )
+                    async with transaction.transaction():
+                        await module.up(transaction)
+                        await transaction.execute(
+                            f"INSERT INTO {MIGRATIONS_TABLE} (name) VALUES ($1)",
+                            migration_name,
+                        )
+
+
+if __name__ == "__main__":
+    asyncio.run(migrate_database())

@@ -1,4 +1,8 @@
-"""Runs scheduled (cron) tasks. Currently just an incremental import from MongoDB every evening."""
+"""Runs scheduled (cron) tasks. Currently just an incremental import from MongoDB every evening.
+In theory this should not be needed except for running a full import when support for new tags has
+been added but these have not yet been loaded into PostgreSQL. If we see any products with a source
+of 'incremental_load' then this may indicate a scenario where a product is being updated without
+generating a Redis event, which should be investigated"""
 
 import logging
 from contextlib import contextmanager

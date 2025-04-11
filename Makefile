@@ -29,7 +29,11 @@ run: run_deps
 dev: run_deps install
 	docker compose up --wait query_postgres
 
-watch: run_deps
+migrate_database: run_deps
+	docker compose up --wait query_postgres
+	poetry run python query/migrator.py
+
+watch: migrate_database
 	docker compose up --wait query_postgres
 	poetry run uvicorn query.main:app --reload --port 5510 --reload-dir query
 
