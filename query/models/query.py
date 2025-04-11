@@ -14,8 +14,7 @@ NoValues = Annotated[
 ]
 
 
-# TODO: Update pydantic so we can use validate_by_name instead
-class Qualify(BaseModel, populate_by_name=True, extra="forbid"):
+class Qualify(BaseModel, validate_by_name=True, extra="forbid"):
     """Qualifiers are special words used as keys in mongo queries
     that roughly correspond to operators"""
 
@@ -50,7 +49,7 @@ if not typing.TYPE_CHECKING:
         key.replace("_", "-"): (str | Qualify, Field(alias=key, default=None))
         for key in product_fields()
     }
-    keys["model_config"] = ConfigDict(extra="forbid")
+    Fragment.model_config['extra'] = "forbid"
     Fragment = create_model("Fragment", __base__=Fragment, **keys)
 
 
