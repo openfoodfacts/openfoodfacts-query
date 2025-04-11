@@ -1,3 +1,5 @@
+"""A leaner version of the product update events, used to support queries more efficiently"""
+
 from typing import List
 
 from asyncpg import Connection

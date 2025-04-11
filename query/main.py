@@ -1,8 +1,12 @@
+"""Starts FastAPI and the import scheduler and defines all of the API routes"""
+
 import logging
 from contextlib import asynccontextmanager
-from typing import Dict, List
+from importlib.metadata import metadata
+from typing import Annotated, Dict, List
 
 from fastapi import FastAPI, Query
+from pydantic import Field
 
 from query.database import get_transaction
 from query.migrator import migrate_database
@@ -36,36 +40,59 @@ async def lifespan(_):
             logger.info("Shutting down")
 
 
-app = FastAPI(lifespan=lifespan)
+package_metadata = metadata("query")
+app = FastAPI(
+    lifespan=lifespan,
+    title=package_metadata["summary"],
+    license_info={"name": package_metadata["license"]},
+    version=package_metadata["version"],
+)
 
 
 @app.get("/health", response_model_exclude_none=True)
 async def get_health() -> Health:
+    """Get the health of the service and its dependencies"""
     return await check_health()
 
 
+obsolete_param = Query(False, description="Whether to just search obsolete products")
+
 @app.post("/count")
-async def count(filter: Filter, obsolete: bool = False) -> int:
+async def count(filter: Filter, obsolete: bool = obsolete_param) -> int:
+    """Count the total number of products meeting the specified filter criteria"""
     return await query.count(filter, obsolete)
 
 
 @app.post("/aggregate")
 async def aggregate(
-    stages: List[Stage], obsolete: bool = False
+    stages: List[Stage], obsolete: bool = obsolete_param
 ) -> List[AggregateResult] | AggregateCountResult:
+    """Get the aggregate count of products by the specified grouping field. If a $count stage is supplied then the count of distinct group values will be returned"""
     return await query.aggregate(stages, obsolete)
 
 
 @app.post("/find")
-async def find(find_query: FindQuery, obsolete: bool = False) -> List[Dict]:
+async def find(
+    find_query: FindQuery,
+    obsolete: bool = obsolete_param,
+) -> List[Dict]:
+    """Fetch the specified product documents"""
     return await query.find(find_query, obsolete)
 
 
 @app.get("/importfrommongo")
-async def importfrommongo(start_from: str = Query(None, alias="from")):
+async def importfrommongo(
+    start_from: str = Query(
+        None,
+        alias="from",
+        description="The last updated date from which to import products. A full import will be performed if this is not supplied. Supply but leave blank to import products updated since the last import",
+    )
+):
+    """Runs a full or incremental import from MongoDB"""
     return await ingestion.import_from_mongo(start_from)
 
 
 @app.post("/scans")
-async def scans(scans: ProductScans, fullyloaded=False):
+async def scans(scans: ProductScans, fullyloaded: bool = Query(False, description="Set to true when all scans are loaded and popularity queries can now be supported")):
+    """Used for bulk loading product scan data from logs"""
     await import_scans(scans, fullyloaded)

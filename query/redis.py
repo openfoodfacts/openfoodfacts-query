@@ -1,3 +1,5 @@
+"""Redis is used to handle asynchronous message exchange between Open Food Facts components"""
+
 import asyncio
 import json
 import logging
@@ -8,7 +10,7 @@ from typing import Any, AsyncGenerator, Dict, List
 import redis.asyncio as redis
 
 from query.config import config_settings
-from query.database import get_transaction
+from query.database import get_transaction, strip_nuls
 from query.models.domain_event import DomainEvent
 from query.services.event import process_events
 from query.tables.settings import get_last_message_id, set_last_message_id
@@ -18,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def redis_client() -> AsyncGenerator[redis.Redis, Any]:
+    """Creates a connection to Redis"""
     client = redis.from_url(config_settings.REDIS_URL, decode_responses=True)
     try:
         yield client
@@ -30,12 +33,14 @@ error_count = 0
 
 
 def get_retry_interval():
+    """Use exponential backoff if we get an error"""
     global error_count
     error_count += 1
     return 2**error_count
 
 
 async def redis_listener():
+    """Listen for Redis events on the specified stream and processes any messages received"""
     global error_count
     error_count = 0
     async with get_transaction() as transaction:
@@ -55,7 +60,7 @@ async def redis_listener():
 
             except Exception as e:
                 logger.error(repr(e))
-                # Exponential back-off indefinately, Listener will be completely stopped by scheduled import every 24 hours
+                # Exponential back-off indefinitely, Listener will be completely stopped by scheduled import every 24 hours
                 await asyncio.sleep(get_retry_interval())
 
 
@@ -63,11 +68,13 @@ redis_listener_task = None
 
 
 def start_redis_listener():
+    """Starts the redis listener and keeps a handle on the task so it can be paused during scheduled imports"""
     global redis_listener_task
     redis_listener_task = asyncio.create_task(redis_listener())
 
 
 async def stop_redis_listener():
+    """Stops the redis listener. May take a few seconds if we are waiting for messages from Redis"""
     global redis_listener_task
     if redis_listener_task and not redis_listener_task.done():
         redis_listener_task.cancel()
@@ -80,6 +87,7 @@ async def stop_redis_listener():
 # Note we keep a global varible here so we can pause and result the listener during imports
 @asynccontextmanager
 async def redis_lifespan():
+    """Lifespan handler for starting and stopping Redis with FastAPI"""
     try:
         start_redis_listener()
         yield
@@ -88,6 +96,7 @@ async def redis_lifespan():
 
 
 async def messages_received(transaction, streams):
+    """Converts a list of messages in one or more streams into domain events for onward processing"""
     for stream in streams:
         stream_name = stream[0]
         messages = stream[1]
@@ -99,27 +108,11 @@ async def messages_received(transaction, streams):
             try:
                 id: str = message[0]
                 payload: Dict = message[1]
-                try:
-                    timestamp = datetime.fromtimestamp(
-                        payload["timestamp"], timezone.utc
-                    )
-                except:
-                    try:
-                        timestamp = datetime.fromtimestamp(
-                            int(id.split("-")[1]), timezone.utc
-                        )
-                    except:
-                        timestamp = datetime.now(timezone.utc)
+                timestamp = get_message_timestamp(id, payload)
 
-                comment = payload.get("comment")
-                if comment != None and "\0" in comment:
-                    payload["comment"] = comment.replace("\0", "")
-
-                diffs = payload.get("diffs")
-                if diffs != None:
-                    if "\0" in diffs:
-                        diffs = diffs.replace("\0", "")
-                    payload["diffs"] = json.loads(diffs)
+                strip_nuls(payload, f"Redis event id {id}")
+                if "diffs" in payload:
+                    payload["diffs"] = json.loads(payload["diffs"])
 
                 events.append(
                     DomainEvent(
@@ -135,12 +128,16 @@ async def messages_received(transaction, streams):
 
 
 def get_message_timestamp(id, payload):
+    """Determine the time that the domain event took place"""
     try:
+        # Use the timestamp property on the message payload if it is provided
         timestamp = datetime.fromtimestamp(payload["timestamp"], timezone.utc)
     except:
         try:
+            # Otherwise attempt extract the timestamp from the message id
             timestamp = datetime.fromtimestamp(int(id.split("-")[0]), timezone.utc)
         except:
+            # If all else fails use the current time
             timestamp = datetime.now(timezone.utc)
 
     return timestamp

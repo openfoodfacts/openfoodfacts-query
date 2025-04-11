@@ -1,3 +1,5 @@
+"""Configuration information loaded from environment variables and / or .env files"""
+
 import logging
 
 from pydantic_settings import BaseSettings, SettingsConfigDict

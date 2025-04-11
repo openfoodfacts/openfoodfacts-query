@@ -1,3 +1,5 @@
+"""The kind of product update that was performed. Used when recording product_update events"""
+
 from typing import List
 
 from asyncpg import Connection

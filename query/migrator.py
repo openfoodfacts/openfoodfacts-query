@@ -1,3 +1,4 @@
+"""Manages keeping the database schema up to date"""
 import logging
 import os
 from importlib import import_module
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 async def ensure_migration_table(transaction: Connection):
+    """Create the migrations table if it doesn't already exist"""
     await transaction.execute(f"create schema if not exists {config_settings.SCHEMA};")
     await transaction.execute(f"SET search_path={config_settings.SCHEMA},public")
     await transaction.execute(
@@ -30,6 +32,7 @@ async def ensure_migration_table(transaction: Connection):
 
 
 async def migrate_database(transaction: Connection):
+    """Apply all necessary upgrade scripts to the database"""
     await ensure_migration_table(transaction)
     rows = await transaction.fetch(f"SELECT * FROM {MIGRATIONS_TABLE}")
     existing_migrations = [r["name"] for r in rows]

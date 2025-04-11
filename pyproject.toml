@@ -1,7 +1,7 @@
 [project]
 name = "query"
-version = "0.1.0"
-description = "This project extracts data from MongoDB and Redis events into a PostgreSQL database in order to support faster aggregations, counts and sorted product queries"
+version = "0.2.0"
+description = "Open Food Facts: The Open Food Facts Data Warehouse"
 authors = [
     {name = "Open Food Facts Team"}
 ]

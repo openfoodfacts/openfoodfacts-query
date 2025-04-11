@@ -1,3 +1,5 @@
+"""A view to return aggregated product update information"""
+
 from query.database import config_settings
 
 

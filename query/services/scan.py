@@ -1,3 +1,5 @@
+"""Routines that operate on product scan data"""
+
 from query.database import get_transaction
 from query.models.scan import ProductScans
 from query.tables.loaded_tag import append_loaded_tags
@@ -7,6 +9,9 @@ from query.tables.product_scans_by_country import create_scans
 
 
 async def import_scans(scans: ProductScans, fully_loaded=False):
+    """Imports batches of product scans (currently generated from logs).
+    The caller should set the fully_loaded flag on the last batch which will then
+    enable support for popularity based queries"""
     async with get_transaction() as transaction:
         # The PO import routine sends the directory name as the product code, so we need to normalize it
         normalized_scans = ProductScans.model_validate({})

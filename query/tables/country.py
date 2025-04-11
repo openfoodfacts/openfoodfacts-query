@@ -1,3 +1,5 @@
+"""Full list of countries. Will include the countries taxonomy plus other country values that have appeared in scans or product countries_tags"""
+
 import json
 import os
 

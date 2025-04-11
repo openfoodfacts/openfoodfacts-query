@@ -1,3 +1,5 @@
+"""Provides information on the health of other services that this service depends on"""
+
 import redis.asyncio as redis
 
 from query.config import config_settings

@@ -1,3 +1,7 @@
+"""This will contain a record for each country that a product is sold in, plus a world entry for all products
+The recent and total scans columns are used for popularity sorting and need to be refreshed each year
+from the product_scans_by_country"""
+
 from query.database import create_record
 
 OLDEST_YEAR = 2019

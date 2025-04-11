@@ -1,3 +1,5 @@
+"""Global test configuration and setup / teardown functions"""
+
 import pytest
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from testcontainers.postgres import PostgresContainer
@@ -21,6 +23,8 @@ test_settings = SettingsForTests()
 
 @pytest.fixture(scope="session", autouse=True)
 async def setup(request):
+    """You can use your local PostgreSQL database and Redis instances for tests by disabling test containers
+    This runs a bit faster but doesn't test migrations"""
     if test_settings.USE_TESTCONTAINERS:
         postgres = PostgresContainer(test_settings.POSTGRES_IMAGE)
         redis = RedisContainer()

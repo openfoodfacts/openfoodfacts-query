@@ -1,3 +1,6 @@
+"""The set of tables that store product tags. Each tag is simply an array of values on the product.
+The order of tags is not preserved"""
+
 from query.database import create_record, get_rows_affected
 
 TAG_TABLES = {
@@ -69,6 +72,7 @@ TAG_TABLES = {
 
 
 async def create_tables(transaction):
+    """Creates tag tables. Note this will need to be edited if new tags are added and a migration script added at the end to add the newer tables"""
     for table_name in TAG_TABLES.values():
         await transaction.execute(
             f"""create table {table_name} (
@@ -96,6 +100,7 @@ async def create_tag(transaction, tag, product, value):
 
 
 async def create_tags_from_staging(transaction, log, obsolete):
+    """Populates all of the tag tables from the product_temp data"""
     for tag, tag_table in TAG_TABLES.items():
         log_text = f"Updated {tag}"
 
@@ -117,6 +122,7 @@ async def create_tags_from_staging(transaction, log, obsolete):
 
 
 async def delete_tags(transaction, product_ids):
+    """Soft deletes tags for the specified products"""
     for tag_table in TAG_TABLES.values():
         await transaction.fetch(
             f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id = ANY($1::int[])",

@@ -1,3 +1,7 @@
+"""The hierarchical list of ingredients for a product.
+There is currently no API to query this data, it is just being used internally to support the recipe estimator project
+"""
+
 from asyncpg import Connection
 
 from query.database import get_rows_affected

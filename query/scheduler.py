@@ -1,3 +1,4 @@
+"""Runs scheduled (cron) tasks. Currently just an incremental import from MongoDB every evening."""
 import logging
 from contextlib import contextmanager
 
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 async def scheduled_import_from_mongo():
+    """Run an incremental import from MongoDB. Converts to a full import if more scan tables have been added since the last run"""
     async with get_transaction() as transaction:
         try:
             # Pause redis while we are importing
@@ -31,6 +33,7 @@ async def scheduled_import_from_mongo():
 
 @contextmanager
 def scheduler_lifespan():
+    """Starts and stops the scheduler with FastAPI"""
     scheduler = AsyncIOScheduler()
     try:
         scheduler.start()

@@ -241,13 +241,13 @@ async def test_copes_with_missing_fields(process_events: Mock):
         test_message = {}
 
         await messages_received(
-            transaction, [["test-stream", [[f"0-1692032161", test_message]]]]
+            transaction, [["test-stream", [[f"1692032161-0", test_message]]]]
         )
 
         assert process_events.called
         assert process_events.call_args[0][1]
         event = process_events.call_args[0][1][0]
-        assert event.id == "0-1692032161"
+        assert event.id == "1692032161-0"
         assert event.timestamp == datetime.fromtimestamp(1692032161, timezone.utc)
 
 

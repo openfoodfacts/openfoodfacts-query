@@ -70,6 +70,8 @@ The unit tests use testcontainers to create a temporary Postgres database and Re
 
 Tests are mingled in with the project structure to make it easier to find them. A TDD approach to development is recommended.
 
+Note that all tests are classified as "unit" tests as no external dependencies are needed. However, we use testcontainers to provide transient instances of PostgreSQL and Redis so that these do not need to be mocked all of the time.
+
 ## Calling from Product Opener
 
 By default, product opener is configured to call the "query" host on the `COMMON_NET_NAME` network. To configure Product Opener to use a locally running instance update the following line in the Product Opener .env file:

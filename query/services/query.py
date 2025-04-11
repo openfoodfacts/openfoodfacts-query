@@ -1,3 +1,5 @@
+"""Routines that support the query services like count, aggregate and find"""
+
 import logging
 from typing import Dict, List
 
@@ -15,7 +17,7 @@ from query.models.query import (
 from query.mongodb import find_products
 from query.tables.country import get_country
 from query.tables.loaded_tag import get_loaded_tags
-from query.tables.product import product_fields, product_filter_fields
+from query.tables.product import get_product_column_for_field
 from query.tables.product_country import PRODUCT_COUNTRY_TAG
 from query.tables.product_tags import TAG_TABLES
 
@@ -28,6 +30,7 @@ async def fetch_and_log(transaction: Connection, sql, *params):
 
 
 async def count(filter: Filter = None, obsolete=False):
+    """Count the number of products that match the specified filter"""
     async with get_transaction() as transaction:
         sql_fragments = []
         params = []
@@ -42,15 +45,18 @@ async def count(filter: Filter = None, obsolete=False):
 
 
 async def aggregate(stages: List[Stage], obsolete=False):
+    """Get aggregate counts based on the stages specified"""
     async with get_transaction() as transaction:
         sql_fragments = []
         params = []
         loaded_tags = await get_loaded_tags(transaction)
-        group = [stage.group for stage in stages if stage.group][0]
         filter = [stage.match for stage in stages if stage.match][0]
-        is_count = [stage.count for stage in stages if stage.count]
+        group = [stage.group for stage in stages if stage.group][0]
+        # We only currently support grouping by one field
         tag = group.id.value[1:]
-        is_product_filter = tag in product_filter_fields()
+        # If a count stage is specified then we just count the distinct number of group field values
+        is_count = [stage.count for stage in stages if stage.count]
+        product_column_name = get_product_column_for_field(tag)
 
         limit = [stage.limit for stage in stages if stage.limit]
         skip = [stage.skip for stage in stages if stage.skip]
@@ -63,16 +69,17 @@ async def aggregate(stages: List[Stage], obsolete=False):
             params.append(skip[0])
             limit_clause += f" OFFSET ${len(params)}"
 
-        table_name = "product" if is_product_filter else TAG_TABLES[tag]
-        column_name = product_fields[tag] if is_product_filter else "value"
+        # Determine whether our query is on the product table or one of the tag tables
+        table_name = "product" if product_column_name else TAG_TABLES[tag]
         if filter:
             append_sql_fragments(
                 filter,
                 loaded_tags,
-                "id" if is_product_filter else "product_id",
+                "id" if product_column_name else "product_id",
                 params,
                 sql_fragments,
             )
+        column_name = product_column_name or "value"
         if is_count:
             sql = f"""SELECT count(*) count FROM 
                 (SELECT DISTINCT {column_name} FROM {table_name} p 
@@ -93,8 +100,12 @@ async def aggregate(stages: List[Stage], obsolete=False):
 
 
 async def find(query: FindQuery, obsolete=False):
+    """Fetch the product records matching the specified filter, in the requested order,
+    returning the fields mentioned in the projection"""
     async with get_transaction() as transaction:
         loaded_tags = await get_loaded_tags(transaction)
+        # We currently only support sorting by popularity, i.e. based on number of scans
+        # So we abort if scans have not yet been fully loaded
         if PRODUCT_COUNTRY_TAG not in loaded_tags:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY, "Scans have not been fully loaded"
@@ -110,6 +121,7 @@ async def find(query: FindQuery, obsolete=False):
                 "Only descending popularity_key sort is currently supported",
             )
 
+        # The country we are filtering by determines which scans we use to sort the results
         country_tag = getattr(query.filter, "countries-tags")
         country = (
             await get_country(transaction, country_tag)
@@ -137,6 +149,9 @@ async def find(query: FindQuery, obsolete=False):
             params.append(query.skip)
             limit_clause += f" OFFSET ${len(params)}"
 
+        # The sub-select gets the list of product ids and applies the limits
+        # This was found to be the fastest approach as it allows the inner query to
+        # operate on just the small product_country table
         sql = f"""SELECT p.code FROM product p 
             JOIN product_country pc ON pc.product_id = p.id AND pc.country_id = $1
             WHERE p.id IN (SELECT p.product_id
@@ -151,6 +166,7 @@ async def find(query: FindQuery, obsolete=False):
         product_codes = [result["code"] for result in results]
         logger.debug(f"Find: Codes: {repr(product_codes)}")
 
+        # Make sure we pass the code to MongoDB so that we can match up results
         if "code" not in query.projection:
             query.projection["code"] = 1
 
@@ -168,25 +184,40 @@ async def find(query: FindQuery, obsolete=False):
                     mongodb_results[code_index] = result
 
             # Eliminate any None's from the result. Note this should only happen if there is a mismatch between off-query and MongoDB
-            return [result for result in mongodb_results if result]
+            final_result = [result for result in mongodb_results if result]
+
+            if len(final_result) < len(product_codes):
+                missing_product_codes = [
+                    code
+                    for index, code in enumerate(product_codes)
+                    if mongodb_results[index] == None
+                ]
+                logger.warning(
+                    f"Following product codes were not found in M<ongoDB: {repr(missing_product_codes)}"
+                )
+
+            return final_result
 
 
 def append_sql_fragments(
     filter: Filter, loaded_tags, parent_id_column, params, sql_fragments
 ):
+    """Appends a list of where expressions based on the MongoDB filter to the supplied sql_fragments parameter.
+    The parent_id column determines how inner queries join to the product id"""
     fragments = filter.qualify_and or [filter]
     for fragment in fragments:
         for tag, value in fragment.model_dump(
             exclude_defaults=True, by_alias=True
         ).items():
-            is_product_filter = tag in product_filter_fields()
-            if not is_product_filter and tag not in loaded_tags:
+            product_column_name = get_product_column_for_field(tag)
+            if not product_column_name and tag not in loaded_tags:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded"
                 )
 
             is_not = False
             values = [value]
+            # Apply any specific MongoDB expression if it isn't a simple match
             if isinstance(value, Dict):
                 if "$ne" in value:
                     is_not = True
@@ -212,22 +243,22 @@ def append_sql_fragments(
 
             for tag_value in values:
                 where_expression = ""
-                field = product_fields[tag] if is_product_filter else "value"
+                column_name = product_column_name or "value"
                 if tag_value != None:
                     params.append(tag_value)
                     if isinstance(tag_value, List):
-                        where_expression = f" AND {field} = ANY(${len(params)})"
+                        where_expression = f" AND {column_name} = ANY(${len(params)})"
                     else:
-                        where_expression = f" AND {field} = ${len(params)}"
+                        where_expression = f" AND {column_name} = ${len(params)}"
 
-                if is_product_filter:
+                if product_column_name:
                     if tag_value == None:
                         where_expression = (
-                            f" AND {field} IS {'' if is_not else 'NOT '}NULL"
+                            f" AND {column_name} IS {'' if is_not else 'NOT '}NULL"
                         )
                     else:
                         if is_not:
-                            where_expression = f" AND ({field} IS NULL OR {where_expression.replace(' AND ', ' NOT ')})"
+                            where_expression = f" AND ({column_name} IS NULL OR {where_expression.replace(' AND ', ' NOT ')})"
                     # If parent is the product table then we can just add the where clause. Otherwise need an EXISTS
                     if parent_id_column == "id":
                         sql_fragments.append(where_expression)
@@ -237,6 +268,7 @@ def append_sql_fragments(
                         )
 
                 else:
+                    # If the filter is on a tag table then always do this using an exists
                     sql_fragments.append(
                         f" AND {'NOT ' if is_not else ''}EXISTS (SELECT * FROM {TAG_TABLES[tag]} WHERE product_id = p.{parent_id_column}{where_expression})"
                     )

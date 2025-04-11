@@ -1,3 +1,5 @@
+"""The raw event data for each product_updated event"""
+
 from datetime import datetime, timezone
 from typing import List
 

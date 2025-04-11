@@ -1,3 +1,5 @@
+"""The root table for product information"""
+
 import re
 from datetime import datetime, timezone
 
@@ -6,9 +8,9 @@ from asyncpg import Connection
 from query.database import create_record, get_rows_affected
 from query.models.product import Source
 from query.tables.product_ingredient import delete_ingredients
-from query.tables.product_tags import delete_tags
+from query.tables.product_tags import TAG_TABLES, delete_tags
 
-product_fields = {
+product_fields_column_mapping = {
     "code": "code",
     "product_name": "name",
     "creator": "creator",
@@ -22,11 +24,19 @@ product_fields = {
 }
 
 
-def product_filter_fields():
-    return [key for key, value in product_fields.items() if value]
+def stored_root_product_fields():
+    """Product fields that are stored on the root table"""
+    return [key for key, value in product_fields_column_mapping.items() if value]
 
 
-product_columns = [value for value in product_fields.values() if value]
+def get_product_column_for_field(field):
+    """The column name for the corresponding MonoDB field name"""
+    return product_fields_column_mapping.get(field, None)
+
+
+def product_fields():
+    """All of the MongoDB product document properties that are currently supported"""
+    return list(TAG_TABLES.keys()) + stored_root_product_fields()
 
 
 async def create_table(transaction: Connection):
@@ -64,7 +74,7 @@ async def create_table(transaction: Connection):
 async def update_products_from_staging(
     transaction: Connection, log, obsolete, process_id, source
 ):
-    # Apply updates to products
+    """Apply updates to products from the product_temp table. Assumes that a minimal product record has already been created"""
     product_results = await transaction.execute(
         f"""
       update product
@@ -114,6 +124,8 @@ async def get_product_by_id(transaction, id):
 
 
 async def delete_products(transaction, process_id, source, codes=None):
+    """Soft delete all products and related data that were either not in the process (for a full load)
+    or is one of the codes listed (for an event load)"""
     args = [process_id, datetime.now(timezone.utc), source]
     if codes:
         args.append(codes)
@@ -139,6 +151,7 @@ leading_digits = re.compile(r"^0+")
 
 
 def normalize_code(code):
+    """Normalizes the length of a product code"""
     # Logic re-created from https://github.com/openfoodfacts/openfoodfacts-server/blob/main/lib/ProductOpener/Products.pm#L313
     # Return the code as-is if it is not all digits
     if not all_digits.match(code):

@@ -1,3 +1,4 @@
+"""Routines for interacting with MongoDB"""
 import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict
@@ -14,6 +15,7 @@ logging.getLogger("pymongo").setLevel(logging.WARNING)
 async def find_products(
     filter: Dict[str, Any], projection: Dict[str, bool], obsolete=False
 ):
+    """Runs a query on the MongoDB products collection with the specified filter and projection and returns a cursor"""
     client = AsyncIOMotorClient(
         config_settings.MONGO_URI, serverSelectionTimeoutMS=1000
     )

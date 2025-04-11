@@ -1,3 +1,5 @@
+"""Users that have made any kind of contribution. Currently only used when logging product update events"""
+
 from typing import List
 
 from asyncpg import Connection

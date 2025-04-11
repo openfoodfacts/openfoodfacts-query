@@ -1,3 +1,5 @@
+"""Models used by the health check service"""
+
 from enum import Enum
 from typing import Dict
 
@@ -17,6 +19,7 @@ class HealthItemStatusEnum(str, Enum):
 class HealthItem(BaseModel):
     status: HealthItemStatusEnum = HealthItemStatusEnum.up
     reason: str | None = None
+    """Error information if the item is unhealthy"""
 
 
 class Health(BaseModel):
@@ -26,4 +29,7 @@ class Health(BaseModel):
             self.status = HealthStatusEnum.error
 
     status: HealthStatusEnum = HealthStatusEnum.ok
+    """Overall health of the service"""
+
     info: Dict[str, HealthItem] = dict()
+    """Health of individual dependencies"""
