@@ -39,22 +39,29 @@ async def migrate_database():
         """Apply all necessary upgrade scripts to the database"""
         logger.info("Checking if any migrations need to be applied")
         await ensure_migration_table(transaction)
+
+        # Get the migrations that have already been run
         rows = await transaction.fetch(f"SELECT * FROM {MIGRATIONS_TABLE}")
         existing_migrations = [r["name"] for r in rows]
-        for fname in sorted(os.listdir(MIGRATIONS_FOLDER)):
-            if fname.endswith(".py") and not fname.startswith("__"):
-                migration_name = fname.split(".")[0]
-                if migration_name not in existing_migrations:
-                    logger.info(f"Applying {fname}")
-                    module = import_module(
-                        f'{MIGRATIONS_FOLDER.replace("/",".")}.{migration_name}'
+
+    # Migrations are stored in the migrations folder and are executed in alphabetical order
+    for fname in sorted(os.listdir(MIGRATIONS_FOLDER)):
+        if fname.endswith(".py") and not fname.startswith("__"):
+            migration_name = fname.split(".")[0]
+            if migration_name not in existing_migrations:
+                logger.info(f"Applying {fname}")
+                module = import_module(
+                    f'{MIGRATIONS_FOLDER.replace("/",".")}.{migration_name}'
+                )
+                # Each migration is run in its own transaction so that if one fails we don't
+                # roll back all of them
+                async with get_transaction() as transaction:
+                    # Each migration file just has to implement an "up" function that takes a transaction as a parameter
+                    await module.up(transaction)
+                    await transaction.execute(
+                        f"INSERT INTO {MIGRATIONS_TABLE} (name) VALUES ($1)",
+                        migration_name,
                     )
-                    async with transaction.transaction():
-                        await module.up(transaction)
-                        await transaction.execute(
-                            f"INSERT INTO {MIGRATIONS_TABLE} (name) VALUES ($1)",
-                            migration_name,
-                        )
 
 
 if __name__ == "__main__":
