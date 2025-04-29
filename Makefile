@@ -17,25 +17,31 @@ endif
 install:
 	poetry install
 
+build:
+	docker compose build
+
 # Use this to start both the query service and associated database in Docker
-up: run_deps
-	docker compose up --build --wait
+up: run_deps build
+	docker compose up --wait
 
 # Called by other projects to start this project as a dependency
 run: run_deps
 	COMPOSE_FILE=${COMPOSE_FILE_RUN} docker compose up -d
 
-# This task starts a Postgres database in Docker and then prepares the local environment for development
-dev: run_deps install
+start_postgres:
 	docker compose up --wait query_postgres
 
-migrate_database: run_deps
-	docker compose up --wait query_postgres
+# This task starts a Postgres database in Docker and then prepares the local environment for development
+dev: run_deps install migrate_database_local
+
+migrate_database_local: start_postgres
 	poetry run python query/migrator.py
 
-watch: migrate_database
-	docker compose up --wait query_postgres
-	poetry run uvicorn query.main:app --reload --port 5510 --reload-dir query
+migrate_database_docker:
+	docker compose run --rm -e PYTHONPATH=/code query python query/migrator.py
+
+watch: migrate_database_local
+	poetry run python query/main.py watch
 
 tests:
 	poetry run pytest ${args}

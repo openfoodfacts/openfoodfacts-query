@@ -10,7 +10,7 @@ from redis.asyncio import Redis, ResponseError, from_url
 from testcontainers.redis import RedisContainer
 
 from query.database import get_transaction
-from query.redis import (
+from query.events import (
     STREAM_NAME,
     get_message_timestamp,
     get_retry_interval,

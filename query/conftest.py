@@ -47,4 +47,5 @@ async def setup(request):
             f"redis://{redis.get_container_host_ip()}:{redis.get_exposed_port(6379)}"
         )
 
-        await migrate_database()
+    # Always run migrations, even if not using testcontainers
+    await migrate_database(True)

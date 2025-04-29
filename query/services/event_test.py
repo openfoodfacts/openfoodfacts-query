@@ -3,9 +3,9 @@ import time
 from unittest.mock import Mock, patch
 
 from query.database import get_transaction
+from query.events import STREAM_NAME
 from query.models.domain_event import DomainEvent
 from query.models.product import Source
-from query.redis import STREAM_NAME
 from query.services.event import process_events
 from query.test_helper import random_code
 

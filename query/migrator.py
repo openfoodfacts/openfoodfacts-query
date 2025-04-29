@@ -34,7 +34,7 @@ async def ensure_migration_table(transaction: Connection):
     )
 
 
-async def migrate_database():
+async def migrate_database(apply=False):
     async with get_transaction() as transaction:
         """Apply all necessary upgrade scripts to the database"""
         logger.info("Checking if any migrations need to be applied")
@@ -45,24 +45,42 @@ async def migrate_database():
         existing_migrations = [r["name"] for r in rows]
 
     # Migrations are stored in the migrations folder and are executed in alphabetical order
+    migrations_to_run = []
     for fname in sorted(os.listdir(MIGRATIONS_FOLDER)):
         if fname.endswith(".py") and not fname.startswith("__"):
             migration_name = fname.split(".")[0]
             if migration_name not in existing_migrations:
-                logger.info(f"Applying {fname}")
-                module = import_module(
-                    f'{MIGRATIONS_FOLDER.replace("/",".")}.{migration_name}'
+                logger.info(migration_name)
+                migrations_to_run.append(migration_name)
+
+    if apply:
+        for migration_name in migrations_to_run:
+            logger.info(f"Applying {migration_name}")
+            module = import_module(
+                f'{MIGRATIONS_FOLDER.replace("/",".")}.{migration_name}'
+            )
+            # Each migration is run in its own transaction so that if one fails we don't
+            # roll back all of them
+            async with get_transaction() as transaction:
+                # Each migration file just has to implement an "up" function that takes a transaction as a parameter
+                await module.up(transaction)
+                await transaction.execute(
+                    f"INSERT INTO {MIGRATIONS_TABLE} (name) VALUES ($1)",
+                    migration_name,
                 )
-                # Each migration is run in its own transaction so that if one fails we don't
-                # roll back all of them
-                async with get_transaction() as transaction:
-                    # Each migration file just has to implement an "up" function that takes a transaction as a parameter
-                    await module.up(transaction)
-                    await transaction.execute(
-                        f"INSERT INTO {MIGRATIONS_TABLE} (name) VALUES ($1)",
-                        migration_name,
-                    )
+    else:
+        logger.info(
+            f"The following migrations have not been run: {repr(migrations_to_run)}"
+        )
+        if migrations_to_run:
+            logger.critical(
+                f"The following migrations have not been run: {repr(migrations_to_run)}"
+            )
+            return False
+
+    return True
 
 
 if __name__ == "__main__":
-    asyncio.run(migrate_database())
+    if asyncio.run(migrate_database(True)):
+        logger.info("Migrations completed successfully")

@@ -1,12 +1,17 @@
 """Starts FastAPI and the import scheduler and defines all of the API routes"""
 
+import asyncio
 import logging
+import logging.config
+import sys
 from contextlib import asynccontextmanager
 from importlib.metadata import metadata
 from typing import Dict, List
 
+import uvicorn
 from fastapi import FastAPI, Query
 
+from query.events import redis_lifespan
 from query.migrator import migrate_database
 from query.models.health import Health
 from query.models.query import (
@@ -17,7 +22,6 @@ from query.models.query import (
     Stage,
 )
 from query.models.scan import ProductScans
-from query.redis import redis_lifespan
 from query.scheduler import scheduler_lifespan
 from query.services import ingestion, query
 from query.services.health import check_health
@@ -28,9 +32,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_):
-    # Run migrations
-    await migrate_database()
-
     async with redis_lifespan():
         with scheduler_lifespan():
             yield
@@ -100,3 +101,20 @@ async def scans(
 ):
     """Used for bulk loading product scan data from logs"""
     await import_scans(scans, fullyloaded)
+
+
+if __name__ == "__main__":
+    # Check that migrations have been run.
+    if not asyncio.run(migrate_database(False)):
+        sys.exit(1)
+    else:
+        watch = "watch" in sys.argv
+        watch_dirs = ["query"] if watch else None
+        uvicorn.run(
+            "query.main:app",
+            port=5510,
+            host="0.0.0.0",
+            reload=watch,
+            reload_dirs=watch_dirs,
+            log_config=None,
+        )
