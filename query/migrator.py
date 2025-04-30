@@ -13,7 +13,7 @@ from query.database import get_transaction
 MIGRATIONS_TABLE = "mikro_orm_migrations"
 MIGRATIONS_FOLDER = "query/migrations"
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("migrator")
 
 
 async def ensure_migration_table(transaction: Connection):
@@ -50,7 +50,6 @@ async def migrate_database(apply=False):
         if fname.endswith(".py") and not fname.startswith("__"):
             migration_name = fname.split(".")[0]
             if migration_name not in existing_migrations:
-                logger.info(migration_name)
                 migrations_to_run.append(migration_name)
 
     if apply:
@@ -69,15 +68,13 @@ async def migrate_database(apply=False):
                     migration_name,
                 )
     else:
-        logger.info(
-            f"The following migrations have not been run: {repr(migrations_to_run)}"
-        )
         if migrations_to_run:
             logger.critical(
                 f"The following migrations have not been run: {repr(migrations_to_run)}"
             )
             return False
 
+        logger.info("All migrations are up to date")
     return True
 
 

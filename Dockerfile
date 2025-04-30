@@ -21,5 +21,6 @@ ENV VIRTUAL_ENV=/code/.venv \
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
 COPY query ./query
+COPY pyproject.toml ./
 
-CMD ["python", "query/main.py"]
+CMD ["python", "-m", "query.main"]

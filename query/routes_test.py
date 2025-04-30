@@ -2,7 +2,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from query.database import get_transaction
-from query.main import app
+from query.routes import app
 from query.services.query_count_test import create_test_tags
 
 

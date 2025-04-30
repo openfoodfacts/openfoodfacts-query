@@ -16,6 +16,7 @@ dependencies = [
     "uvicorn[standard]",
     "redis[hiredis]",
     "apscheduler",
+    "toml",
 ]
 
 
