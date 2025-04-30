@@ -35,13 +35,13 @@ start_postgres:
 dev: run_deps install migrate_database_local
 
 migrate_database_local: start_postgres
-	poetry run python query/migrator.py
+	poetry run python -m query.migrator
 
 migrate_database_docker:
-	docker compose run --rm -e PYTHONPATH=/code query python query/migrator.py
+	docker compose run --rm query python -m query.migrator
 
 watch: migrate_database_local
-	poetry run python query/main.py watch
+	poetry run python -m query.main watch
 
 tests:
 	poetry run pytest ${args}
