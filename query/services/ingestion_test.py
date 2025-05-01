@@ -371,8 +371,8 @@ async def test_not_get_an_error_with_concurrent_imports():
 
     async def one_import():
         with patch("query.services.ingestion.find_products") as find_products_mock:
+            patch_context_manager(find_products_mock, mock_cursor(products))
             async with get_transaction() as transaction:
-                patch_context_manager(find_products_mock, mock_cursor(products))
                 await ingestion.import_with_filter(
                     transaction,
                     {"code": {"$in": [products[0]["code"], products[1]["code"]]}},
