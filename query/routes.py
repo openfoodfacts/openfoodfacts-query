@@ -1,11 +1,11 @@
 """Starts FastAPI and the import scheduler and defines all of the API routes"""
 
 import logging
-import toml
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, List
 
+import toml
 from fastapi import FastAPI, Query
 
 from query.events import redis_lifespan
@@ -32,6 +32,7 @@ async def lifespan(_):
         with scheduler_lifespan():
             yield
             logger.info("Shutting down")
+
 
 # Read metadata from the pyproject.toml file
 # Previously tried using importlib.metadata for this but this didn't work in Docker
@@ -100,4 +101,3 @@ async def scans(
 ):
     """Used for bulk loading product scan data from logs"""
     await import_scans(scans, fullyloaded)
-

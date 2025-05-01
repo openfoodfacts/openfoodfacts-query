@@ -5,9 +5,8 @@ import sys
 
 import uvicorn
 
-from query.routes import app
 from query.migrator import migrate_database
-
+from query.routes import app
 
 if __name__ == "__main__":
     # Check that migrations have been run.
