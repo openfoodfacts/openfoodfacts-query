@@ -168,6 +168,7 @@ jobs:
           script_stop: false
           script: |
             cd ${{ env.PROJECT_DIR }}
+            make migrate_database_docker
             docker compose up -d 2>&1
 
       - name: Check services are up

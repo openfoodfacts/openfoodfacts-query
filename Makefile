@@ -14,29 +14,46 @@ ifeq (${DEPS_DIR},)
 	export DEPS_DIR=${PWD}/deps
 endif
 
+install:
+	poetry install
+
+build:
+	docker compose build
+
 # Use this to start both the query service and associated database in Docker
-up: run_deps
-	docker compose up --build --wait
+up: run_deps build
+	docker compose up --wait
 
 # Called by other projects to start this project as a dependency
 run: run_deps
 	COMPOSE_FILE=${COMPOSE_FILE_RUN} docker compose up -d
 
-# This task starts a Postgres database in Docker and then prepares the local environment for development
-dev: run_deps
+start_postgres:
 	docker compose up --wait query_postgres
-	npm install
-	npm run migration:up
+
+# This task starts a Postgres database in Docker and then prepares the local environment for development
+dev: run_deps install migrate_database_local
+
+migrate_database_local: start_postgres
+	poetry run python -m query.migrator
+
+migrate_database_docker:
+	docker compose run --rm query python -m query.migrator
+
+watch: migrate_database_local
+	poetry run python -m query.main watch
 
 tests:
-	npm test
+	poetry run pytest ${args}
 
 lint:
-	npm run lint
+	poetry run autoflake --recursive --in-place --remove-all-unused-imports --remove-unused-variables query
+	poetry run isort --profile black query
+	poetry run black query
 
 # Refresh the countries.json file from the ProductOwner taxonomy
 refresh_countries:
-	node scripts/refresh_countries.mjs
+	python scripts/refresh_countries.py
 
 # Run dependent projects
 run_deps: clone_deps
