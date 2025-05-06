@@ -6,7 +6,7 @@ from typing import Annotated, Dict
 
 from pydantic import BaseModel, Field, RootModel
 
-from query.tables.country import country_codes
+from ..tables.country import country_codes
 
 
 class CountryCode(StrEnum):

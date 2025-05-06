@@ -2,7 +2,7 @@
 The recent and total scans columns are used for popularity sorting and need to be refreshed each year
 from the product_scans_by_country"""
 
-from query.database import create_record
+from ..database import create_record
 
 OLDEST_YEAR = 2019
 CURRENT_YEAR = 2024

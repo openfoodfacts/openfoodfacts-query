@@ -1,7 +1,7 @@
-from query.database import get_transaction
-from query.services.event_test import sample_event
-from query.tables.product_update_event import create_events
-from query.test_helper import random_code
+from ..database import get_transaction
+from ..services.event_test import sample_event
+from ..tables.product_update_event import create_events
+from ..test_helper import random_code
 
 
 async def test_create_events_should_load_duplicates():

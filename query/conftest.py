@@ -5,8 +5,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
-from query.config import config_settings
-from query.migrator import migrate_database
+from .config import config_settings
+from .migrator import migrate_database
 
 
 # Don't prefix with "Test" as otherwise pytest thinks this is a test class

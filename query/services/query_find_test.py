@@ -4,18 +4,19 @@ import pytest
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
-from query.database import get_transaction
-from query.models.query import Filter, FindQuery
-from query.services import query
-from query.services.query_count_test import create_test_tags
-from query.tables.country import get_country
-from query.tables.product_country import CURRENT_YEAR, PRODUCT_COUNTRY_TAG
-from query.tables.product_scans_by_country import create_scan
-from query.test_helper import mock_cursor, patch_context_manager
+from ..database import get_transaction
+from ..models.query import Filter, FindQuery
+from ..services import query
+from ..services.query_count_test import create_test_tags
+from ..tables.country import get_country
+from ..tables.product_country import CURRENT_YEAR, PRODUCT_COUNTRY_TAG
+from ..tables.product_scans_by_country import create_scan
+from ..test_helper import mock_cursor, patch_context_manager
+from . import query
 
 
-@patch("query.services.query.get_loaded_tags", return_value=[PRODUCT_COUNTRY_TAG])
-@patch("query.services.query.find_products")
+@patch.object(query, "get_loaded_tags", return_value=[PRODUCT_COUNTRY_TAG])
+@patch.object(query, "find_products")
 async def test_sorts_by_country_scans(mocked_mongo, _):
     tags = await create_tags_and_scans()
 
@@ -44,11 +45,12 @@ async def test_sorts_by_country_scans(mocked_mongo, _):
     assert results[2]["code"] == tags.product1["code"]
 
 
-@patch(
-    "query.services.query.get_loaded_tags",
+@patch.object(
+    query,
+    "get_loaded_tags",
     return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
 )
-@patch("query.services.query.find_products")
+@patch.object(query, "find_products")
 async def test_sorts_by_world_scans(mocked_mongo, _):
     tags = await create_tags_and_scans()
 
@@ -79,11 +81,12 @@ async def test_sorts_by_world_scans(mocked_mongo, _):
     assert results[2]["code"] == tags.product1["code"]
 
 
-@patch(
-    "query.services.query.get_loaded_tags",
+@patch.object(
+    query,
+    "get_loaded_tags",
     return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
 )
-@patch("query.services.query.find_products")
+@patch.object(query, "find_products")
 async def test_limit_and_offset(mocked_mongo, _):
     tags = await create_tags_and_scans()
 
@@ -113,11 +116,12 @@ async def test_limit_and_offset(mocked_mongo, _):
     assert results[0]["code"] == tags.product3["code"]
 
 
-@patch(
-    "query.services.query.get_loaded_tags",
+@patch.object(
+    query,
+    "get_loaded_tags",
     return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
 )
-@patch("query.services.query.find_products")
+@patch.object(query, "find_products")
 async def test_obsolete(mocked_mongo, _):
     tags = await create_tags_and_scans()
 
@@ -145,7 +149,7 @@ async def test_obsolete(mocked_mongo, _):
     assert results[0]["code"] == tags.product4["code"]
 
 
-@patch("query.services.query.get_loaded_tags", return_value=[])
+@patch.object(query, "get_loaded_tags", return_value=[])
 async def test_exception_when_scans_not_loaded(_):
     with pytest.raises(HTTPException) as e:
         await query.find(
@@ -198,11 +202,12 @@ async def test_exception_when_ascending_sort_specified():
     assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-@patch(
-    "query.services.query.get_loaded_tags",
+@patch.object(
+    query,
+    "get_loaded_tags",
     return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
 )
-@patch("query.services.query.find_products")
+@patch.object(query, "find_products")
 async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo, _):
     tags = await create_tags_and_scans()
 

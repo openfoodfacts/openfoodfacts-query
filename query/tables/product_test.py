@@ -1,6 +1,6 @@
-from query.database import get_transaction
-from query.tables.product import create_product, normalize_code
-from query.test_helper import random_code
+from ..database import get_transaction
+from ..tables.product import create_product, normalize_code
+from ..test_helper import random_code
 
 
 async def test_create_product():

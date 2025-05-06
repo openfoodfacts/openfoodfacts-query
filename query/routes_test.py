@@ -1,9 +1,9 @@
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from query.database import get_transaction
-from query.routes import app
-from query.services.query_count_test import create_test_tags
+from .database import get_transaction
+from .routes import app
+from .services.query_count_test import create_test_tags
 
 
 async def test_count_route():

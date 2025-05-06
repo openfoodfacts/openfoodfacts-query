@@ -9,8 +9,9 @@ import pytest
 from redis.asyncio import Redis, ResponseError, from_url
 from testcontainers.redis import RedisContainer
 
-from query.database import get_transaction
-from query.events import (
+from . import events
+from .database import get_transaction
+from .events import (
     STREAM_NAME,
     get_message_timestamp,
     get_retry_interval,
@@ -18,7 +19,7 @@ from query.events import (
     redis_client,
     redis_listener,
 )
-from query.test_helper import random_code
+from .test_helper import random_code
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +74,9 @@ async def messages_processed(messages_received_mock: Mock, call_count=1):
             break
 
 
-@patch("query.events.get_last_message_id")
-@patch("query.events.set_last_message_id")
-@patch("query.events.messages_received")
+@patch.object(events, "get_last_message_id")
+@patch.object(events, "set_last_message_id")
+@patch.object(events, "messages_received")
 async def test_listener_calls_subscriber_function(
     messages_received: Mock, set_id: Mock, get_id: Mock
 ):
@@ -110,9 +111,9 @@ async def test_listener_calls_subscriber_function(
         await cancel_task(redis_listener_task)
 
 
-@patch("query.events.get_last_message_id")
-@patch("query.events.set_last_message_id")
-@patch("query.events.messages_received")
+@patch.object(events, "get_last_message_id")
+@patch.object(events, "set_last_message_id")
+@patch.object(events, "messages_received")
 async def test_listener_keeps_track_of_last_message_id(
     messages_received: Mock, set_id: Mock, get_id: Mock
 ):
@@ -142,12 +143,12 @@ def test_retry_interval():
     assert interval2 == interval1 * 2
 
 
-@patch("query.events.get_last_message_id")
-@patch("query.events.set_last_message_id")
-@patch("query.events.messages_received")
-@patch("query.events.redis_client")
-@patch("query.events.logger.error")
-@patch("query.events.get_retry_interval")
+@patch.object(events, "get_last_message_id")
+@patch.object(events, "set_last_message_id")
+@patch.object(events, "messages_received")
+@patch.object(events, "redis_client")
+@patch.object(events.logger, "error")
+@patch.object(events, "get_retry_interval")
 async def test_listener_retrys_on_error(
     get_retry_interval: Mock,
     error_log: Mock,
@@ -205,7 +206,7 @@ async def test_listener_retrys_on_error(
         redis_container.stop()
 
 
-@patch("query.events.process_events")
+@patch.object(events, "process_events")
 async def test_messages_received_strips_nulls(process_events: Mock):
     async with get_transaction() as transaction:
         test_message = {
@@ -235,7 +236,7 @@ async def test_messages_received_strips_nulls(process_events: Mock):
         assert event.payload["diffs"]["fields"]["change"][0] == "categories after null"
 
 
-@patch("query.events.process_events")
+@patch.object(events, "process_events")
 async def test_copes_with_missing_fields(process_events: Mock):
     async with get_transaction() as transaction:
         test_message = {}

@@ -7,8 +7,8 @@ from importlib import import_module
 
 from asyncpg import Connection
 
-from query.config import config_settings
-from query.database import get_transaction
+from .config import config_settings
+from .database import get_transaction
 
 MIGRATIONS_TABLE = "mikro_orm_migrations"
 MIGRATIONS_FOLDER = "query/migrations"

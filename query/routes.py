@@ -8,20 +8,20 @@ from typing import Dict, List
 import toml
 from fastapi import FastAPI, Query
 
-from query.events import redis_lifespan
-from query.models.health import Health
-from query.models.query import (
+from .events import redis_lifespan
+from .models.health import Health
+from .models.query import (
     AggregateCountResult,
     AggregateResult,
     Filter,
     FindQuery,
     Stage,
 )
-from query.models.scan import ProductScans
-from query.scheduler import scheduler_lifespan
-from query.services import ingestion, query
-from query.services.health import check_health
-from query.services.scan import import_scans
+from .models.scan import ProductScans
+from .scheduler import scheduler_lifespan
+from .services import ingestion, query
+from .services.health import check_health
+from .services.scan import import_scans
 
 logger = logging.getLogger(__name__)
 

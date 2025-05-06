@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 import pytest
 from asyncpg import PostgresError
 
-from query.database import create_record, get_rows_affected, get_transaction
-from query.test_helper import random_code
+from .database import create_record, get_rows_affected, get_transaction
+from .test_helper import random_code
 
 
 async def test_rows_affected_returned_correctly():

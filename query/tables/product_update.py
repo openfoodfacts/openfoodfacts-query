@@ -4,8 +4,8 @@ from typing import List
 
 from asyncpg import Connection
 
-from query.tables.contributor import create_contributors_from_events
-from query.tables.update_type import create_update_types_from_events
+from ..tables.contributor import create_contributors_from_events
+from ..tables.update_type import create_update_types_from_events
 
 
 async def create_table(transaction: Connection):

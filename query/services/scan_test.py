@@ -1,15 +1,16 @@
 from unittest.mock import ANY, Mock, patch
 
-from query.database import get_transaction
-from query.models.scan import ProductScans
-from query.services.scan import import_scans
-from query.tables.country import add_all_countries
-from query.tables.product import normalize_code
-from query.tables.product_country import CURRENT_YEAR, OLDEST_YEAR, PRODUCT_COUNTRY_TAG
-from query.test_helper import random_code
+from ..database import get_transaction
+from ..models.scan import ProductScans
+from ..services.scan import import_scans
+from ..tables.country import add_all_countries
+from ..tables.product import normalize_code
+from ..tables.product_country import CURRENT_YEAR, OLDEST_YEAR, PRODUCT_COUNTRY_TAG
+from ..test_helper import random_code
+from . import scan
 
 
-@patch("query.services.scan.normalize_code", side_effect=normalize_code)
+@patch.object(scan, "normalize_code", side_effect=normalize_code)
 async def test_create_product_scans(normalize_code_wrapper: Mock):
     async with get_transaction() as transaction:
         # refresh country table
@@ -75,7 +76,7 @@ async def test_create_product_scans(normalize_code_wrapper: Mock):
         assert normalize_code_wrapper.called
 
 
-@patch("query.services.scan.append_loaded_tags")
+@patch.object(scan, "append_loaded_tags")
 async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock):
     async with get_transaction() as transaction:
         # refresh country table

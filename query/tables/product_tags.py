@@ -1,7 +1,7 @@
 """The set of tables that store product tags. Each tag is simply an array of values on the product.
 The order of tags is not preserved"""
 
-from query.database import create_record, get_rows_affected
+from ..database import create_record, get_rows_affected
 
 TAG_TABLES = {
     "countries_tags": "product_countries_tag",

@@ -1,12 +1,12 @@
 """Routines that operate on product scan data. Scans are currently just loaded in a batch from logs
 but will hopefully be loaded from events in the future"""
 
-from query.database import get_transaction
-from query.models.scan import ProductScans
-from query.tables.loaded_tag import append_loaded_tags
-from query.tables.product import normalize_code
-from query.tables.product_country import PRODUCT_COUNTRY_TAG
-from query.tables.product_scans_by_country import create_scans
+from ..database import get_transaction
+from ..models.scan import ProductScans
+from ..tables.loaded_tag import append_loaded_tags
+from ..tables.product import normalize_code
+from ..tables.product_country import PRODUCT_COUNTRY_TAG
+from ..tables.product_scans_by_country import create_scans
 
 
 async def import_scans(scans: ProductScans, fully_loaded=False):

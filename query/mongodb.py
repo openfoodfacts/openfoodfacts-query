@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from query.config import config_settings
+from .config import config_settings
 
 # Limit the MongoDB logging as it is a bit verbose
 logging.getLogger("pymongo").setLevel(logging.WARNING)

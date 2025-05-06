@@ -1,10 +1,10 @@
 import pytest
 from pydantic import ValidationError
 
-from query.database import get_transaction
-from query.models.query import Filter, GroupStage, Qualify, Stage
-from query.services import query
-from query.services.query_count_test import create_test_tags
+from ..database import get_transaction
+from ..models.query import Filter, GroupStage, Qualify, Stage
+from ..services import query
+from ..services.query_count_test import create_test_tags
 
 
 async def test_group_products_with_a_tag():

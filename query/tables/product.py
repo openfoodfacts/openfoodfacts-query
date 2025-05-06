@@ -5,10 +5,10 @@ from datetime import datetime, timezone
 
 from asyncpg import Connection
 
-from query.database import create_record, get_rows_affected
-from query.models.product import Source
-from query.tables.product_ingredient import delete_ingredients
-from query.tables.product_tags import TAG_TABLES, delete_tags
+from ..database import create_record, get_rows_affected
+from ..models.product import Source
+from ..tables.product_ingredient import delete_ingredients
+from ..tables.product_tags import TAG_TABLES, delete_tags
 
 product_fields_column_mapping = {
     "code": "code",

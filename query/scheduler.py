@@ -9,11 +9,11 @@ from contextlib import contextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from query.database import get_transaction
-from query.events import start_redis_listener, stop_redis_listener
-from query.services.ingestion import import_from_mongo
-from query.tables.loaded_tag import get_loaded_tags
-from query.tables.product_tags import TAG_TABLES
+from .database import get_transaction
+from .events import start_redis_listener, stop_redis_listener
+from .services.ingestion import import_from_mongo
+from .tables.loaded_tag import get_loaded_tags
+from .tables.product_tags import TAG_TABLES
 
 logger = logging.getLogger(__name__)
 

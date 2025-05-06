@@ -2,10 +2,10 @@
 
 from typing import List
 
-from query.models.domain_event import DomainEvent
-from query.models.product import Source
-from query.services.ingestion import import_with_filter
-from query.tables.product_update_event import create_events
+from ..models.domain_event import DomainEvent
+from ..models.product import Source
+from ..services.ingestion import import_with_filter
+from ..tables.product_update_event import create_events
 
 
 async def process_events(transaction, events: List[DomainEvent]):

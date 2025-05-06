@@ -1,5 +1,5 @@
-from query.database import get_transaction
-from query.tables.country import add_all_countries
+from ..database import get_transaction
+from ..tables.country import add_all_countries
 
 
 async def test_add_all_countries():

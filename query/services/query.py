@@ -6,20 +6,20 @@ from typing import Dict, List
 from asyncpg import Connection
 from fastapi import HTTPException, status
 
-from query.database import get_transaction
-from query.models.query import (
+from ..database import get_transaction
+from ..models.query import (
     AggregateCountResult,
     AggregateResult,
     Filter,
     FindQuery,
     Stage,
 )
-from query.mongodb import find_products
-from query.tables.country import get_country
-from query.tables.loaded_tag import get_loaded_tags
-from query.tables.product import get_product_column_for_field
-from query.tables.product_country import PRODUCT_COUNTRY_TAG
-from query.tables.product_tags import TAG_TABLES
+from ..mongodb import find_products
+from ..tables.country import get_country
+from ..tables.loaded_tag import get_loaded_tags
+from ..tables.product import get_product_column_for_field
+from ..tables.product_country import PRODUCT_COUNTRY_TAG
+from ..tables.product_tags import TAG_TABLES
 
 logger = logging.getLogger(__name__)
 

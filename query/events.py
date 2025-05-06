@@ -9,11 +9,11 @@ from typing import Any, AsyncGenerator, Dict, List
 
 import redis.asyncio as redis
 
-from query.config import config_settings
-from query.database import get_transaction, strip_nuls
-from query.models.domain_event import DomainEvent
-from query.services.event import process_events
-from query.tables.settings import get_last_message_id, set_last_message_id
+from .config import config_settings
+from .database import get_transaction, strip_nuls
+from .models.domain_event import DomainEvent
+from .services.event import process_events
+from .tables.settings import get_last_message_id, set_last_message_id
 
 logger = logging.getLogger(__name__)
 

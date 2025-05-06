@@ -5,7 +5,7 @@ import os
 
 from asyncpg import Connection
 
-from query.database import create_record
+from ..database import create_record
 
 
 async def create_table(transaction):

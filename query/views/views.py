@@ -1,6 +1,6 @@
 """Creates a view only user to support direct database queries for dashboards, etc."""
 
-from query.config import config_settings
+from ..config import config_settings
 
 
 async def create_schema(transaction):

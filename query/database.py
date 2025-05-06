@@ -7,7 +7,7 @@ from typing import Any, AsyncGenerator
 
 import asyncpg
 
-from query.config import config_settings
+from .config import config_settings
 
 logger = logging.getLogger(__name__)
 

@@ -6,13 +6,14 @@ from asyncpg import Record
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
-import query.services.query as query
-from query.database import get_transaction
-from query.models.query import Filter, Qualify
-from query.tables.country import create_country
-from query.tables.product import create_product
-from query.tables.product_tags import create_tag
-from query.test_helper import random_code
+from ..database import get_transaction
+from ..models.query import Filter, Qualify
+from ..services import query
+from ..tables.country import create_country
+from ..tables.product import create_product
+from ..tables.product_tags import create_tag
+from ..test_helper import random_code
+from . import query
 
 
 async def create_random_product(transaction, creator=None, obsolete=False):
@@ -162,7 +163,7 @@ async def test_throw_an_exception_for_an_unknown_tag():
     assert main_error["loc"][0] == "invalid_tags"
 
 
-@patch("query.services.query.get_loaded_tags", return_value=["dummy_tag"])
+@patch.object(query, "get_loaded_tags", return_value=["dummy_tag"])
 async def test_throw_an_unprocessable_exception_for_a_tag_that_has_not_been_loaded(
     get_loaded_tags_mock,
 ):

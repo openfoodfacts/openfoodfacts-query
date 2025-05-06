@@ -1,4 +1,4 @@
-from query.tables import product_country
+from ..tables import product_country
 
 
 async def up(transaction):

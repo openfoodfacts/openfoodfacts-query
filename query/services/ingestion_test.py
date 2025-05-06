@@ -4,16 +4,17 @@ import time
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
-from query.database import get_transaction
-from query.models.product import Source
-from query.services import ingestion
-from query.tables.country import get_country
-from query.tables.product import create_product, get_product, get_product_by_id
-from query.tables.product_country import create_product_country, get_product_countries
-from query.tables.product_ingredient import get_ingredients
-from query.tables.product_tags import create_tag, get_tags
-from query.tables.settings import get_last_updated, set_last_updated
-from query.test_helper import mock_cursor, patch_context_manager, random_code
+from ..database import get_transaction
+from ..models.product import Source
+from ..services import ingestion
+from ..tables.country import get_country
+from ..tables.product import create_product, get_product, get_product_by_id
+from ..tables.product_country import create_product_country, get_product_countries
+from ..tables.product_ingredient import get_ingredients
+from ..tables.product_tags import create_tag, get_tags
+from ..tables.settings import get_last_updated, set_last_updated
+from ..test_helper import mock_cursor, patch_context_manager, random_code
+from . import ingestion
 
 
 async def test_get_process_id_is_monotonically_increasing():
@@ -45,9 +46,9 @@ def get_test_products():
     ]
 
 
-@patch("query.services.ingestion.find_products")
-@patch("query.services.ingestion.get_process_id")
-@patch("query.services.ingestion.append_loaded_tags")
+@patch.object(ingestion, "find_products")
+@patch.object(ingestion, "get_process_id")
+@patch.object(ingestion, "append_loaded_tags")
 async def test_import_from_mongo_should_import_a_new_product_update_existing_products_and_delete_missing_products(
     append_loaded_tags: Mock, get_process_id_mock: Mock, find_products_mock: Mock
 ):
@@ -152,8 +153,8 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         assert append_loaded_tags.called
 
 
-@patch("query.services.ingestion.find_products")
-@patch("query.services.ingestion.append_loaded_tags")
+@patch.object(ingestion, "find_products")
+@patch.object(ingestion, "append_loaded_tags")
 async def test_incremental_import_should_not_update_loaded_tags(
     set_loaded_tags_mock, find_products_mock: Mock
 ):
@@ -182,7 +183,7 @@ async def test_incremental_import_should_not_update_loaded_tags(
         }
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_import_with_no_change_should_not_update_the_source(
     find_products_mock: Mock,
 ):
@@ -211,7 +212,7 @@ async def test_import_with_no_change_should_not_update_the_source(
         assert product_existing["last_processed"] == last_processed
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_start_importing_from_the_last_import(
     find_products_mock: Mock,
 ):
@@ -238,7 +239,7 @@ async def test_start_importing_from_the_last_import(
         )
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_cope_with_nul_characters(
     find_products_mock: Mock,
 ):
@@ -267,7 +268,7 @@ async def test_cope_with_nul_characters(
         assert ingredients[0]["value"] == "test  test2  end"
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_set_last_updated_correctly_if_one_product_has_an_invalid_date(
     find_products_mock: Mock,
 ):
@@ -293,8 +294,8 @@ async def test_set_last_updated_correctly_if_one_product_has_an_invalid_date(
         )
 
 
-@patch("query.services.ingestion.logger")
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "logger")
+@patch.object(ingestion, "find_products")
 async def test_skip_if_already_importing(
     find_products_mock: Mock,
     logger_mock: Mock,
@@ -313,7 +314,7 @@ async def test_skip_if_already_importing(
     assert logger_mock.warning.called
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_cope_with_duplicate_product_codes(
     find_products_mock: Mock,
 ):
@@ -336,7 +337,7 @@ async def test_cope_with_duplicate_product_codes(
         assert ingredients[0]["ingredient_text"] == "test"
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_import_from_event_source_should_always_update_product(
     find_products_mock: Mock,
 ):
@@ -370,7 +371,7 @@ async def test_not_get_an_error_with_concurrent_imports():
     products = get_test_products()
 
     async def one_import():
-        with patch("query.services.ingestion.find_products") as find_products_mock:
+        with patch.object(ingestion, "find_products") as find_products_mock:
             patch_context_manager(find_products_mock, mock_cursor(products))
             async with get_transaction() as transaction:
                 await ingestion.import_with_filter(
@@ -391,7 +392,7 @@ async def test_not_get_an_error_with_concurrent_imports():
         assert len(found_product) == 1
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
     find_products_mock: Mock,
 ):
@@ -442,7 +443,7 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
         assert deleted_tags[0]["obsolete"] == None
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_import_from_obsolete_collection(find_products_mock: Mock):
     async with get_transaction() as transaction:
         # given: one existing product
@@ -482,7 +483,7 @@ async def test_import_from_obsolete_collection(find_products_mock: Mock):
         assert found_product["process_id"] == new_product["process_id"]
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_all_supported_fields(find_products_mock: Mock):
     async with get_transaction() as transaction:
         # when importing from mongodb where all fields are populated
@@ -574,7 +575,7 @@ async def test_all_supported_fields(find_products_mock: Mock):
         )
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_ignores_duplicate_tags(find_products_mock: Mock):
     async with get_transaction() as transaction:
         # when importing from mongodb where a tag is duplicated
@@ -592,7 +593,7 @@ async def test_ignores_duplicate_tags(find_products_mock: Mock):
         assert len(found_tags) == 2
 
 
-@patch("query.services.ingestion.find_products")
+@patch.object(ingestion, "find_products")
 async def test_each_batch_has_its_own_transaction(find_products_mock: Mock):
     async with get_transaction() as transaction:
         # Create 3 products

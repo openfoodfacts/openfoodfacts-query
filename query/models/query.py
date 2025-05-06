@@ -6,7 +6,7 @@ from typing import Annotated, Any, Dict, List, Tuple
 
 from pydantic import BaseModel, Field, create_model
 
-from query.tables.product import product_fields
+from ..tables.product import product_fields
 
 NoValues = Annotated[
     Tuple[None, List[None]],

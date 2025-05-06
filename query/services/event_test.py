@@ -2,12 +2,13 @@ import math
 import time
 from unittest.mock import Mock, patch
 
-from query.database import get_transaction
-from query.events import STREAM_NAME
-from query.models.domain_event import DomainEvent
-from query.models.product import Source
-from query.services.event import process_events
-from query.test_helper import random_code
+from ..database import get_transaction
+from ..events import STREAM_NAME
+from ..models.domain_event import DomainEvent
+from ..models.product import Source
+from ..services.event import process_events
+from ..test_helper import random_code
+from . import event
 
 
 def sample_event(payload={}):
@@ -20,7 +21,7 @@ def sample_event(payload={}):
     )
 
 
-@patch("query.services.event.import_with_filter")
+@patch.object(event, "import_with_filter")
 async def test_process_events_calls_import_with_filter(import_with_filter: Mock):
     async with get_transaction() as transaction:
         event = sample_event({"product_type": "food", "rev": "1"})
@@ -47,7 +48,7 @@ async def test_process_events_calls_import_with_filter(import_with_filter: Mock)
         assert len(updates) == 0
 
 
-@patch("query.services.event.import_with_filter")
+@patch.object(event, "import_with_filter")
 async def test_process_events_not_include_non_food_products_in_call_to_import_with_filter(
     import_with_filter: Mock,
 ):
@@ -72,7 +73,7 @@ async def test_process_events_not_include_non_food_products_in_call_to_import_wi
         assert import_args[1] == {"code": {"$in": [food_code]}}
 
 
-@patch("query.services.event.import_with_filter")
+@patch.object(event, "import_with_filter")
 async def test_process_events_does_not_import_with_filter_at_all_if_no_food_products(
     import_with_filter: Mock,
 ):

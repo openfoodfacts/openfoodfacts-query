@@ -1,4 +1,4 @@
-from query.tables import (
+from ..tables import (
     contributor,
     loaded_tag,
     product,
@@ -9,7 +9,7 @@ from query.tables import (
     settings,
     update_type,
 )
-from query.views import product_updates_by_owner, views
+from ..views import product_updates_by_owner, views
 
 
 async def up(transaction):

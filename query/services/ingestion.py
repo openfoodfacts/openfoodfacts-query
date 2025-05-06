@@ -7,21 +7,21 @@ from typing import Dict
 
 from asyncpg import Connection
 
-from query.database import get_transaction, strip_nuls
-from query.models.product import Source
-from query.mongodb import find_products
-from query.tables.loaded_tag import append_loaded_tags
-from query.tables.product import (
+from ..database import get_transaction, strip_nuls
+from ..models.product import Source
+from ..mongodb import find_products
+from ..tables.loaded_tag import append_loaded_tags
+from ..tables.product import (
     create_minimal_product,
     delete_products,
     get_minimal_product,
     product_fields_column_mapping,
     update_products_from_staging,
 )
-from query.tables.product_country import fixup_product_countries
-from query.tables.product_ingredient import create_ingredients_from_staging
-from query.tables.product_tags import TAG_TABLES, create_tags_from_staging
-from query.tables.settings import get_last_updated, set_last_updated
+from ..tables.product_country import fixup_product_countries
+from ..tables.product_ingredient import create_ingredients_from_staging
+from ..tables.product_tags import TAG_TABLES, create_tags_from_staging
+from ..tables.settings import get_last_updated, set_last_updated
 
 logger = logging.getLogger(__name__)
 

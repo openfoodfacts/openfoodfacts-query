@@ -4,7 +4,7 @@ There is currently no API to query this data, it is just being used internally t
 
 from asyncpg import Connection
 
-from query.database import get_rows_affected
+from ..database import get_rows_affected
 
 
 async def create_table(transaction):
