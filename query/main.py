@@ -6,7 +6,6 @@ import sys
 import uvicorn
 
 from .migrator import migrate_database
-from .routes import app
 
 if __name__ == "__main__":
     # Check that migrations have been run.
@@ -16,7 +15,7 @@ if __name__ == "__main__":
         watch = "watch" in sys.argv
         watch_dirs = ["query"] if watch else None
         uvicorn.run(
-            app,
+            "query.routes:app",
             port=5510,
             host="0.0.0.0",
             reload=watch,

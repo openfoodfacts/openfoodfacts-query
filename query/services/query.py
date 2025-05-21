@@ -197,7 +197,7 @@ async def find(query: FindQuery, obsolete=False):
                     if mongodb_results[index] == None
                 ]
                 logger.warning(
-                    f"Following product codes were not found in M<ongoDB: {repr(missing_product_codes)}"
+                    f"Following product codes were not found in MongoDB: {repr(missing_product_codes)}"
                 )
 
             return final_result

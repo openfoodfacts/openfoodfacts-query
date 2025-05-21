@@ -1,7 +1,5 @@
 """Models used by the Scans API"""
 
-import typing
-from enum import StrEnum, auto
 from typing import Annotated, Dict
 
 from pydantic import BaseModel, Field, RootModel
@@ -9,21 +7,16 @@ from pydantic import BaseModel, Field, RootModel
 from ..tables.country import country_codes
 
 
-class CountryCode(StrEnum):
-    """Valid 2-letter country codes"""
-
-    world = auto()
-
-
-if not typing.TYPE_CHECKING:
-    CountryCode = StrEnum("CountryCode", country_codes())
-
-
 class ScansByCountry(RootModel):
     """Scans by country for a particular year"""
 
     root: Dict[
-        Annotated[CountryCode, Field(description="Two character country code")],
+        Annotated[
+            str,
+            Field(
+                description="Two character country code", examples=["fr", "uk", "world"]
+            ),
+        ],
         Annotated[int, Field(examples=[5, 8])],
     ]
 
