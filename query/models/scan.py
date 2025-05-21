@@ -4,8 +4,6 @@ from typing import Annotated, Dict
 
 from pydantic import BaseModel, Field, RootModel
 
-from ..tables.country import country_codes
-
 
 class ScansByCountry(RootModel):
     """Scans by country for a particular year"""
