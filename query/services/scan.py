@@ -17,7 +17,14 @@ async def import_scans(scans: ProductScans, fully_loaded=False):
         # The PO import routine sends the directory name as the product code, so we need to normalize it
         normalized_scans = ProductScans.model_validate({})
         for code in scans.root.keys():
-            normalized_scans.root[normalize_code(code)] = scans.root[code]
+            product_scans = scans.root[code]
+            normalized_scans.root[normalize_code(code)] = product_scans
+            # Also may send gb as a synonym for uk. Fix this here
+            for scans_counts in product_scans.root.values():
+                gb_scans = scans_counts.unique_scans_n_by_country.root.get("gb")
+                if gb_scans:
+                    scans_counts.unique_scans_n_by_country.root["uk"] = gb_scans + scans_counts.unique_scans_n_by_country.root.get("uk", 0)
+            
 
         await create_scans(transaction, normalized_scans)
 

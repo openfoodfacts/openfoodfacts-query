@@ -176,7 +176,8 @@ async def find(query: FindQuery, obsolete=False):
 
         if len(query.projection.keys()) == 1:
             # Only requesting code so we don't need to go to MongoDB. Could extend this for other fields we store in off-query
-            return results
+            # Nee to convert rows to regular dictionaries to keep Pydantic happy
+            return [dict(result) for result in results]
         else:
             mongodb_filter = {"_id": {"$in": product_codes}}
             mongodb_results = [None] * len(product_codes)

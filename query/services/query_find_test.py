@@ -4,6 +4,8 @@ import pytest
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
+from query.tables.loaded_tag import append_loaded_tags
+
 from ..database import get_transaction
 from ..models.query import Filter, FindQuery
 from ..services import query
@@ -240,5 +242,7 @@ async def create_tags_and_scans():
         await create_scan(transaction, tags.product3, world, CURRENT_YEAR, 200)
         await create_scan(transaction, tags.product3, world, CURRENT_YEAR - 1, 100)
         await create_scan(transaction, tags.product4, world, CURRENT_YEAR, 50)
+        # Make sure scans are flagged as fully loaded
+        await append_loaded_tags(transaction, [PRODUCT_COUNTRY_TAG])
 
         return tags
