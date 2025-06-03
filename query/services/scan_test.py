@@ -36,7 +36,7 @@ async def test_create_product_scans(normalize_code_wrapper: Mock):
                     str(OLDEST_YEAR): {
                         "scans_n": 7,
                         "unique_scans_n": 3,
-                        "unique_scans_n_by_country": {"uk": 3, "world": 3},
+                        "unique_scans_n_by_country": {"uk": 1, "gb": 2, "world": 3},
                     },
                     str(CURRENT_YEAR): {
                         "scans_n": 10,
