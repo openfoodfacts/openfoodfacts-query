@@ -78,9 +78,9 @@ async def test_find_just_code():
     response = client.post(
         "/find",
         json={
-            "filter": {"origins_tags" : tags.origin_value},
+            "filter": {"origins_tags": tags.origin_value},
             "projection": {"code": 1},
-            "sort": [["popularity_key", -1]]
+            "sort": [["popularity_key", -1]],
         },
     )
     assert response.status_code == status.HTTP_200_OK

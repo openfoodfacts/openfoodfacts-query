@@ -50,14 +50,16 @@ async def fix_index(transaction):
 
 # Migration script. We were previously creating a product country entry where there was no tag
 async def delete_product_countries_with_no_tag(transaction):
-    await transaction.execute( """DELETE FROM product_country pc
+    await transaction.execute(
+        """DELETE FROM product_country pc
             USING country c
             WHERE c.id = pc.country_id 
             AND c.code <> 'world'
             AND NOT EXISTS (SELECT * FROM product_countries_tag pct WHERE pct.product_id = pc.product_id AND pct.value = c.tag)
         """
     )
-    
+
+
 async def create_product_country(
     transaction, product, country, recent_scans, total_scans
 ):
@@ -130,4 +132,3 @@ async def fixup_product_countries_for_products(transaction, ids_updated):
         OLDEST_YEAR,
         CURRENT_YEAR,
     )
-

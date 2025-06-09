@@ -22,11 +22,15 @@ async def test_create_product_scans(normalize_code_wrapper: Mock):
         ids = await transaction.fetch(
             "insert into product (code) values ($1),($2) returning id", code1, code2
         )
-        
+
         # Add country records for UK and France but not ru
         for product in ids:
-            await transaction.execute("insert into product_countries_tag (product_id, value) values ($1, $2), ($1, $3)",
-                                      product['id'], 'en:united-kingdom', 'en:france')
+            await transaction.execute(
+                "insert into product_countries_tag (product_id, value) values ($1, $2), ($1, $3)",
+                product["id"],
+                "en:united-kingdom",
+                "en:france",
+            )
 
     await import_scans(
         ProductScans.model_validate(
@@ -89,7 +93,6 @@ async def test_create_product_scans(normalize_code_wrapper: Mock):
             code2,
         )
         assert len(product_countries) == 0
-
 
 
 @patch.object(scan, "append_loaded_tags")

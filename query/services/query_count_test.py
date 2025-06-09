@@ -128,11 +128,10 @@ async def create_test_tags(transaction):
     country = await create_country(transaction, tag=random_code(), code=random_code())
 
     # Need to create the country tag for each product as otherwise product_countries won't be created
-    await create_tag(transaction, "countries_tags", product1, country['tag'])
-    await create_tag(transaction, "countries_tags", product2, country['tag'])
-    await create_tag(transaction, "countries_tags", product3, country['tag'])
-    await create_tag(transaction, "countries_tags", product4, country['tag'])
-    
+    await create_tag(transaction, "countries_tags", product1, country["tag"])
+    await create_tag(transaction, "countries_tags", product2, country["tag"])
+    await create_tag(transaction, "countries_tags", product3, country["tag"])
+    await create_tag(transaction, "countries_tags", product4, country["tag"])
 
     return TagValues(
         origin_value=origin_value,
