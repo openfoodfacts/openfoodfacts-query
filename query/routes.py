@@ -91,7 +91,8 @@ async def importfrommongo(
     return await ingestion.import_from_mongo(start_from)
 
 
-@app.post("/scans")
+# TODO: Temporarily disabled until we can add some security
+# @app.post("/scans")
 async def scans(
     scans: ProductScans,
     fullyloaded: bool = Query(
