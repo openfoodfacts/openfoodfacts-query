@@ -23,8 +23,10 @@ async def import_scans(scans: ProductScans, fully_loaded=False):
             for scans_counts in product_scans.root.values():
                 gb_scans = scans_counts.unique_scans_n_by_country.root.get("gb")
                 if gb_scans:
-                    scans_counts.unique_scans_n_by_country.root["uk"] = gb_scans + scans_counts.unique_scans_n_by_country.root.get("uk", 0)
-            
+                    scans_counts.unique_scans_n_by_country.root["uk"] = (
+                        gb_scans
+                        + scans_counts.unique_scans_n_by_country.root.get("uk", 0)
+                    )
 
         await create_scans(transaction, normalized_scans)
 

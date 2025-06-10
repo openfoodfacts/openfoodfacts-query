@@ -48,6 +48,18 @@ async def fix_index(transaction):
     )
 
 
+# Migration script. We were previously creating a product country entry where there was no tag
+async def delete_product_countries_with_no_tag(transaction):
+    await transaction.execute(
+        """DELETE FROM product_country pc
+            USING country c
+            WHERE c.id = pc.country_id 
+            AND c.code <> 'world'
+            AND NOT EXISTS (SELECT * FROM product_countries_tag pct WHERE pct.product_id = pc.product_id AND pct.value = c.tag)
+        """
+    )
+
+
 async def create_product_country(
     transaction, product, country, recent_scans, total_scans
 ):
@@ -85,15 +97,34 @@ async def fixup_product_countries(transaction, obsolete):
             ON CONFLICT (product_id, country_id) DO NOTHING""",
         obsolete,
     )
+    # Delete any product countries where there is no tag
+    await transaction.execute(
+        """DELETE FROM product_country pc
+            USING product_temp pt,
+                country c
+            WHERE pc.product_id = pt.id
+            AND c.id = pc.country_id
+            AND c.code <> 'world'
+            AND NOT EXISTS (SELECT * FROM product_countries_tag pct WHERE pct.product_id = pc.product_id AND pct.value = c.tag)
+        """
+    )
 
 
 async def fixup_product_countries_for_products(transaction, ids_updated):
+    # Note we only create a product_country entry if there is a corresponding product_countries_tag
     await transaction.execute(
         """insert into product_country (product_id, obsolete, country_id, recent_scans, total_scans)
-            select product_id, p.obsolete, country_id, sum(CASE WHEN year = $3 THEN unique_scans ELSE 0 END), sum(CASE WHEN year >= $2 THEN unique_scans ELSE 0 END)
-            from product_scans_by_country
-            join product p on p.id = product_id
-            where product_id = ANY($1)
+            select s.product_id,
+                p.obsolete,
+                s.country_id,
+                sum(CASE WHEN s.year = $3 THEN s.unique_scans ELSE 0 END),
+                sum(CASE WHEN s.year >= $2 THEN unique_scans ELSE 0 END)
+            from product_scans_by_country s
+            join product p on p.id = s.product_id
+            join country c on c.id = s.country_id
+            where s.product_id = ANY($1) and (
+                c.code = 'world' or
+                exists (select * from product_countries_tag t where t.product_id = s.product_id and t.value = c.tag))
             group by product_id, p.obsolete, country_id
             on conflict (product_id, country_id)
             do update set recent_scans = excluded.recent_scans, total_scans = excluded.total_scans, obsolete = excluded.obsolete""",
@@ -101,5 +132,3 @@ async def fixup_product_countries_for_products(transaction, ids_updated):
         OLDEST_YEAR,
         CURRENT_YEAR,
     )
-
-    # Note that the product_counties_tag table and product_country table could potentially get of of sync a bit, but don't worry about this for now

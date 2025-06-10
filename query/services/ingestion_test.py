@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 from ..database import get_transaction
 from ..models.product import Source
 from ..services import ingestion
-from ..tables.country import get_country
+from ..tables.country import add_all_countries, get_country
 from ..tables.product import create_product, get_product, get_product_by_id
 from ..tables.product_country import create_product_country, get_product_countries
 from ..tables.product_ingredient import get_ingredients
@@ -65,6 +65,10 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 
         # given: two existing products, one of which is in mongo plus one new one in mongo
         products = get_test_products()
+
+        # refresh country table
+        await add_all_countries(transaction)
+
         product_existing = await create_product(
             transaction, code=products[1]["code"], process_id=0
         )
@@ -73,6 +77,10 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         )
         world = await get_country(transaction, "en:world")
         await create_product_country(transaction, product_existing, world, 10, 100)
+
+        # Create an existing product_country for a countries_tag not included in the import
+        uk = await get_country(transaction, "en:united-kingdom")
+        await create_product_country(transaction, product_existing, uk, 2, 10)
 
         product_unchanged = await create_product(
             transaction, code=random_code(), process_id=0
@@ -120,7 +128,7 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         assert any(i for i in ingredients_existing if i["value"] == "old_ingredient")
         assert any(i for i in ingredients_existing if i["value"] == "new_ingredient")
 
-        # should create an entry for each country plus world
+        # should create an entry for each country plus world but not UK
         countries_existing = await get_product_countries(transaction, product_existing)
         assert len(countries_existing) == 3
         existing_world = next(
