@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 
 from asyncpg import Connection
 
+from query.tables.product_country import delete_product_countries
+
 from ..database import create_record, get_rows_affected
 from ..models.product import Source
 from ..tables.product_ingredient import delete_ingredients
@@ -144,6 +146,7 @@ async def delete_products(transaction, process_id, source, codes=None):
     deleted_ids = [result["id"] for result in results]
     await delete_tags(transaction, deleted_ids)
     await delete_ingredients(transaction, deleted_ids)
+    await delete_product_countries(transaction, deleted_ids)
 
 
 all_digits = re.compile(r"^\d+$")
