@@ -5,8 +5,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, List
 
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 import toml
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 
 from .events import redis_lifespan
 from .models.health import Health
@@ -46,6 +48,10 @@ app = FastAPI(
     version=metadata["project"]["version"],
 )
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc):
+    logger.warning(f"Invalid request: {await request.body()}")
+    return await request_validation_exception_handler(request, exc)
 
 @app.get("/health", response_model_exclude_none=True)
 async def get_health() -> Health:
