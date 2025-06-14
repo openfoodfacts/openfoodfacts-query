@@ -31,7 +31,7 @@ async def import_scans(scans: ProductScans, fully_loaded=False):
                         + scans_counts.unique_scans_n_by_country.root.get("uk", 0)
                     )
 
-        ids_updated = update_scans(transaction, normalized_scans)
+        ids_updated = await update_scans(transaction, normalized_scans)
         await create_scans(transaction, normalized_scans)
         if ids_updated:
             await fixup_product_countries_for_products(transaction, ids_updated)
