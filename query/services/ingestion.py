@@ -20,7 +20,10 @@ from ..tables.product import (
     update_products_from_staging,
 )
 from ..tables.product_country import fixup_product_countries
-from ..tables.product_ingredient import PRODUCT_INGREDIENTS_FIELDS, create_ingredients_from_staging
+from ..tables.product_ingredient import (
+    PRODUCT_INGREDIENTS_FIELDS,
+    create_ingredients_from_staging,
+)
 from ..tables.product_tags import TAG_TABLES, create_tags_from_staging
 from ..tables.settings import get_last_updated, set_last_updated
 
@@ -86,7 +89,11 @@ async def import_with_filter(
         projection = {
             key: True
             for key in (
-                (list(TAG_TABLES.keys()) + PRODUCT_INGREDIENTS_FIELDS if do_children else [])
+                (
+                    list(TAG_TABLES.keys()) + PRODUCT_INGREDIENTS_FIELDS
+                    if do_children
+                    else []
+                )
                 + list(PRODUCT_FIELD_COLUMNS.keys())
             )
         }

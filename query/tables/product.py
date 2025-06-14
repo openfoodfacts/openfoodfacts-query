@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 
 from asyncpg import Connection
 
-from query.tables.product_country import delete_product_countries
+from query.models.scan import ProductScans
+from query.tables.product_country import CURRENT_YEAR, delete_product_countries
 
 from ..database import create_record, get_rows_affected
 from ..models.product import Source
@@ -225,6 +226,33 @@ async def delete_products(transaction, process_id, source, codes=None):
     await delete_tags(transaction, deleted_ids)
     await delete_ingredients(transaction, deleted_ids)
     await delete_product_countries(transaction, deleted_ids)
+
+
+async def update_scans(transaction: Connection, scans: ProductScans):
+    product_scans = []
+    for code, years in scans.root.items():
+        scan_counts = years.root.get(str(CURRENT_YEAR), None)
+        if scan_counts:
+            product_scans.append(
+                [code, int(scan_counts.scans_n), int(scan_counts.unique_scans_n)]
+            )
+        else:
+            product_scans.append(
+                [code, 0, 0]
+            )  # Always update the product so we can zero totals if there are no scans in the current year
+
+    if product_scans:
+        updated = await transaction.fetchmany(
+            """UPDATE product
+            SET scan_count = $2,
+            unique_scan_count = $3
+            WHERE code = $1
+            RETURNING id""",
+            product_scans,
+        )
+        return list({i["id"] for i in updated})
+
+    return []
 
 
 all_digits = re.compile(r"^\d+$")

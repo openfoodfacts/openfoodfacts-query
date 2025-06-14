@@ -4,8 +4,11 @@ but will hopefully be loaded from events in the future"""
 from ..database import get_transaction
 from ..models.scan import ProductScans
 from ..tables.loaded_tag import append_loaded_tags
-from ..tables.product import normalize_code
-from ..tables.product_country import PRODUCT_COUNTRY_TAG
+from ..tables.product import PRODUCT_SCANS_TAG, normalize_code, update_scans
+from ..tables.product_country import (
+    PRODUCT_COUNTRY_TAG,
+    fixup_product_countries_for_products,
+)
 from ..tables.product_scans_by_country import create_scans
 
 
@@ -28,7 +31,12 @@ async def import_scans(scans: ProductScans, fully_loaded=False):
                         + scans_counts.unique_scans_n_by_country.root.get("uk", 0)
                     )
 
+        ids_updated = update_scans(transaction, normalized_scans)
         await create_scans(transaction, normalized_scans)
+        if ids_updated:
+            await fixup_product_countries_for_products(transaction, ids_updated)
 
         if fully_loaded:
-            await append_loaded_tags(transaction, [PRODUCT_COUNTRY_TAG])
+            await append_loaded_tags(
+                transaction, [PRODUCT_COUNTRY_TAG, PRODUCT_SCANS_TAG]
+            )

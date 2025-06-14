@@ -93,10 +93,13 @@ async def test_create_product_scans(normalize_code_wrapper: Mock):
             code2,
         )
         assert len(product_countries) == 0
-        
-        product = await transaction.fetchrow("""SELECT scan_count, unique_scan_count FROM product WHERE code = $1""", code1)
-        assert product['scan_count'] == 10
-        assert product['unique_scan_count'] == 7
+
+        product = await transaction.fetchrow(
+            """SELECT scan_count, unique_scan_count FROM product WHERE code = $1""",
+            code1,
+        )
+        assert product["scan_count"] == 10
+        assert product["unique_scan_count"] == 7
 
 
 @patch.object(scan, "append_loaded_tags")
