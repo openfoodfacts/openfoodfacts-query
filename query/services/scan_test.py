@@ -4,7 +4,7 @@ from ..database import get_transaction
 from ..models.scan import ProductScans
 from ..services.scan import import_scans
 from ..tables.country import add_all_countries
-from ..tables.product import normalize_code
+from ..tables.product import PRODUCT_SCANS_TAG, normalize_code
 from ..tables.product_country import CURRENT_YEAR, OLDEST_YEAR, PRODUCT_COUNTRY_TAG
 from ..test_helper import random_code
 from . import scan
@@ -127,4 +127,4 @@ async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock):
             True,
         )
 
-        append_loaded_tags.assert_called_with(ANY, [PRODUCT_COUNTRY_TAG])
+        append_loaded_tags.assert_called_with(ANY, [PRODUCT_COUNTRY_TAG, PRODUCT_SCANS_TAG])
