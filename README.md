@@ -79,6 +79,10 @@ By default, product opener is configured to call the "query" host on the `COMMON
 ```
 QUERY_URL=http://host.docker.internal:5510
 ```
+Note that when uploading scans the off-query PostgreSQL database username and password must be passed in using basic auth. This can be done by including them in the off-query URL, e.g.
+```
+QUERY_URL=http://DATABASE_USER:DATABASE_PASSWORD@query:5510
+```
 
 ## Running in Docker
 

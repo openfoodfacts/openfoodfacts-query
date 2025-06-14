@@ -12,12 +12,20 @@ from ..models.query import (
     AggregateResult,
     Filter,
     FindQuery,
+    SortColumn,
     Stage,
 )
 from ..mongodb import find_products
 from ..tables.country import get_country
 from ..tables.loaded_tag import get_loaded_tags
-from ..tables.product import get_product_column_for_field
+from ..tables.product import (
+    PRODUCT_FIELD_COLUMNS,
+    PRODUCT_FIELD_COLUMNS_V2,
+    PRODUCT_FIELD_SCANS_COLUMNS,
+    PRODUCT_SCANS_TAG,
+    PRODUCT_V2_TAG,
+    get_product_column_for_field,
+)
 from ..tables.product_country import PRODUCT_COUNTRY_TAG
 from ..tables.product_tags import TAG_TABLES
 
@@ -58,7 +66,7 @@ async def aggregate(stages: List[Stage], obsolete=False):
         tag = group.id.value[1:]
         # If a count stage is specified then we just count the distinct number of group field values
         is_count = [stage.count for stage in stages if stage.count]
-        product_column_name = get_product_column_for_field(tag)
+        product_column_name = get_product_column_for_field(tag, loaded_tags)
 
         limit = [stage.limit for stage in stages if stage.limit]
         skip = [stage.skip for stage in stages if stage.skip]
@@ -107,41 +115,58 @@ async def find(query: FindQuery, obsolete=False):
     """Fetch the product records matching the specified filter, in the requested order,
     returning the fields mentioned in the projection"""
     async with get_transaction() as transaction:
+        sort_key = query.sort[0][0] if query.sort and len(query.sort) > 0 else None
+        if sort_key and len(query.sort) > 1:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Only a single sort field is supported",
+            )
+
+        # Abort for sort on scan field if scans have not yet been fully loaded
         loaded_tags = await get_loaded_tags(transaction)
-        # We currently only support sorting by popularity, i.e. based on number of scans
-        # So we abort if scans have not yet been fully loaded
-        if PRODUCT_COUNTRY_TAG not in loaded_tags:
+        if (
+            sort_key == SortColumn.popularity and PRODUCT_COUNTRY_TAG not in loaded_tags
+        ) or (
+            sort_key in PRODUCT_FIELD_SCANS_COLUMNS.keys()
+            and PRODUCT_SCANS_TAG not in loaded_tags
+        ):
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY, "Scans have not been fully loaded"
             )
 
+        # Abort for sort on product fields a full load hasn't happened
         if (
-            len(query.sort) != 1
-            or query.sort[0][0] != "popularity_key"
-            or query.sort[0][1] != -1
+            sort_key in PRODUCT_FIELD_COLUMNS_V2.keys()
+            and PRODUCT_V2_TAG not in loaded_tags
         ):
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "Only descending popularity_key sort is currently supported",
+                f"Field {sort_key} has not been fully loaded",
             )
 
-        # The country we are filtering by determines which scans we use to sort the results
-        country_tag = getattr(query.filter, "countries-tags")
-        country = (
-            await get_country(transaction, country_tag)
-            if country_tag
-            else await get_country(transaction, "en:world")
-        )
-        if country_tag:
-            delattr(query.filter, "countries-tags")
+        if sort_key == SortColumn.popularity:
+            # The country we are filtering by determines which scans we use to sort the results
+            country_tag = getattr(query.filter, "countries-tags")
+            country = (
+                await get_country(transaction, country_tag)
+                if country_tag
+                else await get_country(transaction, "en:world")
+            )
+            if country_tag:
+                delattr(query.filter, "countries-tags")
+
+            params = [country["id"]]
+            product_id = "product_id"
+        else:
+            params = []
+            product_id = "id"
 
         sql_fragments = []
-        params = [country["id"]]
         if query.filter:
             append_sql_fragments(
                 query.filter,
                 loaded_tags,
-                "product_id",
+                product_id,
                 params,
                 sql_fragments,
             )
@@ -153,19 +178,40 @@ async def find(query: FindQuery, obsolete=False):
             params.append(query.skip)
             limit_clause += f" OFFSET ${len(params)}"
 
-        # The sub-select gets the list of product ids and applies the limits
-        # This was found to be the fastest approach as it allows the inner query to
-        # operate on just the small product_country table
-        sql = f"""SELECT p.code FROM product p 
-            JOIN product_country pc ON pc.product_id = p.id AND pc.country_id = $1
-            WHERE p.id IN (SELECT p.product_id
-                FROM product_country p
-                WHERE p.country_id = $1 
-                AND {'' if obsolete else 'NOT '}p.obsolete
-                {''.join(sql_fragments)}
-                ORDER BY p.recent_scans DESC, p.total_scans DESC, p.product_id
-                {limit_clause})
-            ORDER BY pc.recent_scans DESC, pc.total_scans DESC, pc.product_id"""
+        if sort_key == SortColumn.popularity:
+            # The sub-select gets the list of product ids and applies the limits
+            # This was found to be the fastest approach as it allows the inner query to
+            # operate on just the small product_country table
+            # Note we only support descending sort
+            sql = f"""SELECT p.code FROM product p 
+                JOIN product_country pc ON pc.product_id = p.id AND pc.country_id = $1
+                WHERE p.id IN (SELECT p.product_id
+                    FROM product_country p
+                    WHERE p.country_id = $1 
+                    AND {'' if obsolete else 'NOT '}p.obsolete
+                    {''.join(sql_fragments)}
+                    ORDER BY p.recent_scans DESC, p.total_scans DESC, p.product_id
+                    {limit_clause})
+                ORDER BY pc.recent_scans DESC, pc.total_scans DESC, pc.product_id"""
+        else:
+            # Other sort fields are directly on the product table
+            sort_clause = ""
+            if sort_key:
+                sort_direction = query.sort[0][1]
+                if sort_key == SortColumn.nutriscore_score_opposite:
+                    # Nutriscore sort should be ascending (low nutriscore is good) but MongoDB shows nulls first
+                    # so Product Opener uses a nutriscore_score_opposite descending sort.
+                    # PostgreSQL treats NULLs as big so we can simply sort on nutriscore_score, ascending
+                    sort_key = SortColumn.nutriscore_score
+                    sort_direction = -sort_direction
+
+                sort_clause = f"p.{PRODUCT_FIELD_COLUMNS[sort_key]} {'ASC' if sort_direction == 1 else 'DESC NULLS LAST'},"
+
+            sql = f"""SELECT p.code FROM product p 
+                WHERE {'' if obsolete else 'NOT '}p.obsolete
+                    {''.join(sql_fragments)}
+                    ORDER BY {sort_clause} p.id
+                    {limit_clause}"""
         results = await fetch_and_log(transaction, sql, *params)
         product_codes = [result["code"] for result in results]
         logger.debug(f"Find: Codes: {repr(product_codes)}")
@@ -219,7 +265,7 @@ def append_sql_fragments(
         for tag, value in fragment.model_dump(
             exclude_defaults=True, by_alias=True
         ).items():
-            product_column_name = get_product_column_for_field(tag)
+            product_column_name = get_product_column_for_field(tag, loaded_tags)
             if not product_column_name and tag not in loaded_tags:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded"

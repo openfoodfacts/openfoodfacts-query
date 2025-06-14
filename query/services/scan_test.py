@@ -4,7 +4,7 @@ from ..database import get_transaction
 from ..models.scan import ProductScans
 from ..services.scan import import_scans
 from ..tables.country import add_all_countries
-from ..tables.product import normalize_code
+from ..tables.product import PRODUCT_SCANS_TAG, normalize_code
 from ..tables.product_country import CURRENT_YEAR, OLDEST_YEAR, PRODUCT_COUNTRY_TAG
 from ..test_helper import random_code
 from . import scan
@@ -94,6 +94,13 @@ async def test_create_product_scans(normalize_code_wrapper: Mock):
         )
         assert len(product_countries) == 0
 
+        product = await transaction.fetchrow(
+            """SELECT scan_count, unique_scan_count FROM product WHERE code = $1""",
+            code1,
+        )
+        assert product["scan_count"] == 10
+        assert product["unique_scan_count"] == 7
+
 
 @patch.object(scan, "append_loaded_tags")
 async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock):
@@ -120,4 +127,4 @@ async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock):
             True,
         )
 
-        append_loaded_tags.assert_called_with(ANY, [PRODUCT_COUNTRY_TAG])
+        append_loaded_tags.assert_called_with(ANY, [PRODUCT_COUNTRY_TAG, PRODUCT_SCANS_TAG])

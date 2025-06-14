@@ -46,6 +46,9 @@ async def setup(request):
         config_settings.REDIS_URL = (
             f"redis://{redis.get_container_host_ip()}:{redis.get_exposed_port(6379)}"
         )
+        
+        # Don't fetch data from MongoDB at startup for test containers as we create our own test data
+        config_settings.SKIP_DATA_MIGRATIONS = True
 
     # Always run migrations, even if not using testcontainers
     await migrate_database(True)

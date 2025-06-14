@@ -121,9 +121,18 @@ class SortDirection(int, Enum):
 
 
 class SortColumn(str, Enum):
-    """Only popularity_key sorting is supported at the moment"""
+    """The field to sort by"""
 
+    created_t = "created_t"
+    last_modified_t = "last_modified_t"
+    scans_n = "scans_n"
+    unique_scans_n = "unique_scans_n"
+    product_name = "product_name"
+    completeness = "completeness"
     popularity = "popularity_key"
+    nutriscore_score = "nutriscore_score"
+    nutriscore_score_opposite = "nutriscore_score_opposite"
+    environmental_score_score = "environmental_score_score"
 
 
 class FindQuery(BaseModel):
@@ -134,7 +143,8 @@ class FindQuery(BaseModel):
     sort: Annotated[
         List[Tuple[SortColumn, SortDirection]],
         Field(
-            description="How the data should be sorted, note only descending by popularity_key is currently supported"
+            None,
+            description="How the data should be sorted. Note sorting by a single field is currently supported",
         ),
     ]
     limit: int = Field(None, description=LIMIT_DESCRIPTION)
