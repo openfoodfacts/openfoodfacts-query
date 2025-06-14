@@ -58,7 +58,7 @@ async def aggregate(stages: List[Stage], obsolete=False):
         tag = group.id.value[1:]
         # If a count stage is specified then we just count the distinct number of group field values
         is_count = [stage.count for stage in stages if stage.count]
-        product_column_name = get_product_column_for_field(tag)
+        product_column_name = get_product_column_for_field(tag, loaded_tags)
 
         limit = [stage.limit for stage in stages if stage.limit]
         skip = [stage.skip for stage in stages if stage.skip]
@@ -219,7 +219,7 @@ def append_sql_fragments(
         for tag, value in fragment.model_dump(
             exclude_defaults=True, by_alias=True
         ).items():
-            product_column_name = get_product_column_for_field(tag)
+            product_column_name = get_product_column_for_field(tag, loaded_tags)
             if not product_column_name and tag not in loaded_tags:
                 raise HTTPException(
                     status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded"

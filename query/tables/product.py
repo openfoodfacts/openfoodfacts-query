@@ -12,28 +12,56 @@ from ..models.product import Source
 from ..tables.product_ingredient import delete_ingredients
 from ..tables.product_tags import TAG_TABLES, delete_tags
 
-product_fields_column_mapping = {
+PRODUCT_FIELD_COLUMNS_V1 = {
     "code": "code",
     "product_name": "name",
     "creator": "creator",
     "owners_tags": "owners_tags",
-    "last_modified_t": None,  # Note we actually use last_updated_t for checks but not all products may have this
     "last_updated_t": "last_updated",
     "ingredients_n": "ingredients_count",
     "ingredients_without_ciqual_codes_n": "ingredients_without_ciqual_codes_count",
-    "ingredients": None,
     "rev": "revision",
 }
+
+PRODUCT_FIELD_COLUMNS_V2 = {
+    "last_modified_t": "last_modified",  # Note we actually use last_updated_t to determine if a product has changed
+    "created_t": "created",
+    "completeness": "completeness",
+    "nutriscore_score": "nutriscore",
+    "nova_score": "nova_score",
+    "environmental_score_score": "environmental_score",
+    "ingredients_from_palm_oil_n": "ingredients_from_palm_oil_count",
+    "ingredients_that_may_be_from_palm_oil_n": "ingredients_that_may_be_from_palm_oil_count",
+    "additives_n": "additives_count",
+    "ingredients_from_or_that_may_be_from_palm_oil_n": "ingredients_from_or_that_may_be_from_palm_oil_count",
+}
+PRODUCT_V2_TAG = "product_v2"
+
+PRODUCT_FIELD_SCANS_COLUMNS = {
+    "scans_n": "scan_count",
+    "unique_scans_n": "unique_scan_count",
+}
+PRODUCT_SCANS_TAG = "product_scans"
+
+PRODUCT_FIELD_COLUMNS = (
+    PRODUCT_FIELD_COLUMNS_V1 | PRODUCT_FIELD_COLUMNS_V2 | PRODUCT_FIELD_SCANS_COLUMNS
+)
 
 
 def stored_root_product_fields():
     """Product fields that are stored on the root table"""
-    return [key for key, value in product_fields_column_mapping.items() if value]
+    return [key for key, value in PRODUCT_FIELD_COLUMNS.items() if value]
 
 
-def get_product_column_for_field(field):
-    """The column name for the corresponding MonoDB field name"""
-    return product_fields_column_mapping.get(field, None)
+def get_product_column_for_field(field, loaded_tags):
+    """The column name for the corresponding MonoDB field name. Returns None if field isn't loaded yet"""
+    column = PRODUCT_FIELD_COLUMNS_V1.get(field, None)
+    if not column and PRODUCT_V2_TAG in loaded_tags:
+        column = PRODUCT_FIELD_COLUMNS_V2.get(field, None)
+    if not column and PRODUCT_SCANS_TAG in loaded_tags:
+        column = PRODUCT_FIELD_SCANS_COLUMNS.get(field, None)
+
+    return column
 
 
 def product_fields():
@@ -73,6 +101,47 @@ async def create_table(transaction: Connection):
     )
 
 
+async def add_v2_columns(transaction: Connection):
+    await transaction.execute(
+        """alter table product
+            add column last_modified timestamptz null,
+            add column created timestamptz null,
+            add column completeness double precision null,
+            add column nutriscore int null,
+            add column environmental_score int null,
+            add column ingredients_from_palm_oil_count int null,
+            add column ingredients_that_may_be_from_palm_oil_count int null,
+            add column additives_count int null,
+            add column ingredients_from_or_that_may_be_from_palm_oil_count int null,
+            add column scan_count int null,
+            add column unique_scan_count int null;""",
+    )
+    await transaction.execute(
+        "create index product_created_index on product (created DESC NULLS LAST, id);",
+    )
+    await transaction.execute(
+        "create index product_completeness_index on product (completeness, id);",
+    )
+    await transaction.execute(
+        "create index product_nutriscore_index on product (nutriscore DESC NULLS LAST, id);",
+    )
+    await transaction.execute(
+        "create index product_environmental_score_index on product (environmental_score DESC NULLS LAST, id);",
+    )
+    await transaction.execute(
+        "create index product_name_index on product (name, id);",
+    )
+    await transaction.execute(
+        "create index product_last_modified_index on product (last_modified DESC NULLS LAST, id);",
+    )
+    await transaction.execute(
+        "create index product_scan_count_index on product (scan_count DESC NULLS LAST, id);",
+    )
+    await transaction.execute(
+        "create index product_unique_scan_count_index on product (unique_scan_count DESC NULLS LAST, id);",
+    )
+
+
 async def update_products_from_staging(
     transaction: Connection, log, obsolete, process_id, source
 ):
@@ -87,6 +156,15 @@ async def update_products_from_staging(
         ingredients_count = (tp.data->>'ingredients_n')::numeric,
         ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
         last_updated = tp.last_updated,
+        created = to_timestamp((tp.data->>'created_t')::int),
+        last_modified = to_timestamp((tp.data->>'last_modified_t')::int),
+        completeness = (tp.data->>'completeness')::double precision,
+        nutriscore = (tp.data->>'nutriscore_score')::int,
+        environmental_score = (tp.data->>'environmental_score_score')::int,
+        ingredients_from_palm_oil_count = (tp.data->>'ingredients_from_palm_oil_n')::int,
+        ingredients_that_may_be_from_palm_oil_count = (tp.data->>'ingredients_that_may_be_from_palm_oil_n')::int,
+        additives_count = (tp.data->>'additives_n')::int,
+        ingredients_from_or_that_may_be_from_palm_oil_count = (tp.data->>'ingredients_from_or_that_may_be_from_palm_oil_n')::int,
         process_id = $2,
         last_processed = $3,
         source = $4,

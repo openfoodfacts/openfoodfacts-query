@@ -70,6 +70,7 @@ tag_tables_v1 = {
     "weighers_tags": "product_weighers_tag",
 }
 
+# Append additional tag tables to this list when we introduce them and then add a migration to create the new tables
 TAG_TABLES = tag_tables_v1
 
 
@@ -93,7 +94,7 @@ async def create_tables(transaction, tag_tables):
 
 async def create_tables_v1(transaction):
     await create_tables(transaction, tag_tables_v1)
-    
+
 
 async def create_tag(transaction, tag, product, value):
     return await create_record(
