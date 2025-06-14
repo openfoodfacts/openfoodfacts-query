@@ -195,11 +195,18 @@ async def find(query: FindQuery, obsolete=False):
                 ORDER BY pc.recent_scans DESC, pc.total_scans DESC, pc.product_id"""
         else:
             # Other sort fields are directly on the product table
-            sort_clause = (
-                f"p.{PRODUCT_FIELD_COLUMNS[sort_key]} {'ASC' if query.sort[0][1] == 1 else 'DESC NULLS LAST'},"
-                if sort_key
-                else ""
-            )
+            sort_clause = ""
+            if sort_key:
+                sort_direction = query.sort[0][1]
+                if sort_key == SortColumn.nutriscore_score_opposite:
+                    # Nutriscore sort should be ascending (low nutriscore is good) but MongoDB shows nulls first
+                    # so Product Opener uses a nutriscore_score_opposite descending sort.
+                    # PostgreSQL treats NULLs as big so we can simply sort on nutriscore_score, ascending
+                    sort_key = SortColumn.nutriscore_score
+                    sort_direction = -sort_direction
+
+                sort_clause = f"p.{PRODUCT_FIELD_COLUMNS[sort_key]} {'ASC' if sort_direction == 1 else 'DESC NULLS LAST'},"
+
             sql = f"""SELECT p.code FROM product p 
                 WHERE {'' if obsolete else 'NOT '}p.obsolete
                     {''.join(sql_fragments)}

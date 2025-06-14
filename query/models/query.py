@@ -131,6 +131,7 @@ class SortColumn(str, Enum):
     completeness = "completeness"
     popularity = "popularity_key"
     nutriscore_score = "nutriscore_score"
+    nutriscore_score_opposite = "nutriscore_score_opposite"
     environmental_score_score = "environmental_score_score"
 
 

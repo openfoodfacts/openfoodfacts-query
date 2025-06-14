@@ -124,7 +124,7 @@ async def add_v2_columns(transaction: Connection):
         "create index product_completeness_index on product (completeness, id);",
     )
     await transaction.execute(
-        "create index product_nutriscore_index on product (nutriscore DESC NULLS LAST, id);",
+        "create index product_nutriscore_index on product (nutriscore, id);",
     )
     await transaction.execute(
         "create index product_environmental_score_index on product (environmental_score DESC NULLS LAST, id);",
