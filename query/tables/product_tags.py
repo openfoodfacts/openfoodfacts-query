@@ -132,7 +132,7 @@ async def delete_tags(transaction, product_ids):
     """Soft deletes tags for the specified products"""
     for tag_table in TAG_TABLES.values():
         await transaction.execute(
-            f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id = ANY($1::int[])",
+            f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id = ANY($1::numeric[])",
             product_ids,
         )
 
