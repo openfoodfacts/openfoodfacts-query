@@ -13,7 +13,7 @@ dependencies = [
     "asyncpg",
     "motor",
     "fastapi",
-    "uvicorn[standard]",
+    "uvicorn[standard] (>=0.34.3,<0.35.0)",
     "redis[hiredis]",
     "apscheduler",
     "toml",

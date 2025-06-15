@@ -1,13 +1,18 @@
 """Starts FastAPI and the import scheduler and defines all of the API routes"""
 
 import logging
+import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, List
 
 import toml
-from fastapi import FastAPI, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
+from .config import config_settings
 from .events import redis_lifespan
 from .models.health import Health
 from .models.query import (
@@ -45,6 +50,12 @@ app = FastAPI(
     license_info={"name": metadata["project"]["license"]["text"]},
     version=metadata["project"]["version"],
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc):
+    logger.warning(f"Invalid request: {await request.body()}")
+    return await request_validation_exception_handler(request, exc)
 
 
 @app.get("/health", response_model_exclude_none=True)
@@ -91,14 +102,41 @@ async def importfrommongo(
     return await ingestion.import_from_mongo(start_from)
 
 
-# TODO: Temporarily disabled until we can add some security
-# @app.post("/scans")
+# Currently you have to know the PostgreSQL database username and password to import scans
+# switch this to OAuth when Keycloak is implemented
+security = HTTPBasic()
+
+
+def get_current_username(
+    credentials: HTTPBasicCredentials = Depends(security),
+):
+    current_username_bytes = credentials.username.encode("utf8")
+    correct_username_bytes = config_settings.POSTGRES_USER.encode("utf8")
+    is_correct_username = secrets.compare_digest(
+        current_username_bytes, correct_username_bytes
+    )
+    current_password_bytes = credentials.password.encode("utf8")
+    correct_password_bytes = config_settings.POSTGRES_PASSWORD.encode("utf8")
+    is_correct_password = secrets.compare_digest(
+        current_password_bytes, correct_password_bytes
+    )
+    if not (is_correct_username and is_correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+
+@app.post("/scans")
 async def scans(
     scans: ProductScans,
     fullyloaded: bool = Query(
         False,
         description="Set to true when all scans are loaded and popularity queries can now be supported",
     ),
+    _: str = Depends(get_current_username),
 ):
     """Used for bulk loading product scan data from logs"""
     await import_scans(scans, fullyloaded)

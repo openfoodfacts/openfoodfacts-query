@@ -36,22 +36,19 @@ async def create_scans(transaction, scans: ProductScans):
     for code, years in scans.root.items():
         for year, scan_counts in years.root.items():
             for country, count in scan_counts.unique_scans_n_by_country.root.items():
+                # For some reason the combination of execute many and using a values source in the SQL
+                # converts everything to text, so need to supply text here and cast as int in the SQL
                 scans_by_country.append([code, str(year), country, str(count)])
 
     if scans_by_country:
-        inserted = await transaction.fetchmany(
+        # As mentioned above, need to cast ints in the SQL because of the source values clause
+        await transaction.executemany(
             """insert into product_scans_by_country (product_id, year, country_id, unique_scans) 
             select product.id, source.year::int, country.id, source.scans::int 
             from (values ($1, $2, $3, $4)) as source (code, year, country, scans)
             join product on product.code = source.code
             join country on country.code = source.country
             on conflict (product_id, year, country_id) 
-            do update set unique_scans = excluded.unique_scans
-            returning product_id""",
+            do update set unique_scans = excluded.unique_scans""",
             scans_by_country,
         )
-
-        ids_updated = list({i["product_id"] for i in inserted})
-
-        if ids_updated:
-            await fixup_product_countries_for_products(transaction, ids_updated)

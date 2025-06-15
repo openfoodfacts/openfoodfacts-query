@@ -14,7 +14,7 @@ from ..views import product_updates_by_owner, views
 
 async def up(transaction):
     await product.create_table(transaction)
-    await product_tags.create_tables(transaction)
+    await product_tags.create_tables_v1(transaction)
     await loaded_tag.create_table(transaction)
     await product_ingredient.create_table(transaction)
     await settings.create_table(transaction)

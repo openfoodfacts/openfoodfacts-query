@@ -12,14 +12,18 @@ from ..models.product import Source
 from ..mongodb import find_products
 from ..tables.loaded_tag import append_loaded_tags
 from ..tables.product import (
+    PRODUCT_FIELD_COLUMNS,
+    PRODUCT_V2_TAG,
     create_minimal_product,
     delete_products,
     get_minimal_product,
-    product_fields_column_mapping,
     update_products_from_staging,
 )
 from ..tables.product_country import fixup_product_countries
-from ..tables.product_ingredient import create_ingredients_from_staging
+from ..tables.product_ingredient import (
+    PRODUCT_INGREDIENTS_FIELDS,
+    create_ingredients_from_staging,
+)
 from ..tables.product_tags import TAG_TABLES, create_tags_from_staging
 from ..tables.settings import get_last_updated, set_last_updated
 
@@ -61,7 +65,11 @@ def get_product_last_updated(product_data):
 
 
 async def import_with_filter(
-    transaction, filter: Dict, source: Source, batch_size=DEFAULT_BATCH_SIZE
+    transaction,
+    filter: Dict,
+    source: Source,
+    batch_size=DEFAULT_BATCH_SIZE,
+    do_children=True,
 ) -> datetime:
     """Core import routine. Fetches data from MongoDB using the supplied filter and updates the copy stored in PostgreSQL
     If the filter is a list of codes then any code not found in MongoDB will be deleted from PostgreSQL
@@ -81,7 +89,12 @@ async def import_with_filter(
         projection = {
             key: True
             for key in (
-                list(TAG_TABLES.keys()) + list(product_fields_column_mapping.keys())
+                (
+                    list(TAG_TABLES.keys()) + PRODUCT_INGREDIENTS_FIELDS
+                    if do_children
+                    else []
+                )
+                + list(PRODUCT_FIELD_COLUMNS.keys())
             )
         }
         for obsolete in [False, True]:
@@ -120,9 +133,10 @@ async def import_with_filter(
                         )
 
                     # Strip any nulls from tag text
-                    for tag in TAG_TABLES.keys():
-                        tag_data = product_data.get(tag, [])
-                        strip_nuls(tag_data, f"Product: {product_code}, tag: {tag}")
+                    if do_children:
+                        for tag in TAG_TABLES.keys():
+                            tag_data = product_data.get(tag, [])
+                            strip_nuls(tag_data, f"Product: {product_code}, tag: {tag}")
 
                     await transaction.execute(
                         "INSERT INTO product_temp (id, last_updated, data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
@@ -134,13 +148,18 @@ async def import_with_filter(
                     update_count += 1
                     if not (update_count % batch_size):
                         await apply_staged_changes(
-                            transaction, obsolete, update_count, process_id, source
+                            transaction,
+                            obsolete,
+                            update_count,
+                            process_id,
+                            source,
+                            do_children,
                         )
 
             # Apply any remaining staged changes
             if update_count % batch_size:
                 await apply_staged_changes(
-                    transaction, obsolete, update_count, process_id, source
+                    transaction, obsolete, update_count, process_id, source, do_children
                 )
             if skip_count % batch_size:
                 logger.info(
@@ -163,7 +182,10 @@ async def import_with_filter(
         # If this is a full load then delete all products that were not fetched from MongoDB on this run
         if source == Source.full_load:
             await delete_products(transaction, process_id, source)
-            await append_loaded_tags(transaction, TAG_TABLES.keys())
+            await append_loaded_tags(
+                transaction,
+                (list(TAG_TABLES.keys()) if do_children else []) + [PRODUCT_V2_TAG],
+            )
     finally:
         await transaction.execute("DROP TABLE product_temp")
 
@@ -171,7 +193,7 @@ async def import_with_filter(
 
 
 async def apply_staged_changes(
-    transaction: Connection, obsolete, update_count, process_id, source
+    transaction: Connection, obsolete, update_count, process_id, source, do_tags
 ):
     """ "Copies data from the product_temp temporary table to the relational tables.
     Assumes that a basic product record has already been created"""
@@ -180,9 +202,10 @@ async def apply_staged_changes(
 
     log = logger.debug
     await update_products_from_staging(transaction, log, obsolete, process_id, source)
-    await create_ingredients_from_staging(transaction, log, obsolete)
-    await create_tags_from_staging(transaction, log, obsolete)
-    await fixup_product_countries(transaction, obsolete)
+    if do_tags:
+        await create_ingredients_from_staging(transaction, log, obsolete)
+        await create_tags_from_staging(transaction, log, obsolete)
+        await fixup_product_countries(transaction, obsolete)
     await transaction.execute("TRUNCATE TABLE product_temp")
 
     # Start a new transaction for the next batch

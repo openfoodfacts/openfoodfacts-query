@@ -132,3 +132,11 @@ async def fixup_product_countries_for_products(transaction, ids_updated):
         OLDEST_YEAR,
         CURRENT_YEAR,
     )
+
+
+async def delete_product_countries(transaction, product_ids):
+    """Soft delete by setting the obsolete flag to null"""
+    await transaction.execute(
+        f"UPDATE product_country SET obsolete = NULL WHERE product_id = ANY($1::int[])",
+        product_ids,
+    )

@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from query.tables.loaded_tag import append_loaded_tags
 
 from ..database import get_transaction
-from ..models.query import Filter, FindQuery
+from ..models.query import Filter, FindQuery, SortColumn
 from ..services import query
 from ..services.query_count_test import create_test_tags
 from ..tables.country import get_country
@@ -166,13 +166,13 @@ async def test_exception_when_scans_not_loaded(_):
     assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-async def test_exception_when_sort_not_popularity_key():
+async def test_exception_when_sort_key_not_supported():
     with pytest.raises(ValidationError) as e:
         await query.find(
             FindQuery(
                 filter=Filter(),
                 projection={"code": True},
-                sort=[("last_modified_t", -1)],
+                sort=[("code", -1)],
                 limit=50,
             ),
             True,
@@ -181,27 +181,34 @@ async def test_exception_when_sort_not_popularity_key():
     assert main_error["loc"][0] == "sort"
 
 
-async def test_exception_when_no_sort_specified():
-    with pytest.raises(HTTPException) as e:
-        await query.find(
-            FindQuery(filter=Filter(), projection={"code": True}, sort=[], limit=50),
-            True,
+@patch.object(query, "get_loaded_tags", return_value=["origins_tags"])
+async def test_returns_data_when_no_sort_specified(_):
+    tags = await create_tags_and_scans()
+
+    results = await query.find(
+        FindQuery(
+            filter=Filter(origins_tags=tags.origin_value),
+            projection={"code": True},
         )
-    assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    )
+    assert len(results) == 3
 
 
-async def test_exception_when_ascending_sort_specified():
-    with pytest.raises(HTTPException) as e:
-        await query.find(
-            FindQuery(
-                filter=Filter(),
-                projection={"code": True},
-                sort=[("popularity_key", 1)],
-                limit=50,
-            ),
-            True,
+@patch.object(query, "get_loaded_tags", return_value=["origins_tags"])
+async def test_returns_data_when_ascending_sort_specified(_):
+    tags = await create_tags_and_scans()
+
+    results = await query.find(
+        FindQuery(
+            filter=Filter(origins_tags=tags.origin_value),
+            projection={"code": True},
+            sort=[(SortColumn.product_name, 1)],
         )
-    assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    )
+    assert len(results) == 3
+    assert results[0]["code"] == tags.product2["code"]
+    assert results[1]["code"] == tags.product3["code"]
+    assert results[2]["code"] == tags.product1["code"]
 
 
 @patch.object(
