@@ -41,7 +41,7 @@ async def create_updates_from_events(transaction: Connection, event_ids: List[in
         event_id)
       SELECT 
       	p.id,
-        coalesce((pe.message->>'rev')::int, p.revision),
+        coalesce((pe.message->>'rev')::numeric, p.revision),
         date(pe.updated_at at time zone 'UTC') updated_day,
         update_type.id,
         contributor.id,

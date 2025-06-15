@@ -147,6 +147,8 @@ async def update_products_from_staging(
     transaction: Connection, log, obsolete, process_id, source
 ):
     """Apply updates to products from the product_temp table. Assumes that a minimal product record has already been created"""
+    
+    # Note we cast as numeric rather than int in the SQL below as casting something like "2.0" as an int will fail
     product_results = await transaction.execute(
         f"""
       update product
@@ -157,19 +159,19 @@ async def update_products_from_staging(
         ingredients_count = (tp.data->>'ingredients_n')::numeric,
         ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
         last_updated = tp.last_updated,
-        created = to_timestamp((tp.data->>'created_t')::int),
-        last_modified = to_timestamp((tp.data->>'last_modified_t')::int),
+        created = to_timestamp((tp.data->>'created_t')::numeric),
+        last_modified = to_timestamp((tp.data->>'last_modified_t')::numeric),
         completeness = (tp.data->>'completeness')::double precision,
-        nutriscore = (tp.data->>'nutriscore_score')::int,
-        environmental_score = (tp.data->>'environmental_score_score')::int,
-        ingredients_from_palm_oil_count = (tp.data->>'ingredients_from_palm_oil_n')::int,
-        ingredients_that_may_be_from_palm_oil_count = (tp.data->>'ingredients_that_may_be_from_palm_oil_n')::int,
-        additives_count = (tp.data->>'additives_n')::int,
-        ingredients_from_or_that_may_be_from_palm_oil_count = (tp.data->>'ingredients_from_or_that_may_be_from_palm_oil_n')::int,
+        nutriscore = (tp.data->>'nutriscore_score')::numeric,
+        environmental_score = (tp.data->>'environmental_score_score')::numeric,
+        ingredients_from_palm_oil_count = (tp.data->>'ingredients_from_palm_oil_n')::numeric,
+        ingredients_that_may_be_from_palm_oil_count = (tp.data->>'ingredients_that_may_be_from_palm_oil_n')::numeric,
+        additives_count = (tp.data->>'additives_n')::numeric,
+        ingredients_from_or_that_may_be_from_palm_oil_count = (tp.data->>'ingredients_from_or_that_may_be_from_palm_oil_n')::numeric,
         process_id = $2,
         last_processed = $3,
         source = $4,
-        revision = (tp.data->>'rev')::int
+        revision = (tp.data->>'rev')::numeric
       from product_temp tp
       where product.id = tp.id""",
         obsolete,

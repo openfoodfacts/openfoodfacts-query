@@ -127,6 +127,6 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
 
 async def delete_ingredients(transaction, product_ids):
     await transaction.execute(
-        f"UPDATE product_ingredient SET obsolete = NULL WHERE product_id = ANY($1::int[])",
+        f"UPDATE product_ingredient SET obsolete = NULL WHERE product_id = ANY($1::numeric[])",
         product_ids,
     )
