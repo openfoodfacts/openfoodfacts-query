@@ -98,7 +98,6 @@ jobs:
           proxy_host: ${{ env.SSH_PROXY_HOST }}
           proxy_username: ${{ env.SSH_USERNAME }}
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: false
           script: |
             # Clone Git repository if not already there
             [ ! -d '${{ env.PROJECT_DIR }}' ] && git clone --depth 1 https://github.com/${{ github.repository }} ${{ env.PROJECT_DIR }} --no-single-branch 2>&1
@@ -121,7 +120,6 @@ jobs:
           proxy_host: ${{ env.SSH_PROXY_HOST }}
           proxy_username: ${{ env.SSH_USERNAME }}
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: false
           script: |
             # Go to repository directory
             cd ${{ env.PROJECT_DIR }}
@@ -165,10 +163,12 @@ jobs:
           proxy_host: ${{ env.SSH_PROXY_HOST }}
           proxy_username: ${{ env.SSH_USERNAME }}
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: false
+          # Migrations can take a long time so extend to the default maximum GitHub action timeout of 6 hours
+          command_timeout: 360m
           script: |
             cd ${{ env.PROJECT_DIR }}
             make migrate_database_docker && docker compose up -d 2>&1
+
       - name: Check services are up
         uses: appleboy/ssh-action@master
         if: ${{ always() }}
@@ -180,7 +180,6 @@ jobs:
           proxy_host: ${{ env.SSH_PROXY_HOST }}
           proxy_username: ${{ env.SSH_USERNAME }}
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: false
           script: |
             cd ${{ env.PROJECT_DIR }}
             exit_code=0
@@ -204,7 +203,6 @@ jobs:
           proxy_host: ${{ env.SSH_PROXY_HOST }}
           proxy_username: ${{ env.SSH_USERNAME }}
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: false
           script: |
             cd ${{ env.PROJECT_DIR }}
             docker system prune -af
