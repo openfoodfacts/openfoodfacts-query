@@ -273,11 +273,24 @@ def append_sql_fragments(
 
             is_not = False
             values = [value]
+            operator = "="
             # Apply any specific MongoDB expression if it isn't a simple match
             if isinstance(value, Dict):
                 if "$ne" in value:
                     is_not = True
                     values = [value["$ne"]]
+                if "$lt" in value:
+                    operator = "<"
+                    values = [value["$lt"]]
+                if "$gt" in value:
+                    operator = ">"
+                    values = [value["$gt"]]
+                if "$lte" in value:
+                    operator = "<="
+                    values = [value["$lte"]]
+                if "$gte" in value:
+                    operator = ">="
+                    values = [value["$gte"]]
                 elif "$all" in value:
                     values = value["$all"]
                 elif "$in" in value:
@@ -305,7 +318,9 @@ def append_sql_fragments(
                     if isinstance(tag_value, List):
                         where_expression = f" AND {column_name} = ANY(${len(params)})"
                     else:
-                        where_expression = f" AND {column_name} = ${len(params)}"
+                        where_expression = (
+                            f" AND {column_name} {operator} ${len(params)}"
+                        )
 
                 if product_column_name:
                     if tag_value == None:

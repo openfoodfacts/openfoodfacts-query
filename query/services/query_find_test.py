@@ -5,9 +5,10 @@ from fastapi import HTTPException, status
 from pydantic import ValidationError
 
 from query.tables.loaded_tag import append_loaded_tags
+from query.tables.product import PRODUCT_V2_TAG
 
 from ..database import get_transaction
-from ..models.query import Filter, FindQuery, SortColumn
+from ..models.query import Filter, FindQuery, Fragment, Qualify, SortColumn
 from ..services import query
 from ..services.query_count_test import create_test_tags
 from ..tables.country import get_country
@@ -232,6 +233,48 @@ async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo, _):
     assert results[0]["code"] == tags.product2["code"]
     assert results[1]["code"] == tags.product3["code"]
     assert results[2]["code"] == tags.product1["code"]
+
+
+@patch.object(query, "get_loaded_tags", return_value=["origins_tags", PRODUCT_V2_TAG])
+async def test_gt_lt_operators(_):
+    tags = await create_tags_and_scans()
+
+    results = await query.find(
+        FindQuery(
+            filter=Filter(
+                qualify_and=[
+                    Fragment(origins_tags=tags.origin_value),
+                    Fragment(additives_n=Qualify(qualify_gt=1)),
+                    Fragment(additives_n=Qualify(qualify_lt=3)),
+                ],
+            ),
+            projection={"code": True},
+        )
+    )
+    assert len(results) == 1
+    assert results[0]["code"] == tags.product2["code"]
+
+
+@patch.object(query, "get_loaded_tags", return_value=["origins_tags", PRODUCT_V2_TAG])
+async def test_gte_lte_operators(_):
+    tags = await create_tags_and_scans()
+
+    results = await query.find(
+        FindQuery(
+            filter=Filter(
+                qualify_and=[
+                    Fragment(origins_tags=tags.origin_value),
+                    Fragment(additives_n=Qualify(qualify_gte=2)),
+                    Fragment(additives_n=Qualify(qualify_lte=3)),
+                ],
+            ),
+            projection={"code": True},
+            sort=[(SortColumn.product_name, 1)],
+        )
+    )
+    assert len(results) == 2
+    assert results[0]["code"] == tags.product2["code"]
+    assert results[1]["code"] == tags.product3["code"]
 
 
 async def create_tags_and_scans():

@@ -148,7 +148,7 @@ async def update_products_from_staging(
     transaction: Connection, log, obsolete, process_id, source
 ):
     """Apply updates to products from the product_temp table. Assumes that a minimal product record has already been created"""
-    
+
     # Note we cast as numeric rather than int in the SQL below as casting something like "2.0" as an int will fail
     product_results = await transaction.execute(
         f"""
