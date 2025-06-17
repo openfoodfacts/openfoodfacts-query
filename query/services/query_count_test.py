@@ -16,9 +16,16 @@ from ..test_helper import random_code
 from . import query
 
 
-async def create_random_product(transaction, name=None, creator=None, obsolete=False):
+async def create_random_product(
+    transaction, name=None, additives_count=None, creator=None, obsolete=False
+):
     return await create_product(
-        transaction, code=random_code(), name=name, creator=creator, obsolete=obsolete
+        transaction,
+        code=random_code(),
+        name=name,
+        additives_count=additives_count,
+        creator=creator,
+        obsolete=obsolete,
     )
 
 
@@ -100,10 +107,10 @@ async def create_test_tags(transaction):
     creator_value = random_code()
 
     # Create some dummy products with a specific tag
-    product1 = await create_random_product(transaction, "d")
-    product2 = await create_random_product(transaction, "a", creator_value)
-    product3 = await create_random_product(transaction, "b", creator_value)
-    product4 = await create_random_product(transaction, "c", obsolete=True)
+    product1 = await create_random_product(transaction, "d", 1)
+    product2 = await create_random_product(transaction, "a", 2, creator=creator_value)
+    product3 = await create_random_product(transaction, "b", 3, creator=creator_value)
+    product4 = await create_random_product(transaction, "c", 4, obsolete=True)
 
     # Matrix for testing
     # Product  | Origin | AminoAcid | AminoAcid2 | Neucleotide | Obsolete | Creator

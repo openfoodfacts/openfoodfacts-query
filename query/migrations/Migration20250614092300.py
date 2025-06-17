@@ -1,8 +1,8 @@
 from query.models.product import Source
 from query.services.ingestion import import_with_filter
 
-from ..tables import product
 from ..config import config_settings
+from ..tables import product
 
 
 async def up(transaction):

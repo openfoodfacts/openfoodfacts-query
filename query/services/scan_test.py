@@ -127,4 +127,6 @@ async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock):
             True,
         )
 
-        append_loaded_tags.assert_called_with(ANY, [PRODUCT_COUNTRY_TAG, PRODUCT_SCANS_TAG])
+        append_loaded_tags.assert_called_with(
+            ANY, [PRODUCT_COUNTRY_TAG, PRODUCT_SCANS_TAG]
+        )

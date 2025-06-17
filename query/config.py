@@ -21,7 +21,7 @@ class ConfigSettings(BaseSettings):
     REDIS_URL: str
 
     LOG_LEVEL: str
-    
+
     SKIP_DATA_MIGRATIONS: bool = False
 
 

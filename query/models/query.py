@@ -19,7 +19,13 @@ class Qualify(BaseModel, validate_by_name=True, extra="forbid"):
     that roughly correspond to operators"""
 
     # Because of the `$`, we enable validation using the name when we populate models in code
-    qualify_ne: str = Field(None, alias="$ne", description="Value is not equal to")
+    qualify_ne: str | int = Field(None, alias="$ne", description="Not equal to")
+    qualify_lt: str | int = Field(None, alias="$lt", description="Less than")
+    qualify_lte: str | int = Field(None, alias="$lte", description="Less than or equal")
+    qualify_gt: str | int = Field(None, alias="$gt", description="Greater than")
+    qualify_gte: str | int = Field(
+        None, alias="$gte", description="Greater than or equal"
+    )
     qualify_all: List[str] = Field(
         None,
         alias="$all",
