@@ -2,11 +2,13 @@
 The recent and total scans columns are used for popularity sorting and need to be refreshed each year
 from the product_scans_by_country"""
 
+from query.tables.loaded_tag import PARTIAL_TAGS
 from ..database import create_record
 
 OLDEST_YEAR = 2019
 CURRENT_YEAR = 2024
 PRODUCT_COUNTRY_TAG = "product_country"
+PARTIAL_TAGS.append(PRODUCT_COUNTRY_TAG)
 
 
 async def create_table(transaction):

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from asyncpg import Connection
 
 from query.models.scan import ProductScans
+from query.tables.loaded_tag import PARTIAL_TAGS, check_tag_is_loaded
 from query.tables.product_country import CURRENT_YEAR, delete_product_countries
 
 from ..database import create_record, get_rows_affected
@@ -13,7 +14,7 @@ from ..models.product import Source
 from ..tables.product_ingredient import delete_ingredients
 from ..tables.product_tags import TAG_TABLES, delete_tags
 
-PRODUCT_FIELD_COLUMNS_V1 = {
+PRODUCT_FIELD_BASE_COLUMNS = {
     "code": "code",
     "product_name": "name",
     "creator": "creator",
@@ -22,9 +23,6 @@ PRODUCT_FIELD_COLUMNS_V1 = {
     "ingredients_n": "ingredients_count",
     "ingredients_without_ciqual_codes_n": "ingredients_without_ciqual_codes_count",
     "rev": "revision",
-}
-
-PRODUCT_FIELD_COLUMNS_V2 = {
     "last_modified_t": "last_modified",  # Note we actually use last_updated_t to determine if a product has changed
     "created_t": "created",
     "completeness": "completeness",
@@ -37,16 +35,16 @@ PRODUCT_FIELD_COLUMNS_V2 = {
     "ingredients_from_or_that_may_be_from_palm_oil_n": "ingredients_from_or_that_may_be_from_palm_oil_count",
 }
 PRODUCT_TAG = "product"
-PRODUCT_V2_TAG = "product_v2"
 
 PRODUCT_FIELD_SCANS_COLUMNS = {
     "scans_n": "scan_count",
     "unique_scans_n": "unique_scan_count",
 }
 PRODUCT_SCANS_TAG = "product_scans"
+PARTIAL_TAGS.append(PRODUCT_SCANS_TAG)
 
 PRODUCT_FIELD_COLUMNS = (
-    PRODUCT_FIELD_COLUMNS_V1 | PRODUCT_FIELD_COLUMNS_V2 | PRODUCT_FIELD_SCANS_COLUMNS
+    PRODUCT_FIELD_BASE_COLUMNS | PRODUCT_FIELD_SCANS_COLUMNS
 )
 
 
@@ -57,11 +55,11 @@ def stored_root_product_fields():
 
 def get_product_column_for_field(field, loaded_tags):
     """The column name for the corresponding MonoDB field name. Returns None if field isn't loaded yet"""
-    column = PRODUCT_FIELD_COLUMNS_V1.get(field, None)
-    if not column and PRODUCT_V2_TAG in loaded_tags:
-        column = PRODUCT_FIELD_COLUMNS_V2.get(field, None)
-    if not column and PRODUCT_SCANS_TAG in loaded_tags:
+    column = PRODUCT_FIELD_BASE_COLUMNS.get(field, None)
+    if not column:
         column = PRODUCT_FIELD_SCANS_COLUMNS.get(field, None)
+        if column:
+            check_tag_is_loaded(PRODUCT_SCANS_TAG, loaded_tags)
 
     return column
 

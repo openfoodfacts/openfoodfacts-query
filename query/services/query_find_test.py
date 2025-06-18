@@ -5,7 +5,6 @@ from fastapi import HTTPException, status
 from pydantic import ValidationError
 
 from query.tables.loaded_tag import append_loaded_tags
-from query.tables.product import PRODUCT_V2_TAG
 
 from ..database import get_transaction
 from ..models.query import Filter, FindQuery, Fragment, Qualify, SortColumn
@@ -18,9 +17,8 @@ from ..test_helper import mock_cursor, patch_context_manager
 from . import query
 
 
-@patch.object(query, "get_loaded_tags", return_value=[PRODUCT_COUNTRY_TAG])
 @patch.object(query, "find_products")
-async def test_sorts_by_country_scans(mocked_mongo, _):
+async def test_sorts_by_country_scans(mocked_mongo):
     tags = await create_tags_and_scans()
 
     patch_context_manager(
@@ -48,13 +46,8 @@ async def test_sorts_by_country_scans(mocked_mongo, _):
     assert results[2]["code"] == tags.product1["code"]
 
 
-@patch.object(
-    query,
-    "get_loaded_tags",
-    return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
-)
 @patch.object(query, "find_products")
-async def test_sorts_by_world_scans(mocked_mongo, _):
+async def test_sorts_by_world_scans(mocked_mongo):
     tags = await create_tags_and_scans()
 
     patch_context_manager(
@@ -84,13 +77,8 @@ async def test_sorts_by_world_scans(mocked_mongo, _):
     assert results[2]["code"] == tags.product1["code"]
 
 
-@patch.object(
-    query,
-    "get_loaded_tags",
-    return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
-)
 @patch.object(query, "find_products")
-async def test_limit_and_offset(mocked_mongo, _):
+async def test_limit_and_offset(mocked_mongo):
     tags = await create_tags_and_scans()
 
     # Using world so order should be 2,3,1 but skipping 2 and limiting to 1
@@ -119,13 +107,8 @@ async def test_limit_and_offset(mocked_mongo, _):
     assert results[0]["code"] == tags.product3["code"]
 
 
-@patch.object(
-    query,
-    "get_loaded_tags",
-    return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
-)
 @patch.object(query, "find_products")
-async def test_obsolete(mocked_mongo, _):
+async def test_obsolete(mocked_mongo):
     tags = await create_tags_and_scans()
 
     patch_context_manager(
@@ -182,8 +165,7 @@ async def test_exception_when_sort_key_not_supported():
     assert main_error["loc"][0] == "sort"
 
 
-@patch.object(query, "get_loaded_tags", return_value=["origins_tags"])
-async def test_returns_data_when_no_sort_specified(_):
+async def test_returns_data_when_no_sort_specified():
     tags = await create_tags_and_scans()
 
     results = await query.find(
@@ -195,8 +177,7 @@ async def test_returns_data_when_no_sort_specified(_):
     assert len(results) == 3
 
 
-@patch.object(query, "get_loaded_tags", return_value=["origins_tags"])
-async def test_returns_data_when_ascending_sort_specified(_):
+async def test_returns_data_when_ascending_sort_specified():
     tags = await create_tags_and_scans()
 
     results = await query.find(
@@ -212,13 +193,8 @@ async def test_returns_data_when_ascending_sort_specified(_):
     assert results[2]["code"] == tags.product1["code"]
 
 
-@patch.object(
-    query,
-    "get_loaded_tags",
-    return_value=[PRODUCT_COUNTRY_TAG, "origins_tags"],
-)
 @patch.object(query, "find_products")
-async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo, _):
+async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo):
     tags = await create_tags_and_scans()
 
     results = await query.find(
@@ -235,8 +211,7 @@ async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo, _):
     assert results[2]["code"] == tags.product1["code"]
 
 
-@patch.object(query, "get_loaded_tags", return_value=["origins_tags", PRODUCT_V2_TAG])
-async def test_gt_lt_operators(_):
+async def test_gt_lt_operators():
     tags = await create_tags_and_scans()
 
     results = await query.find(
@@ -255,8 +230,7 @@ async def test_gt_lt_operators(_):
     assert results[0]["code"] == tags.product2["code"]
 
 
-@patch.object(query, "get_loaded_tags", return_value=["origins_tags", PRODUCT_V2_TAG])
-async def test_gte_lte_operators(_):
+async def test_gte_lte_operators():
     tags = await create_tags_and_scans()
 
     results = await query.find(

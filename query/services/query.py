@@ -17,13 +17,11 @@ from ..models.query import (
 )
 from ..mongodb import find_products
 from ..tables.country import get_country
-from ..tables.loaded_tag import get_loaded_tags
+from ..tables.loaded_tag import check_tag_is_loaded, get_loaded_tags
 from ..tables.product import (
     PRODUCT_FIELD_COLUMNS,
-    PRODUCT_FIELD_COLUMNS_V2,
     PRODUCT_FIELD_SCANS_COLUMNS,
     PRODUCT_SCANS_TAG,
-    PRODUCT_V2_TAG,
     get_product_column_for_field,
 )
 from ..tables.product_country import PRODUCT_COUNTRY_TAG
@@ -124,25 +122,11 @@ async def find(query: FindQuery, obsolete=False):
 
         # Abort for sort on scan field if scans have not yet been fully loaded
         loaded_tags = await get_loaded_tags(transaction)
-        if (
-            sort_key == SortColumn.popularity and PRODUCT_COUNTRY_TAG not in loaded_tags
-        ) or (
-            sort_key in PRODUCT_FIELD_SCANS_COLUMNS.keys()
-            and PRODUCT_SCANS_TAG not in loaded_tags
-        ):
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "Scans have not been fully loaded"
-            )
-
-        # Abort for sort on product fields a full load hasn't happened
-        if (
-            sort_key in PRODUCT_FIELD_COLUMNS_V2.keys()
-            and PRODUCT_V2_TAG not in loaded_tags
-        ):
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                f"Field {sort_key} has not been fully loaded",
-            )
+        # TODO: Could probably encapsulate this a bit more
+        if sort_key == SortColumn.popularity:
+            check_tag_is_loaded(PRODUCT_COUNTRY_TAG, loaded_tags)
+        elif sort_key in PRODUCT_FIELD_SCANS_COLUMNS.keys():
+            check_tag_is_loaded(PRODUCT_SCANS_TAG)
 
         if sort_key == SortColumn.popularity:
             # The country we are filtering by determines which scans we use to sort the results
@@ -266,10 +250,8 @@ def append_sql_fragments(
             exclude_defaults=True, by_alias=True
         ).items():
             product_column_name = get_product_column_for_field(tag, loaded_tags)
-            if not product_column_name and tag not in loaded_tags:
-                raise HTTPException(
-                    status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded"
-                )
+            if not product_column_name:
+                check_tag_is_loaded(tag, loaded_tags)
 
             is_not = False
             values = [value]

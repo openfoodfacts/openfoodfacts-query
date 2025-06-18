@@ -6,4 +6,4 @@ We do this because migrations are run before the previous instance of the servic
 
 # Pending migrations
 
-- drop table loaded_tag
+- None

@@ -1,12 +1,11 @@
 from typing import List
 
+from fastapi import HTTPException, status
+
 
 async def create_table(transaction):
     await transaction.execute(
         "create table loaded_tag (id text not null, constraint loaded_tag_pkey primary key (id))",
-    )
-    await transaction.execute(
-        "insert into loaded_tag (id) values ('countries_tags'),('nutrition_grades_tags'),('nova_groups_tags'),('ecoscore_tags'),('brands_tags'),('categories_tags'),('labels_tags'),('packaging_tags'),('origins_tags'),('manufacturing_places_tags'),('emb_codes_tags'),('ingredients_tags'),('additives_tags'),('vitamins_tags'),('minerals_tags'),('amino_acids_tags'),('nucleotides_tags'),('other_nutritional_substances_tags'),('allergens_tags'),('traces_tags'),('misc_tags'),('languages_tags'),('states_tags'),('data_sources_tags'),('entry_dates_tags'),('last_edit_dates_tags'),('last_check_dates_tags'),('teams_tags') on conflict do nothing",
     )
 
 
@@ -20,6 +19,20 @@ async def get_loaded_tags(transaction):
             row["id"] for row in await transaction.fetch("SELECT id FROM loaded_tag")
         ]
     return _loaded_tags
+
+
+# The following tags might not be populated yet, e.g. Scans require a manual refresh from Product Opener
+# Where off-query can fetch the data itself then new data is populated as part of migrations
+# so there is no need to list these tags here
+PARTIAL_TAGS = []
+
+
+def check_tag_is_loaded(tag, loaded_tags):
+    """Determine if data for a tag is available to query"""
+    if tag in PARTIAL_TAGS and tag not in loaded_tags:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded"
+        )
 
 
 async def append_loaded_tags(transaction, new_tags: List[str]):

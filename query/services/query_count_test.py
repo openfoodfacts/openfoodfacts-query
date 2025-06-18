@@ -10,7 +10,7 @@ from ..database import get_transaction
 from ..models.query import Filter, Qualify
 from ..services import query
 from ..tables.country import create_country
-from ..tables.product import create_product
+from ..tables.product import PRODUCT_SCANS_TAG, create_product
 from ..tables.product_tags import create_tag
 from ..test_helper import random_code
 from . import query
@@ -181,10 +181,10 @@ async def test_throw_an_unprocessable_exception_for_a_tag_that_has_not_been_load
     get_loaded_tags_mock,
 ):
     with pytest.raises(HTTPException) as e:
-        await query.count(Filter(ingredients_tags="x"))
+        await query.count(Filter(scans_n=1))
     assert get_loaded_tags_mock.called
     assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    assert "ingredients_tags" in repr(e.value.detail)
+    assert PRODUCT_SCANS_TAG in repr(e.value.detail)
 
 
 async def test_throw_and_unprocessable_exception_for_an_unrecognized_value_object():

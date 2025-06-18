@@ -48,9 +48,8 @@ def get_test_products():
 
 @patch.object(ingestion, "find_products")
 @patch.object(ingestion, "get_process_id")
-@patch.object(ingestion, "append_loaded_tags")
 async def test_import_from_mongo_should_import_a_new_product_update_existing_products_and_delete_missing_products(
-    append_loaded_tags: Mock, get_process_id_mock: Mock, find_products_mock: Mock
+    get_process_id_mock: Mock, find_products_mock: Mock
 ):
     async with get_transaction() as transaction:
         # mock the process id so it doesn't delete records from other tests
@@ -157,38 +156,6 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 
         found_later_product = await get_product_by_id(transaction, product_later["id"])
         assert found_later_product["obsolete"] == False
-
-        assert append_loaded_tags.called
-
-
-@patch.object(ingestion, "find_products")
-@patch.object(ingestion, "append_loaded_tags")
-async def test_incremental_import_should_not_update_loaded_tags(
-    set_loaded_tags_mock, find_products_mock: Mock
-):
-    async with get_transaction() as transaction:
-        # when: doing an incremental import from mongo_db
-        products = get_test_products()
-        patch_context_manager(find_products_mock, mock_cursor(products))
-
-        last_updated = datetime.now(timezone.utc)
-        await set_last_updated(transaction, last_updated)
-
-    await ingestion.import_from_mongo("")
-
-    async with get_transaction() as transaction:
-        # then: set loaded tags is not updated
-        assert not set_loaded_tags_mock.called
-
-        product_new = await get_product(transaction, products[0]["code"])
-        assert product_new
-        assert product_new["source"] == Source.incremental_load
-
-        # MongoDB called with the correct filter
-        call_args = find_products_mock.call_args[0][0]
-        assert call_args == {
-            "last_updated_t": {"$gt": math.floor(last_updated.timestamp())}
-        }
 
 
 @patch.object(ingestion, "find_products")

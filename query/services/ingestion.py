@@ -10,7 +10,6 @@ from asyncpg import Connection
 from ..database import get_transaction, strip_nuls
 from ..models.product import Source
 from ..mongodb import find_products
-from ..tables.loaded_tag import append_loaded_tags
 from ..tables.product import (
     PRODUCT_FIELD_COLUMNS,
     PRODUCT_TAG,
@@ -191,10 +190,6 @@ async def import_with_filter(
         # If this is a full load then delete all products that were not fetched from MongoDB on this run
         if source == Source.full_load:
             await delete_products(transaction, process_id, source)
-            await append_loaded_tags(
-                transaction,
-                tags,
-            )
     finally:
         await transaction.execute("DROP TABLE product_temp")
 
