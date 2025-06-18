@@ -7,6 +7,8 @@ from typing import Dict
 
 from asyncpg import Connection
 
+from query.tables.product_nutrient import NUTRIENT_TAG, create_nutrients_from_staging
+
 from ..database import get_transaction, strip_nuls
 from ..models.product import Source
 from ..mongodb import find_products
@@ -80,7 +82,7 @@ async def import_with_filter(
         # If explicit tags are provided then this is a partial load
         source = Source.partial
     else:
-        tags = list(TAG_TABLES.keys()) + [INGREDIENTS_TAG, PRODUCT_TAG]
+        tags = list(TAG_TABLES.keys()) + [INGREDIENTS_TAG, PRODUCT_TAG, NUTRIENT_TAG]
 
     # We currently use a temporary table to stage the unstructured product data to minimize overall storage
     # Ideally this would be a permanent table so that we can easily extend the relational model without having
@@ -217,6 +219,10 @@ async def apply_staged_changes(
 
     if COUNTRIES_TAG in tags:
         await fixup_product_countries(transaction, obsolete)
+
+    if NUTRIENT_TAG in tags:
+        await create_nutrients_from_staging(transaction, log, obsolete)
+
 
     await transaction.execute("TRUNCATE TABLE product_temp")
 

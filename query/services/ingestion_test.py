@@ -1,8 +1,12 @@
 import asyncio
 import math
+import random
 import time
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
+
+from query.tables.nutrient import get_nutrient
+from query.tables.product_nutrient import get_product_nutrients
 
 from ..database import get_transaction
 from ..models.product import Source
@@ -34,6 +38,10 @@ def get_test_products():
             "code": random_code(),
             "last_updated_t": last_updated,
             "ingredients_tags": ["test"],
+            "nutriments": {
+                f"{random_code()}_100g": random.uniform(100,0.000001),
+                f"carbohydrates_100g": 20,
+            },
             "rev": 1,
         },
         {
@@ -156,6 +164,18 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 
         found_later_product = await get_product_by_id(transaction, product_later["id"])
         assert found_later_product["obsolete"] == False
+        
+        # Check nutrients and product nutrients are created
+        added_nutrient = [item for item in products[0]['nutriments'].items() if item[0] not in ["carbohydrates_100g"]][0]
+        nutrient = await get_nutrient(transaction, added_nutrient[0])
+        assert nutrient
+        assert nutrient['tag'] == added_nutrient[0]
+
+        product_nutrients = await get_product_nutrients(transaction, product_new)
+        assert len(product_nutrients) == 2
+        new_nutrient = [item for item in product_nutrients if item['nutrient_id'] == nutrient['id']]
+        assert new_nutrient
+        assert new_nutrient[0]['value'] == added_nutrient[1]
 
 
 @patch.object(ingestion, "find_products")
