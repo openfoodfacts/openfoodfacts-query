@@ -87,6 +87,17 @@ async def create_table(transaction: Connection):
             source varchar(255) null,
             revision int null,
             process_id bigint null,
+            last_modified timestamptz null,
+            created timestamptz null,
+            completeness double precision null,
+            nutriscore int null,
+            environmental_score int null,
+            ingredients_from_palm_oil_count int null,
+            ingredients_that_may_be_from_palm_oil_count int null,
+            additives_count int null,
+            ingredients_from_or_that_may_be_from_palm_oil_count int null,
+            scan_count int null,
+            unique_scan_count int,
             constraint product_pkey primary key (id));""",
     )
     await transaction.execute(
@@ -101,47 +112,29 @@ async def create_table(transaction: Connection):
     await transaction.execute(
         "create index product_owners_tags_index on product (owners_tags);"
     )
-
-
-async def add_v2_columns(transaction: Connection):
-    # Had to add IF NOT EXISTS here as MongoDB import that follows this can fail
     await transaction.execute(
-        """alter table product
-            add column IF NOT EXISTS last_modified timestamptz null,
-            add column IF NOT EXISTS created timestamptz null,
-            add column IF NOT EXISTS completeness double precision null,
-            add column IF NOT EXISTS nutriscore int null,
-            add column IF NOT EXISTS environmental_score int null,
-            add column IF NOT EXISTS ingredients_from_palm_oil_count int null,
-            add column IF NOT EXISTS ingredients_that_may_be_from_palm_oil_count int null,
-            add column IF NOT EXISTS additives_count int null,
-            add column IF NOT EXISTS ingredients_from_or_that_may_be_from_palm_oil_count int null,
-            add column IF NOT EXISTS scan_count int null,
-            add column IF NOT EXISTS unique_scan_count int null;""",
+        "create index product_created_index on product (created DESC NULLS LAST, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_created_index on product (created DESC NULLS LAST, id);",
+        "create index product_completeness_index on product (completeness, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_completeness_index on product (completeness, id);",
+        "create index product_nutriscore_index on product (nutriscore, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_nutriscore_index on product (nutriscore, id);",
+        "create index product_environmental_score_index on product (environmental_score DESC NULLS LAST, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_environmental_score_index on product (environmental_score DESC NULLS LAST, id);",
+        "create index product_name_index on product (name, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_name_index on product (name, id);",
+        "create index product_last_modified_index on product (last_modified DESC NULLS LAST, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_last_modified_index on product (last_modified DESC NULLS LAST, id);",
+        "create index product_scan_count_index on product (scan_count DESC NULLS LAST, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_scan_count_index on product (scan_count DESC NULLS LAST, id);",
-    )
-    await transaction.execute(
-        "create index IF NOT EXISTS product_unique_scan_count_index on product (unique_scan_count DESC NULLS LAST, id);",
+        "create index product_unique_scan_count_index on product (unique_scan_count DESC NULLS LAST, id);",
     )
 
 
