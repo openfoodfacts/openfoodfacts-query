@@ -46,6 +46,9 @@ async def create_record(transaction, table_name, **params):
 
 
 def strip_nuls(enumerable: dict | list, context):
+    if not enumerable:
+        return
+
     """PostgreSQL doesn't like nuls in text fields, including JSON. The context is used for error logging"""
     enumeration = (
         enumerable.items() if isinstance(enumerable, dict) else enumerate(enumerable)

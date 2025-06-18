@@ -13,7 +13,7 @@ from ..mongodb import find_products
 from ..tables.loaded_tag import append_loaded_tags
 from ..tables.product import (
     PRODUCT_FIELD_COLUMNS,
-    PRODUCT_V2_TAG,
+    PRODUCT_TAG,
     create_minimal_product,
     delete_products,
     get_minimal_product,
@@ -21,10 +21,10 @@ from ..tables.product import (
 )
 from ..tables.product_country import fixup_product_countries
 from ..tables.product_ingredient import (
-    PRODUCT_INGREDIENTS_FIELDS,
+    INGREDIENTS_TAG,
     create_ingredients_from_staging,
 )
-from ..tables.product_tags import TAG_TABLES, create_tags_from_staging
+from ..tables.product_tags import COUNTRIES_TAG, TAG_TABLES, create_tags_from_staging
 from ..tables.settings import get_last_updated, set_last_updated
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ async def import_with_filter(
     filter: Dict,
     source: Source,
     batch_size=DEFAULT_BATCH_SIZE,
-    do_children=True,
+    tags=[],
 ) -> datetime:
     """Core import routine. Fetches data from MongoDB using the supplied filter and updates the copy stored in PostgreSQL
     If the filter is a list of codes then any code not found in MongoDB will be deleted from PostgreSQL
@@ -77,6 +77,11 @@ async def import_with_filter(
     max_last_updated = MIN_DATETIME
     found_product_codes = []
     codes_specified = "code" in filter and "$in" in filter["code"]
+    if tags:
+        # If explicit tags are provided then this is a partial load
+        source = Source.partial
+    else:
+        tags = list(TAG_TABLES.keys()) + [INGREDIENTS_TAG, PRODUCT_TAG]
 
     # We currently use a temporary table to stage the unstructured product data to minimize overall storage
     # Ideally this would be a permanent table so that we can easily extend the relational model without having
@@ -86,32 +91,37 @@ async def import_with_filter(
     )
     try:
         process_id = await get_process_id(transaction)
-        projection = {
-            key: True
-            for key in (
-                (
-                    list(TAG_TABLES.keys()) + PRODUCT_INGREDIENTS_FIELDS
-                    if do_children
-                    else []
-                )
-                + list(PRODUCT_FIELD_COLUMNS.keys())
-            )
-        }
+        projection = {key: True for key in tags if key != PRODUCT_TAG}
+        # Add specific fields for top-level product fields
+        if PRODUCT_TAG in tags:
+            projection |= {key: True for key in PRODUCT_FIELD_COLUMNS.keys()}
+        else:
+            # If we aren't updating the product then just fetch the code and dates
+            projection != {
+                "code": True,
+                "last_modified_t": True,
+                "last_updated_t": True,
+            }
+
         for obsolete in [False, True]:
             update_count = 0
             skip_count = 0
             async with find_products(filter, projection, obsolete) as cursor:
                 async for product_data in cursor:
-                    last_updated = get_product_last_updated(product_data)
-                    max_last_updated = max(last_updated, max_last_updated)
-
                     product_code = product_data["code"]
-                    if codes_specified:
-                        found_product_codes.append(product_code)
-
                     existing_product = await get_minimal_product(
                         transaction, product_code
                     )
+                    # Don't create new products for partial updates
+                    if not existing_product and source == Source.partial:
+                        continue
+
+                    last_updated = get_product_last_updated(product_data)
+                    max_last_updated = max(last_updated, max_last_updated)
+
+                    if codes_specified:
+                        found_product_codes.append(product_code)
+
                     # Don't update the product if we are doing an incremental load and the product hasn't changed.
                     # This way we should see most products with a Source of "event" and any product with a source of
                     # "incremental_load" would indicate there was a scenario where an event wasn't generated
@@ -133,10 +143,9 @@ async def import_with_filter(
                         )
 
                     # Strip any nulls from tag text
-                    if do_children:
-                        for tag in TAG_TABLES.keys():
-                            tag_data = product_data.get(tag, [])
-                            strip_nuls(tag_data, f"Product: {product_code}, tag: {tag}")
+                    for tag in TAG_TABLES.keys():
+                        tag_data = product_data.get(tag, [])
+                        strip_nuls(tag_data, f"Product: {product_code}, tag: {tag}")
 
                     await transaction.execute(
                         "INSERT INTO product_temp (id, last_updated, data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
@@ -153,13 +162,13 @@ async def import_with_filter(
                             update_count,
                             process_id,
                             source,
-                            do_children,
+                            tags,
                         )
 
             # Apply any remaining staged changes
             if update_count % batch_size:
                 await apply_staged_changes(
-                    transaction, obsolete, update_count, process_id, source, do_children
+                    transaction, obsolete, update_count, process_id, source, tags
                 )
             if skip_count % batch_size:
                 logger.info(
@@ -184,7 +193,7 @@ async def import_with_filter(
             await delete_products(transaction, process_id, source)
             await append_loaded_tags(
                 transaction,
-                (list(TAG_TABLES.keys()) if do_children else []) + [PRODUCT_V2_TAG],
+                tags,
             )
     finally:
         await transaction.execute("DROP TABLE product_temp")
@@ -193,7 +202,7 @@ async def import_with_filter(
 
 
 async def apply_staged_changes(
-    transaction: Connection, obsolete, update_count, process_id, source, do_tags
+    transaction: Connection, obsolete, update_count, process_id, source, tags
 ):
     """ "Copies data from the product_temp temporary table to the relational tables.
     Assumes that a basic product record has already been created"""
@@ -201,11 +210,19 @@ async def apply_staged_changes(
     await transaction.execute("ANALYZE product_temp")
 
     log = logger.debug
-    await update_products_from_staging(transaction, log, obsolete, process_id, source)
-    if do_tags:
+    if PRODUCT_TAG in tags:
+        await update_products_from_staging(
+            transaction, log, obsolete, process_id, source
+        )
+
+    if INGREDIENTS_TAG in tags:
         await create_ingredients_from_staging(transaction, log, obsolete)
-        await create_tags_from_staging(transaction, log, obsolete)
+
+    await create_tags_from_staging(transaction, log, obsolete, tags)
+
+    if COUNTRIES_TAG in tags:
         await fixup_product_countries(transaction, obsolete)
+
     await transaction.execute("TRUNCATE TABLE product_temp")
 
     # Start a new transaction for the next batch

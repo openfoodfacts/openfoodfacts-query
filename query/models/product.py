@@ -14,3 +14,6 @@ class Source(str, Enum):
 
     incremental_load = "incremental"
     """Product was refreshed during an incremental load"""
+
+    partial = "partial"
+    """Partial data refresh, i.e. not all fields will be populated"""

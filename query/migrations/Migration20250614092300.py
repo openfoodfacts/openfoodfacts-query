@@ -8,4 +8,4 @@ from ..tables import product
 async def up(transaction):
     await product.add_v2_columns(transaction)
     if not config_settings.SKIP_DATA_MIGRATIONS:
-        await import_with_filter(transaction, {}, Source.full_load, do_children=False)
+        await import_with_filter(transaction, {}, Source.partial, [product.PRODUCT_TAG])

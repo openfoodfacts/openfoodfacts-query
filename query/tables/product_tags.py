@@ -3,6 +3,7 @@ The order of tags is not preserved"""
 
 from ..database import create_record, get_rows_affected
 
+COUNTRIES_TAG = "countries_tags"
 tag_tables_v1 = {
     "_keywords": "product_keywords_tag",
     "additives_tags": "product_additives_tag",
@@ -15,7 +16,7 @@ tag_tables_v1 = {
     "cities_tags": "product_cities_tag",
     "codes_tags": "product_codes_tag",
     "correctors_tags": "product_correctors_tag",
-    "countries_tags": "product_countries_tag",
+    COUNTRIES_TAG: "product_countries_tag",
     "data_quality_bugs_tags": "product_data_quality_bugs_tag",
     "data_quality_errors_tags": "product_data_quality_errors_tag",
     "data_quality_tags": "product_data_quality_tag",
@@ -106,26 +107,28 @@ async def create_tag(transaction, tag, product, value):
     )
 
 
-async def create_tags_from_staging(transaction, log, obsolete):
+async def create_tags_from_staging(transaction, log, obsolete, tags):
     """Populates all of the tag tables from the product_temp data"""
-    for tag, tag_table in TAG_TABLES.items():
-        log_text = f"Updated {tag}"
+    for tag in tags:
+        tag_table = TAG_TABLES.get(tag, None)
+        if tag_table:
+            log_text = f"Updated {tag}"
 
-        # Delete existing tags for products that were imported on this run
-        deleted = await transaction.execute(
-            f"""delete from {tag_table}
-            where product_id in (select id from product_temp)"""
-        )
-        log_text += f" deleted {get_rows_affected(deleted)},"
+            # Delete existing tags for products that were imported on this run
+            deleted = await transaction.execute(
+                f"""delete from {tag_table}
+                where product_id in (select id from product_temp)"""
+            )
+            log_text += f" deleted {get_rows_affected(deleted)},"
 
-        # Add tags back in with the updated information
-        results = await transaction.execute(
-            f"""insert into {tag_table} (product_id, value, obsolete)
-          select DISTINCT id, tag.value, {obsolete} from product_temp 
-          cross join jsonb_array_elements_text(data->'{tag}') tag"""
-        )
-        log_text += f" inserted {get_rows_affected(results)} rows"
-        log(log_text)
+            # Add tags back in with the updated information
+            results = await transaction.execute(
+                f"""insert into {tag_table} (product_id, value, obsolete)
+            select DISTINCT id, tag.value, {obsolete} from product_temp 
+            cross join jsonb_array_elements_text(data->'{tag}') tag"""
+            )
+            log_text += f" inserted {get_rows_affected(results)} rows"
+            log(log_text)
 
 
 async def delete_tags(transaction, product_ids):

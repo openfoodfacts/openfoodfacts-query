@@ -6,9 +6,8 @@ from asyncpg import Connection
 
 from ..database import get_rows_affected
 
-PRODUCT_INGREDIENTS_FIELDS = [
-    "ingredients"
-]  # Note we can't list explicit fields here because of the potentially unlimited nesting of sub-ingredients
+# Note we can't list explicit fields here because of the potentially unlimited nesting of sub-ingredients
+INGREDIENTS_TAG = "ingredients"
 
 
 async def create_table(transaction):

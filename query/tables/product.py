@@ -36,6 +36,7 @@ PRODUCT_FIELD_COLUMNS_V2 = {
     "additives_n": "additives_count",
     "ingredients_from_or_that_may_be_from_palm_oil_n": "ingredients_from_or_that_may_be_from_palm_oil_count",
 }
+PRODUCT_TAG = "product"
 PRODUCT_V2_TAG = "product_v2"
 
 PRODUCT_FIELD_SCANS_COLUMNS = {
@@ -149,6 +150,14 @@ async def update_products_from_staging(
 ):
     """Apply updates to products from the product_temp table. Assumes that a minimal product record has already been created"""
 
+    # Don't update the source and last_updated date for partial updates
+    params = [obsolete, process_id, datetime.now(timezone.utc)]
+
+    last_updated_sql = ""
+    if source != Source.partial:
+        params.append(source)
+        last_updated_sql = f"last_updated = tp.last_updated, source = $4,"
+
     # Note we cast as numeric rather than int in the SQL below as casting something like "2.0" as an int will fail
     product_results = await transaction.execute(
         f"""
@@ -156,10 +165,10 @@ async def update_products_from_staging(
       set name = tp.data->>'product_name',
         creator = tp.data->>'creator',
         owners_tags = tp.data->>'owners_tags',
+        {last_updated_sql}
         obsolete = $1,
         ingredients_count = (tp.data->>'ingredients_n')::numeric,
         ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
-        last_updated = tp.last_updated,
         created = to_timestamp((tp.data->>'created_t')::numeric),
         last_modified = to_timestamp((tp.data->>'last_modified_t')::numeric),
         completeness = (tp.data->>'completeness')::double precision,
@@ -171,14 +180,10 @@ async def update_products_from_staging(
         ingredients_from_or_that_may_be_from_palm_oil_count = (tp.data->>'ingredients_from_or_that_may_be_from_palm_oil_n')::numeric,
         process_id = $2,
         last_processed = $3,
-        source = $4,
         revision = (tp.data->>'rev')::numeric
       from product_temp tp
       where product.id = tp.id""",
-        obsolete,
-        process_id,
-        datetime.now(timezone.utc),
-        source,
+        *params,
     )
     log(f"Updated {get_rows_affected(product_results)} products")
 
