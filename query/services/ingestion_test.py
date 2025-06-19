@@ -40,7 +40,8 @@ def get_test_products():
             "ingredients_tags": ["test"],
             "nutriments": {
                 f"{random_code()}_100g": random.uniform(100,0.000001),
-                f"carbohydrates_100g": 20,
+                "carbohydrates_100g": 20,
+                "ignored": 10,
             },
             "rev": 1,
         },

@@ -54,7 +54,8 @@ async def create_nutrients_from_staging(transaction: Connection, log, obsolete):
         select distinct left(new_tag, -5)
         from product_temp pt
         cross join jsonb_object_keys(data->'nutriments') new_tag
-        where not exists (select * from nutrient where tag = left(new_tag, -5))
+        where right(new_tag, 5) = '_100g'
+        and not exists (select * from nutrient where tag = left(new_tag, -5))
         on conflict (tag) 
         do nothing"""))
     if nutrients_added:
@@ -65,7 +66,8 @@ async def create_nutrients_from_staging(transaction: Connection, log, obsolete):
         select distinct pt.id, n.id, source.value::double precision
         from product_temp pt
         cross join jsonb_each(data->'nutriments') source
-        join nutrient n on n.tag = left(source.key, -5)"""))
+        join nutrient n on n.tag = left(source.key, -5)
+        where right(source.key, 5) = '_100g'"""))
     log_text += f" added {product_nutrients_added} product nutrients"
     log(log_text)
 
