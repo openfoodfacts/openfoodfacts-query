@@ -2,6 +2,7 @@ from typing import List
 
 from fastapi import HTTPException, status
 
+from query.tables.product_nutrient import NUTRIENT_TAG
 from query.tables.product_tags import TAG_TABLES
 
 
@@ -31,7 +32,7 @@ PARTIAL_TAGS = []
 
 def check_tag_is_loaded(tag: str, loaded_tags):
     """Determine if data for a tag is available to query"""
-    if tag.startswith("nutriments."):
+    if tag.startswith(NUTRIENT_TAG):
         return
     if tag not in list(TAG_TABLES.keys()) + PARTIAL_TAGS:
         raise HTTPException(

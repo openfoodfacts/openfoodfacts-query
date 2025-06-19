@@ -1,6 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
+from query.tables.product_nutrient import NUTRIENT_TAG
+
 from ..database import get_transaction
 from ..models.query import Filter, GroupStage, Qualify, Stage
 from ..services import query
@@ -185,3 +187,15 @@ async def test_throw_exception_for_unrecognized_group_field():
     main_error = e.value.errors()[0]
     assert main_error["type"] == "enum"
     assert main_error["loc"][0] == "id"
+
+
+async def test_group_products_with_a_nutrient_filter():
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
+
+    response = await query.aggregate(
+        [Stage(match=Filter(**{f"{NUTRIENT_TAG}{tags.nutrient_tag}_100g": Qualify(qualify_gte=0.11)})), Stage(group=GroupStage(id="$origins_tags"))]
+    )
+    my_result = [result for result in response if result.id == tags.origin_value]
+    assert len(my_result) == 1
+    assert my_result[0].count == 2

@@ -7,7 +7,7 @@ from fastapi import HTTPException, status
 from pydantic import ValidationError
 
 from query.tables.nutrient import create_nutrient
-from query.tables.product_nutrient import create_product_nutrient
+from query.tables.product_nutrient import NUTRIENT_TAG, create_product_nutrient
 
 from ..database import get_transaction
 from ..models.query import Filter, Qualify
@@ -403,3 +403,13 @@ async def test_cope_with_nin_unknown_on_a_product_field():
         )
     )
     assert response == 2
+
+
+async def test_nutrient_filter():
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
+
+    results = await query.count(
+        Filter(**{f"{NUTRIENT_TAG}{tags.nutrient_tag}_100g": Qualify(qualify_lte=0.2)})
+    )
+    assert results == 2

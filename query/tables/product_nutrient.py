@@ -6,12 +6,12 @@ from query.tables.nutrient import create_nutrients_from_staging
 
 from ..database import create_record, get_rows_affected
 
-NUTRIENT_TAG = "nutriments"
+NUTRIENT_TAG = "nutriments."
 
 
 async def create_table(transaction):
     await transaction.execute(
-        'create table "product_nutrient" ("product_id" int not null, "obsolete" boolean null, "nutrient_id" int not null, "value" double precision not null, primary key ("product_id", "nutrient_id"));',
+        'create table "product_nutrient" ("product_id" int not null, "nutrient_id" int not null, "value" double precision not null, primary key ("product_id", "nutrient_id"));',
     )
     await transaction.execute(
         'alter table "product_nutrient" add constraint "product_nutrient_product_id_foreign" foreign key ("product_id") references "product" ("id") on update cascade on delete cascade;',
@@ -41,7 +41,7 @@ async def get_product_nutrients(transaction, product):
     )
 
 
-async def create_product_nutrients_from_staging(transaction: Connection, log, obsolete):
+async def create_product_nutrients_from_staging(transaction: Connection, log):
     deleted = await transaction.execute(
         """delete from product_nutrient 
         where product_id in (select id from product_temp)"""
@@ -67,10 +67,3 @@ async def create_product_nutrients_from_staging(transaction: Connection, log, ob
     log_text += f" added {product_nutrients_added} product nutrients"
     log(log_text)
 
-
-async def delete_product_nutrient(transaction, product_ids):
-    """Soft delete by setting the obsolete flag to null"""
-    await transaction.execute(
-        f"UPDATE product_nutrient SET obsolete = NULL WHERE product_id = ANY($1::numeric[])",
-        product_ids,
-    )

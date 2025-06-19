@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from pydantic import ValidationError
 
 from query.tables.loaded_tag import append_loaded_tags
+from query.tables.product_nutrient import NUTRIENT_TAG
 
 from ..database import get_transaction
 from ..models.query import Filter, FindQuery, Fragment, Qualify, SortColumn
@@ -257,7 +258,7 @@ async def test_nutrient_filter():
 
     results = await query.find(
         FindQuery(
-            filter=Filter(**{f"nutriments.{tags.nutrient_tag}_100g": Qualify(qualify_lt=0.2)}),
+            filter=Filter(**{f"{NUTRIENT_TAG}{tags.nutrient_tag}_100g": Qualify(qualify_lt=0.2)}),
             projection={"code": True},
         )
     )

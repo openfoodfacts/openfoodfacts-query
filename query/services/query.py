@@ -6,6 +6,8 @@ from typing import Dict, List
 from asyncpg import Connection
 from fastapi import HTTPException, status
 
+from query.tables.product_nutrient import NUTRIENT_TAG
+
 from ..database import get_transaction
 from ..models.query import (
     AggregateCountResult,
@@ -320,7 +322,7 @@ def append_sql_fragments(
                             f" AND EXISTS (SELECT * FROM product WHERE id = p.product_id{where_expression})"
                         )
 
-                elif tag.startswith("nutriments."):
+                elif tag.startswith(NUTRIENT_TAG):
                     nutrient_tag = tag.split(".")[1][:-5]  # Strip off the _100g
                     params.append(nutrient_tag)
                     sql_fragments.append(

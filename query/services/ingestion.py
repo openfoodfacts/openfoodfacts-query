@@ -228,7 +228,7 @@ async def apply_staged_changes(
         await fixup_product_countries(transaction, obsolete)
 
     if NUTRIENT_TAG in tags:
-        await create_product_nutrients_from_staging(transaction, log, obsolete)
+        await create_product_nutrients_from_staging(transaction, log)
 
     await transaction.execute("TRUNCATE TABLE product_temp")
 
