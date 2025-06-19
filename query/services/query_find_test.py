@@ -194,6 +194,22 @@ async def test_returns_data_when_ascending_sort_specified():
     assert results[2]["code"] == tags.product1["code"]
 
 
+async def test_sort_by_total_scans():
+    tags = await create_tags_and_scans()
+
+    results = await query.find(
+        FindQuery(
+            filter=Filter(origins_tags=tags.origin_value),
+            projection={"code": True},
+            sort=[(SortColumn.unique_scans_n, -1)],
+        )
+    )
+    assert len(results) == 3
+    assert results[0]["code"] == tags.product2["code"]
+    assert results[1]["code"] == tags.product3["code"]
+    assert results[2]["code"] == tags.product1["code"]
+
+
 @patch.object(query, "find_products")
 async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo):
     tags = await create_tags_and_scans()

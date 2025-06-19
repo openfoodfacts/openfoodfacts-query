@@ -128,7 +128,7 @@ async def find(query: FindQuery, obsolete=False):
         if sort_key == SortColumn.popularity:
             check_tag_is_loaded(PRODUCT_COUNTRY_TAG, loaded_tags)
         elif sort_key in PRODUCT_FIELD_SCANS_COLUMNS.keys():
-            check_tag_is_loaded(PRODUCT_SCANS_TAG)
+            check_tag_is_loaded(PRODUCT_SCANS_TAG, loaded_tags)
 
         if sort_key == SortColumn.popularity:
             # The country we are filtering by determines which scans we use to sort the results

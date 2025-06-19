@@ -20,13 +20,15 @@ from . import query
 
 
 async def create_random_product(
-    transaction, name=None, additives_count=None, creator=None, obsolete=False
+    transaction, name=None, additives_count=None, scan_count=None, unique_scan_count=None, creator=None, obsolete=False
 ):
     return await create_product(
         transaction,
         code=random_code(),
         name=name,
         additives_count=additives_count,
+        scan_count=scan_count,
+        unique_scan_count=unique_scan_count,
         creator=creator,
         obsolete=obsolete,
     )
@@ -112,10 +114,10 @@ async def create_test_tags(transaction):
     nutrient_tag = random_code()
 
     # Create some dummy products with a specific tag
-    product1 = await create_random_product(transaction, "d", 1)
-    product2 = await create_random_product(transaction, "a", 2, creator=creator_value)
-    product3 = await create_random_product(transaction, "b", 3, creator=creator_value)
-    product4 = await create_random_product(transaction, "c", 4, obsolete=True)
+    product1 = await create_random_product(transaction, "d", 1, 100, 10)
+    product2 = await create_random_product(transaction, "a", 2, 200, 30, creator=creator_value)
+    product3 = await create_random_product(transaction, "b", 3, 300, 20, creator=creator_value)
+    product4 = await create_random_product(transaction, "c", 4, 400, 40, obsolete=True)
 
     # Matrix for testing
     # Product  | Origin | AminoAcid | AminoAcid2 | Neucleotide | Obsolete | Creator
