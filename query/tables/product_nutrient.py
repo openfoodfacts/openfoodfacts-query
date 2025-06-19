@@ -62,8 +62,8 @@ async def create_product_nutrients_from_staging(transaction: Connection, log):
         join nutrient n on n.tag = left(source.key, -5)
         where right(source.key, 5) = '_100g'
         and right(source.key, 13) != 'prepared_100g'
-        """)
+        """
+        )
     )
     log_text += f" added {product_nutrients_added} product nutrients"
     log(log_text)
-

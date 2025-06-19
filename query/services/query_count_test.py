@@ -151,7 +151,7 @@ async def create_test_tags(transaction):
     await create_product_nutrient(transaction, product2, nutrient, 0.2)
     await create_product_nutrient(transaction, product3, nutrient, 0.3)
     await create_product_nutrient(transaction, product4, nutrient, 0.4)
-    
+
     return TagValues(
         origin_value=origin_value,
         amino_value=amino_value,

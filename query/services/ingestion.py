@@ -7,7 +7,10 @@ from typing import Dict
 
 from asyncpg import Connection
 
-from query.tables.product_nutrient import NUTRIENT_TAG, create_product_nutrients_from_staging
+from query.tables.product_nutrient import (
+    NUTRIENT_TAG,
+    create_product_nutrients_from_staging,
+)
 
 from ..config import config_settings
 from ..database import get_transaction, strip_nuls

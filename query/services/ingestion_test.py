@@ -42,7 +42,7 @@ def get_test_products():
                 f"{random_code()}_100g": random.uniform(100, 0.000001),
                 "carbohydrates_100g": 20,
                 "ignored": 10,
-                "carbohydrates_prepared_100g": 30, # Should also be ignored
+                "carbohydrates_prepared_100g": 30,  # Should also be ignored
             },
             "rev": 1,
         },
@@ -174,10 +174,10 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
             if item[0] not in ["carbohydrates_100g"]
         ][0]
         nutrient = await get_nutrient(
-            transaction, added_nutrient[0][:-5] # Should not include the last _100g
-        )  
+            transaction, added_nutrient[0][:-5]  # Should not include the last _100g
+        )
         assert nutrient
-        
+
         # No prepared figures created
         assert (await get_nutrient(transaction, "carbohydrates_prepared")) == None
 

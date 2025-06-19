@@ -24,7 +24,8 @@ async def create_nutrients_from_staging(transaction):
         and not exists (select * from nutrient where tag = left(new_tag, -5))
         on conflict (tag) 
         do nothing
-        """)
+        """
+        )
     )
 
 

@@ -10,7 +10,7 @@ from query.tables.product_nutrient import NUTRIENT_TAG
 from ..database import get_transaction
 from ..models.query import Filter, FindQuery, Fragment, Qualify, SortColumn
 from ..services import query
-from ..services.query_count_test import TagValues, create_test_tags
+from ..services.query_count_test import create_test_tags
 from ..tables.country import get_country
 from ..tables.product_country import CURRENT_YEAR, PRODUCT_COUNTRY_TAG
 from ..tables.product_scans_by_country import create_scan
@@ -258,7 +258,9 @@ async def test_nutrient_filter():
 
     results = await query.find(
         FindQuery(
-            filter=Filter(**{f"{NUTRIENT_TAG}{tags.nutrient_tag}_100g": Qualify(qualify_lt=0.2)}),
+            filter=Filter(
+                **{f"{NUTRIENT_TAG}{tags.nutrient_tag}_100g": Qualify(qualify_lt=0.2)}
+            ),
             projection={"code": True},
         )
     )

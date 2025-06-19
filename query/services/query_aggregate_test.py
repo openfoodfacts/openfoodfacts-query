@@ -194,7 +194,18 @@ async def test_group_products_with_a_nutrient_filter():
         tags = await create_test_tags(transaction)
 
     response = await query.aggregate(
-        [Stage(match=Filter(**{f"{NUTRIENT_TAG}{tags.nutrient_tag}_100g": Qualify(qualify_gte=0.11)})), Stage(group=GroupStage(id="$origins_tags"))]
+        [
+            Stage(
+                match=Filter(
+                    **{
+                        f"{NUTRIENT_TAG}{tags.nutrient_tag}_100g": Qualify(
+                            qualify_gte=0.11
+                        )
+                    }
+                )
+            ),
+            Stage(group=GroupStage(id="$origins_tags")),
+        ]
     )
     my_result = [result for result in response if result.id == tags.origin_value]
     assert len(my_result) == 1

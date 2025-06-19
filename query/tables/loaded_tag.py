@@ -38,7 +38,7 @@ def check_tag_is_loaded(tag: str, loaded_tags):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, f"Invalid field '{tag}'"
         )
-    
+
     if tag in PARTIAL_TAGS and tag not in loaded_tags:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded"
