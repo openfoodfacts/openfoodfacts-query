@@ -21,7 +21,7 @@ async def create_table(transaction):
     )
     # Index for fast searches
     await transaction.execute(
-        "create index product_nutrient_ix1 on product_nutrient (nutrient_id, value, product_id);",
+        "create index product_nutrient_ix1 on product_nutrient (nutrient_id, value);",
     )
 
 
