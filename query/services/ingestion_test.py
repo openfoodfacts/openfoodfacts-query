@@ -167,9 +167,8 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         
         # Check nutrients and product nutrients are created
         added_nutrient = [item for item in products[0]['nutriments'].items() if item[0] not in ["carbohydrates_100g"]][0]
-        nutrient = await get_nutrient(transaction, added_nutrient[0])
+        nutrient = await get_nutrient(transaction, added_nutrient[0][:-5]) # Should not include the last _100g
         assert nutrient
-        assert nutrient['tag'] == added_nutrient[0]
 
         product_nutrients = await get_product_nutrients(transaction, product_new)
         assert len(product_nutrients) == 2
