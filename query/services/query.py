@@ -322,7 +322,7 @@ def append_sql_fragments(
                             f" AND EXISTS (SELECT * FROM product WHERE id = p.product_id{where_expression})"
                         )
 
-                elif tag.startswith(NUTRIENT_TAG):
+                elif tag.startswith(f"{NUTRIENT_TAG}."):
                     nutrient_tag = tag.split(".")[1][:-5]  # Strip off the _100g
                     params.append(nutrient_tag)
                     sql_fragments.append(

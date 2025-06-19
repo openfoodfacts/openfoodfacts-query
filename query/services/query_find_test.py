@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from pydantic import ValidationError
 
 from query.tables.loaded_tag import append_loaded_tags
+from query.tables.product import PRODUCT_SCANS_TAG
 from query.tables.product_nutrient import NUTRIENT_TAG
 
 from ..database import get_transaction
@@ -275,7 +276,7 @@ async def test_nutrient_filter():
     results = await query.find(
         FindQuery(
             filter=Filter(
-                **{f"{NUTRIENT_TAG}{tags.nutrient_tag}_100g": Qualify(qualify_lt=0.2)}
+                **{f"{NUTRIENT_TAG}.{tags.nutrient_tag}_100g": Qualify(qualify_lt=0.2)}
             ),
             projection={"code": True},
         )
@@ -300,6 +301,6 @@ async def create_tags_and_scans():
         await create_scan(transaction, tags.product3, world, CURRENT_YEAR - 1, 100)
         await create_scan(transaction, tags.product4, world, CURRENT_YEAR, 50)
         # Make sure scans are flagged as fully loaded
-        await append_loaded_tags(transaction, [PRODUCT_COUNTRY_TAG])
+        await append_loaded_tags(transaction, [PRODUCT_COUNTRY_TAG, PRODUCT_SCANS_TAG])
 
         return tags

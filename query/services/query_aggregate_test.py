@@ -198,7 +198,7 @@ async def test_group_products_with_a_nutrient_filter():
             Stage(
                 match=Filter(
                     **{
-                        f"{NUTRIENT_TAG}{tags.nutrient_tag}_100g": Qualify(
+                        f"{NUTRIENT_TAG}.{tags.nutrient_tag}_100g": Qualify(
                             qualify_gte=0.11
                         )
                     }

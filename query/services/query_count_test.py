@@ -412,6 +412,6 @@ async def test_nutrient_filter():
         tags = await create_test_tags(transaction)
 
     results = await query.count(
-        Filter(**{f"{NUTRIENT_TAG}{tags.nutrient_tag}_100g": Qualify(qualify_lte=0.2)})
+        Filter(**{f"{NUTRIENT_TAG}.{tags.nutrient_tag}_100g": Qualify(qualify_lte=0.2)})
     )
     assert results == 2

@@ -6,7 +6,7 @@ from query.tables.nutrient import create_nutrients_from_staging
 
 from ..database import create_record, get_rows_affected
 
-NUTRIENT_TAG = "nutriments."
+NUTRIENT_TAG = "nutriments"
 
 
 async def create_table(transaction):

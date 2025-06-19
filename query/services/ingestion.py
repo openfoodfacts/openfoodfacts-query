@@ -30,7 +30,7 @@ from ..tables.product_ingredient import (
     create_ingredients_from_staging,
 )
 from ..tables.product_tags import COUNTRIES_TAG, TAG_TABLES, create_tags_from_staging
-from ..tables.settings import get_last_updated, set_last_updated
+from ..tables.settings import get_last_updated, set_last_updated, set_pre_migration_message_id
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +91,9 @@ async def import_with_filter(
         if config_settings.SKIP_DATA_MIGRATIONS:
             return
 
+        # Keep a not of the last message id at the start of the upgrade as we want to re-play any messages
+        # that were processed by the old version after this point
+        await set_pre_migration_message_id()
     else:
         tags = list(TAG_TABLES.keys()) + [INGREDIENTS_TAG, PRODUCT_TAG, NUTRIENT_TAG]
 

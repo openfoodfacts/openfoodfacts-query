@@ -32,7 +32,7 @@ PARTIAL_TAGS = []
 
 def check_tag_is_loaded(tag: str, loaded_tags):
     """Determine if data for a tag is available to query"""
-    if tag.startswith(NUTRIENT_TAG):
+    if tag.startswith(f"{NUTRIENT_TAG}."):
         return
     if tag not in list(TAG_TABLES.keys()) + PARTIAL_TAGS:
         raise HTTPException(
