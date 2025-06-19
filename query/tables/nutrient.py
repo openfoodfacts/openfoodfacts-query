@@ -1,6 +1,6 @@
 """Full list of nutrient tags that appear on actual products"""
 
-from ..database import create_record
+from ..database import create_record, get_rows_affected
 
 
 async def create_table(transaction):
@@ -9,6 +9,22 @@ async def create_table(transaction):
     )
     await transaction.execute(
         'alter table "nutrient" add constraint "nutrient_tag_unique" unique ("tag");',
+    )
+
+
+async def create_nutrients_from_staging(transaction):
+    return get_rows_affected(
+        await transaction.execute(
+            f"""insert into nutrient (tag)
+        select distinct left(new_tag, -5)
+        from product_temp pt
+        cross join jsonb_object_keys(data->'nutriments') new_tag
+        where right(new_tag, 5) = '_100g'
+        and right(new_tag, 13) != 'prepared_100g'
+        and not exists (select * from nutrient where tag = left(new_tag, -5))
+        on conflict (tag) 
+        do nothing
+        """)
     )
 
 

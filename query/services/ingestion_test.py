@@ -39,9 +39,10 @@ def get_test_products():
             "last_updated_t": last_updated,
             "ingredients_tags": ["test"],
             "nutriments": {
-                f"{random_code()}_100g": random.uniform(100,0.000001),
+                f"{random_code()}_100g": random.uniform(100, 0.000001),
                 "carbohydrates_100g": 20,
                 "ignored": 10,
+                "carbohydrates_prepared_100g": 30, # Should also be ignored
             },
             "rev": 1,
         },
@@ -165,17 +166,28 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 
         found_later_product = await get_product_by_id(transaction, product_later["id"])
         assert found_later_product["obsolete"] == False
-        
+
         # Check nutrients and product nutrients are created
-        added_nutrient = [item for item in products[0]['nutriments'].items() if item[0] not in ["carbohydrates_100g"]][0]
-        nutrient = await get_nutrient(transaction, added_nutrient[0][:-5]) # Should not include the last _100g
+        added_nutrient = [
+            item
+            for item in products[0]["nutriments"].items()
+            if item[0] not in ["carbohydrates_100g"]
+        ][0]
+        nutrient = await get_nutrient(
+            transaction, added_nutrient[0][:-5] # Should not include the last _100g
+        )  
         assert nutrient
+        
+        # No prepared figures created
+        assert (await get_nutrient(transaction, "carbohydrates_prepared")) == None
 
         product_nutrients = await get_product_nutrients(transaction, product_new)
         assert len(product_nutrients) == 2
-        new_nutrient = [item for item in product_nutrients if item['nutrient_id'] == nutrient['id']]
+        new_nutrient = [
+            item for item in product_nutrients if item["nutrient_id"] == nutrient["id"]
+        ]
         assert new_nutrient
-        assert new_nutrient[0]['value'] == added_nutrient[1]
+        assert new_nutrient[0]["value"] == added_nutrient[1]
 
 
 @patch.object(ingestion, "find_products")

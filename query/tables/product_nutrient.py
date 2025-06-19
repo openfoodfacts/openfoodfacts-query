@@ -1,7 +1,9 @@
 """This will contain a record for each nutrient on a product"""
 
 from asyncpg import Connection
-from query.tables.loaded_tag import PARTIAL_TAGS
+
+from query.tables.nutrient import create_nutrients_from_staging
+
 from ..database import create_record, get_rows_affected
 
 NUTRIENT_TAG = "nutriments"
@@ -23,9 +25,7 @@ async def create_table(transaction):
     )
 
 
-async def create_product_nutrient(
-    transaction, product, nutrient, value
-):
+async def create_product_nutrient(transaction, product, nutrient, value):
     return await create_record(
         transaction,
         "product_nutrient",
@@ -41,33 +41,29 @@ async def get_product_nutrients(transaction, product):
     )
 
 
-async def create_nutrients_from_staging(transaction: Connection, log, obsolete):
+async def create_product_nutrients_from_staging(transaction: Connection, log, obsolete):
     deleted = await transaction.execute(
         """delete from product_nutrient 
         where product_id in (select id from product_temp)"""
     )
     log_text = f"Updated nutrients deleted {get_rows_affected(deleted)},"
-    
+
     # Create any missing nutrient types
-    nutrients_added = get_rows_affected(await transaction.execute(
-        f"""insert into nutrient (tag)
-        select distinct left(new_tag, -5)
-        from product_temp pt
-        cross join jsonb_object_keys(data->'nutriments') new_tag
-        where right(new_tag, 5) = '_100g'
-        and not exists (select * from nutrient where tag = left(new_tag, -5))
-        on conflict (tag) 
-        do nothing"""))
+    nutrients_added = create_nutrients_from_staging(transaction)
     if nutrients_added:
-        log_text += f" added {nutrients_added} nutrient tags, "
-    
-    product_nutrients_added = get_rows_affected(await transaction.execute(
-        f"""insert into product_nutrient (product_id, nutrient_id, value)
+        log_text += f" added {nutrients_added} nutrient tags,"
+
+    product_nutrients_added = get_rows_affected(
+        await transaction.execute(
+            f"""insert into product_nutrient (product_id, nutrient_id, value)
         select distinct pt.id, n.id, source.value::double precision
         from product_temp pt
         cross join jsonb_each(data->'nutriments') source
         join nutrient n on n.tag = left(source.key, -5)
-        where right(source.key, 5) = '_100g'"""))
+        where right(source.key, 5) = '_100g'
+        and right(source.key, 13) != 'prepared_100g'
+        """)
+    )
     log_text += f" added {product_nutrients_added} product nutrients"
     log(log_text)
 
