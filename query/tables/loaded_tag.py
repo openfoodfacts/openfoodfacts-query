@@ -2,6 +2,8 @@ from typing import List
 
 from fastapi import HTTPException, status
 
+from query.tables.product_tags import TAG_TABLES
+
 
 async def create_table(transaction):
     await transaction.execute(
@@ -27,8 +29,15 @@ async def get_loaded_tags(transaction):
 PARTIAL_TAGS = []
 
 
-def check_tag_is_loaded(tag, loaded_tags):
+def check_tag_is_loaded(tag: str, loaded_tags):
     """Determine if data for a tag is available to query"""
+    if tag.startswith("nutriments."):
+        return
+    if tag not in list(TAG_TABLES.keys()) + PARTIAL_TAGS:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, f"Invalid field '{tag}'"
+        )
+    
     if tag in PARTIAL_TAGS and tag not in loaded_tags:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded"

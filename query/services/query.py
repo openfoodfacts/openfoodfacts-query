@@ -320,6 +320,15 @@ def append_sql_fragments(
                             f" AND EXISTS (SELECT * FROM product WHERE id = p.product_id{where_expression})"
                         )
 
+                elif tag.startswith("nutriments."):
+                    nutrient_tag = tag.split(".")[1][:-5]  # Strip off the _100g
+                    params.append(nutrient_tag)
+                    sql_fragments.append(
+                        f""" AND {'NOT ' if is_not else ''}EXISTS 
+                        (SELECT * FROM product_nutrient 
+                        JOIN nutrient ON id = nutrient_id AND tag = ${len(params)}
+                        WHERE product_id = p.{parent_id_column}{where_expression})"""
+                    )
                 else:
                     # If the filter is on a tag table then always do this using an exists
                     sql_fragments.append(

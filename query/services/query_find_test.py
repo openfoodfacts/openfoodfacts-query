@@ -9,7 +9,7 @@ from query.tables.loaded_tag import append_loaded_tags
 from ..database import get_transaction
 from ..models.query import Filter, FindQuery, Fragment, Qualify, SortColumn
 from ..services import query
-from ..services.query_count_test import create_test_tags
+from ..services.query_count_test import TagValues, create_test_tags
 from ..tables.country import get_country
 from ..tables.product_country import CURRENT_YEAR, PRODUCT_COUNTRY_TAG
 from ..tables.product_scans_by_country import create_scan
@@ -249,6 +249,20 @@ async def test_gte_lte_operators():
     assert len(results) == 2
     assert results[0]["code"] == tags.product2["code"]
     assert results[1]["code"] == tags.product3["code"]
+
+
+async def test_nutrient_filter():
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
+
+    results = await query.find(
+        FindQuery(
+            filter=Filter(**{f"nutriments.{tags.nutrient_tag}_100g": Qualify(qualify_lt=0.2)}),
+            projection={"code": True},
+        )
+    )
+    assert len(results) == 1
+    assert results[0]["code"] == tags.product1["code"]
 
 
 async def create_tags_and_scans():

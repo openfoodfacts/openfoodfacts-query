@@ -49,7 +49,7 @@ async def create_product_nutrients_from_staging(transaction: Connection, log, ob
     log_text = f"Updated nutrients deleted {get_rows_affected(deleted)},"
 
     # Create any missing nutrient types
-    nutrients_added = create_nutrients_from_staging(transaction)
+    nutrients_added = await create_nutrients_from_staging(transaction)
     if nutrients_added:
         log_text += f" added {nutrients_added} nutrient tags,"
 

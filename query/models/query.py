@@ -13,7 +13,8 @@ NoValues = Annotated[
     Field(description="Special value used to match a null or empty array"),
 ]
 
-ScalarValue = str | int
+ScalarValue = str | int | float
+
 
 class Qualify(BaseModel, validate_by_name=True, extra="forbid"):
     """Qualifiers are special words used as keys in mongo queries
@@ -22,7 +23,9 @@ class Qualify(BaseModel, validate_by_name=True, extra="forbid"):
     # Because of the `$`, we enable validation using the name when we populate models in code
     qualify_ne: ScalarValue = Field(None, alias="$ne", description="Not equal to")
     qualify_lt: ScalarValue = Field(None, alias="$lt", description="Less than")
-    qualify_lte: ScalarValue = Field(None, alias="$lte", description="Less than or equal")
+    qualify_lte: ScalarValue = Field(
+        None, alias="$lte", description="Less than or equal"
+    )
     qualify_gt: ScalarValue = Field(None, alias="$gt", description="Greater than")
     qualify_gte: ScalarValue = Field(
         None, alias="$gte", description="Greater than or equal"
@@ -44,9 +47,7 @@ class Fragment(BaseModel, extra="allow"):
     """Fragment of a query"""
 
     # the real class is dynamically generated below
-    # extra=allow is there to avoid type checking to fail
-    # Could add this for generic IDE validation but VSCode doesn't seem to recognise it
-    # __pydantic_extra__: Dict[str, str | Qualify] = Field(init=False)
+    __pydantic_extra__: Dict[str, ScalarValue | Qualify]
 
 
 # The type checker can't cope with a dynamic model so skip that here
@@ -56,7 +57,6 @@ if not typing.TYPE_CHECKING:
         key.replace("_", "-"): (ScalarValue | Qualify, Field(alias=key, default=None))
         for key in product_fields()
     }
-    Fragment.model_config["extra"] = "forbid"
     Fragment = create_model("Fragment", __base__=Fragment, **keys)
 
 

@@ -6,6 +6,9 @@ from asyncpg import Record
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
+from query.tables.nutrient import create_nutrient
+from query.tables.product_nutrient import create_product_nutrient
+
 from ..database import get_transaction
 from ..models.query import Filter, Qualify
 from ..services import query
@@ -91,6 +94,7 @@ class TagValues:
     amino_value2: str
     neucleotide_value: str
     creator_value: str
+    nutrient_tag: str
     country: Record
     product1: Record
     product2: Record
@@ -105,6 +109,7 @@ async def create_test_tags(transaction):
     amino_value2 = random_code()
     neucleotide_value = random_code()
     creator_value = random_code()
+    nutrient_tag = random_code()
 
     # Create some dummy products with a specific tag
     product1 = await create_random_product(transaction, "d", 1)
@@ -140,12 +145,20 @@ async def create_test_tags(transaction):
     await create_tag(transaction, "countries_tags", product3, country["tag"])
     await create_tag(transaction, "countries_tags", product4, country["tag"])
 
+    # Create nutrients
+    nutrient = await create_nutrient(transaction, tag=nutrient_tag)
+    await create_product_nutrient(transaction, product1, nutrient, 0.1)
+    await create_product_nutrient(transaction, product2, nutrient, 0.2)
+    await create_product_nutrient(transaction, product3, nutrient, 0.3)
+    await create_product_nutrient(transaction, product4, nutrient, 0.4)
+    
     return TagValues(
         origin_value=origin_value,
         amino_value=amino_value,
         amino_value2=amino_value2,
         neucleotide_value=neucleotide_value,
         creator_value=creator_value,
+        nutrient_tag=nutrient_tag,
         country=country,
         product1=product1,
         product2=product2,
@@ -169,11 +182,11 @@ async def test_count_the_number_of_products_without_a_specified_tag():
 
 
 async def test_throw_an_exception_for_an_unknown_tag():
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(HTTPException) as e:
         await query.count(Filter(invalid_tags="x"))
-    main_error = e.value.errors()[0]
-    assert main_error["type"] == "extra_forbidden"
-    assert main_error["loc"][0] == "invalid_tags"
+    main_error = e.value
+    assert "invalid_tag" in main_error.detail
+    assert main_error.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @patch.object(query, "get_loaded_tags", return_value=["dummy_tag"])
