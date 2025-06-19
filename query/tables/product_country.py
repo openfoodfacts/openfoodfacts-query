@@ -3,6 +3,7 @@ The recent and total scans columns are used for popularity sorting and need to b
 from the product_scans_by_country"""
 
 from query.tables.loaded_tag import PARTIAL_TAGS
+
 from ..database import create_record
 
 OLDEST_YEAR = 2019

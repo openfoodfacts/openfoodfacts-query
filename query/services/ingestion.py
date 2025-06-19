@@ -7,8 +7,9 @@ from typing import Dict
 
 from asyncpg import Connection
 
-from query.tables.product_nutrient import NUTRIENT_TAG, create_nutrients_from_staging
+from query.tables.product_nutrient import NUTRIENT_TAG, create_product_nutrients_from_staging
 
+from ..config import config_settings
 from ..database import get_transaction, strip_nuls
 from ..models.product import Source
 from ..mongodb import find_products
@@ -75,12 +76,18 @@ async def import_with_filter(
     """Core import routine. Fetches data from MongoDB using the supplied filter and updates the copy stored in PostgreSQL
     If the filter is a list of codes then any code not found in MongoDB will be deleted from PostgreSQL
     """
+
     max_last_updated = MIN_DATETIME
     found_product_codes = []
     codes_specified = "code" in filter and "$in" in filter["code"]
     if tags:
         # If explicit tags are provided then this is a partial load
         source = Source.partial
+
+        # Partial loads are done during migrations but we don't want to do these during tests
+        if config_settings.SKIP_DATA_MIGRATIONS:
+            return
+
     else:
         tags = list(TAG_TABLES.keys()) + [INGREDIENTS_TAG, PRODUCT_TAG, NUTRIENT_TAG]
 
@@ -98,7 +105,7 @@ async def import_with_filter(
             projection |= {key: True for key in PRODUCT_FIELD_COLUMNS.keys()}
         else:
             # If we aren't updating the product then just fetch the code and dates
-            projection != {
+            projection |= {
                 "code": True,
                 "last_modified_t": True,
                 "last_updated_t": True,
@@ -221,8 +228,7 @@ async def apply_staged_changes(
         await fixup_product_countries(transaction, obsolete)
 
     if NUTRIENT_TAG in tags:
-        await create_nutrients_from_staging(transaction, log, obsolete)
-
+        await create_product_nutrients_from_staging(transaction, log, obsolete)
 
     await transaction.execute("TRUNCATE TABLE product_temp")
 

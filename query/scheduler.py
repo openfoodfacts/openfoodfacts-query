@@ -12,7 +12,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from .database import get_transaction
 from .events import start_redis_listener, stop_redis_listener
 from .services.ingestion import import_from_mongo
-from .tables.product_tags import TAG_TABLES
 
 logger = logging.getLogger(__name__)
 
