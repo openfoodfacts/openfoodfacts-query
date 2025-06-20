@@ -48,18 +48,12 @@ async def create_record(transaction, table_name, **params):
 def strip_nuls(enumerable: dict | list, context):
     if not enumerable:
         return
-    is_dict = isinstance(enumerable, dict)
+
     """PostgreSQL doesn't like nuls in text fields, including JSON. The context is used for error logging"""
     enumeration = (
-        list(enumerable.items()) if is_dict else enumerate(enumerable)
+        enumerable.items() if isinstance(enumerable, dict) else enumerate(enumerable)
     )
     for key, value in enumeration:
         if isinstance(value, str) and "\0" in value:
             logger.warning(f"{context}: Nuls stripped from {key}: {value}")
-            value = value.replace("\0", "")
-            enumerable[key] = value
-        if is_dict and "\0" in key:
-            logger.warning(f"{context}: Nuls stripped from key: {key}")
-            new_key = key.replace("\0", "")
-            enumerable[new_key] = value
-            del enumerable[key]
+            enumerable[key] = value.replace("\0", "")
