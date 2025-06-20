@@ -157,9 +157,10 @@ async def import_with_filter(
                         )
 
                     # Strip any nulls from tag text
-                    for tag in TAG_TABLES.keys():
-                        tag_data = product_data.get(tag, [])
+                    for tag in list(TAG_TABLES.keys()) + [NUTRIENT_TAG]:
+                        tag_data = product_data.get(tag, None)
                         strip_nuls(tag_data, f"Product: {product_code}, tag: {tag}")
+                    
 
                     await transaction.execute(
                         "INSERT INTO product_temp (id, last_updated, data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",

@@ -11,12 +11,12 @@ requires-python = ">=3.11,<4.0"
 dependencies = [
     "pydantic-settings",
     "asyncpg",
-    "motor",
     "fastapi",
     "uvicorn[standard] (>=0.34.3,<0.35.0)",
     "redis[hiredis]",
     "apscheduler",
     "toml",
+    "pymongo (>=4.13.2,<5.0.0)",
 ]
 
 

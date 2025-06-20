@@ -261,6 +261,9 @@ async def test_cope_with_nul_characters(
                         "code": product_code,
                         "last_updated_t": 1692032161,
                         "ingredients_tags": ["test \0 test2 \0 end"],
+                        "nutriments": {
+                            "test\0nutrient": 2,
+                        }
                     }
                 ]
             ),

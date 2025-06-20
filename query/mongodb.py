@@ -4,7 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict
 
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 
 from .config import config_settings
 
@@ -17,7 +17,7 @@ async def find_products(
     filter: Dict[str, Any], projection: Dict[str, bool], obsolete=False
 ):
     """Runs a query on the MongoDB products collection with the specified filter and projection and returns a cursor"""
-    client = AsyncIOMotorClient(
+    client = AsyncMongoClient(
         config_settings.MONGO_URI, serverSelectionTimeoutMS=1000
     )
     db = client.get_database("off")
