@@ -203,10 +203,10 @@ async def find(query: FindQuery, obsolete=False):
         logger.debug(f"Find: Codes: {repr(product_codes)}")
 
         # Make sure we pass the code to MongoDB so that we can match up results
-        if "code" not in query.projection:
+        if query.projection and "code" not in query.projection:
             query.projection["code"] = 1
 
-        if len(query.projection.keys()) == 1:
+        if query.projection and len(query.projection.keys()) == 1:
             # Only requesting code so we don't need to go to MongoDB. Could extend this for other fields we store in off-query
             # Nee to convert rows to regular dictionaries to keep Pydantic happy
             return [dict(result) for result in results]

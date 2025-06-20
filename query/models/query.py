@@ -145,7 +145,7 @@ class SortColumn(str, Enum):
 class FindQuery(BaseModel):
     filter: Filter
     projection: Annotated[
-        Dict[str, bool], Field(description="Fields that should be returned")
+        Dict[str, bool], Field(None, description="Fields that should be returned")
     ]
     sort: Annotated[
         List[Tuple[SortColumn, SortDirection]],

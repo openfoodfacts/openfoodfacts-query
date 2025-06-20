@@ -229,6 +229,53 @@ async def test_mongo_not_called_if_just_requesting_codes(mocked_mongo):
     assert results[2]["code"] == tags.product1["code"]
 
 
+@patch.object(query, "find_products")
+async def test_null_projection_passed_through_to_mongodb(mocked_mongo):
+    tags = await create_tags_and_scans()
+
+    patch_context_manager(
+        mocked_mongo,
+        mock_cursor(
+            [
+                {"code": tags.product1["code"]},
+            ]
+        ),
+    )
+    results = await query.find(
+        FindQuery(
+            filter=Filter(countries_tags=tags.country["tag"]),
+        )
+    )
+    assert mocked_mongo.called
+    call_args = mocked_mongo.call_args
+    assert call_args[0][1] == None
+    assert results[0]["code"] == tags.product1["code"]
+
+
+@patch.object(query, "find_products")
+async def test_empty_projection_passed_through_to_mongodb(mocked_mongo):
+    tags = await create_tags_and_scans()
+
+    patch_context_manager(
+        mocked_mongo,
+        mock_cursor(
+            [
+                {"code": tags.product1["code"]},
+            ]
+        ),
+    )
+    results = await query.find(
+        FindQuery(
+            filter=Filter(countries_tags=tags.country["tag"]),
+            projection={},
+        )
+    )
+    assert mocked_mongo.called
+    call_args = mocked_mongo.call_args
+    assert call_args[0][1] == {}
+    assert results[0]["code"] == tags.product1["code"]
+
+
 async def test_gt_lt_operators():
     tags = await create_tags_and_scans()
 
