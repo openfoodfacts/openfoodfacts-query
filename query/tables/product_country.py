@@ -2,11 +2,14 @@
 The recent and total scans columns are used for popularity sorting and need to be refreshed each year
 from the product_scans_by_country"""
 
+from query.tables.loaded_tag import PARTIAL_TAGS
+
 from ..database import create_record
 
 OLDEST_YEAR = 2019
 CURRENT_YEAR = 2024
 PRODUCT_COUNTRY_TAG = "product_country"
+PARTIAL_TAGS.append(PRODUCT_COUNTRY_TAG)
 
 
 async def create_table(transaction):
@@ -35,28 +38,9 @@ async def create_table(transaction):
         WHERE c.tag = 'en:world'
         ON CONFLICT (product_id, country_id) DO NOTHING"""
     )
-    await transaction.execute(
-        "create index product_country_ix1 on product_country (obsolete, country_id, recent_scans DESC, total_scans DESC, product_id);",
-    )
-
-
-async def fix_index(transaction):
-    """Change column order so it is quicker to delete rogue countries"""
-    await transaction.execute("drop index product_country_ix1")
+    # country_id is listed first so it is quicker to delete rogue countries
     await transaction.execute(
         "create index product_country_ix1 on product_country (country_id, obsolete, recent_scans DESC, total_scans DESC, product_id);",
-    )
-
-
-# Migration script. We were previously creating a product country entry where there was no tag
-async def delete_product_countries_with_no_tag(transaction):
-    await transaction.execute(
-        """DELETE FROM product_country pc
-            USING country c
-            WHERE c.id = pc.country_id 
-            AND c.code <> 'world'
-            AND NOT EXISTS (SELECT * FROM product_countries_tag pct WHERE pct.product_id = pc.product_id AND pct.value = c.tag)
-        """
     )
 
 

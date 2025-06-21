@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import pytest
 from asyncpg import PostgresError
 
-from .database import create_record, get_rows_affected, get_transaction
+from .database import create_record, get_rows_affected, get_transaction, strip_nuls
 from .test_helper import random_code
 
 
@@ -61,3 +61,8 @@ async def test_transaction_error_closes_connection():
         fetched_id = await transaction.fetchval("SELECT last_message_id FROM settings")
         # Verify the transaction was rolled back
         assert fetched_id != str(id)
+
+def test_strip_nuls_copes_with_dict_values():
+    test_dict = {"test": "\x001"}
+    strip_nuls( test_dict, "test")
+    assert test_dict == {"test": "1"}

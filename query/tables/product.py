@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from asyncpg import Connection
 
 from query.models.scan import ProductScans
+from query.tables.loaded_tag import PARTIAL_TAGS, check_tag_is_loaded
 from query.tables.product_country import CURRENT_YEAR, delete_product_countries
 
 from ..database import create_record, get_rows_affected
@@ -13,7 +14,7 @@ from ..models.product import Source
 from ..tables.product_ingredient import delete_ingredients
 from ..tables.product_tags import TAG_TABLES, delete_tags
 
-PRODUCT_FIELD_COLUMNS_V1 = {
+PRODUCT_FIELD_BASE_COLUMNS = {
     "code": "code",
     "product_name": "name",
     "creator": "creator",
@@ -22,9 +23,6 @@ PRODUCT_FIELD_COLUMNS_V1 = {
     "ingredients_n": "ingredients_count",
     "ingredients_without_ciqual_codes_n": "ingredients_without_ciqual_codes_count",
     "rev": "revision",
-}
-
-PRODUCT_FIELD_COLUMNS_V2 = {
     "last_modified_t": "last_modified",  # Note we actually use last_updated_t to determine if a product has changed
     "created_t": "created",
     "completeness": "completeness",
@@ -36,17 +34,16 @@ PRODUCT_FIELD_COLUMNS_V2 = {
     "additives_n": "additives_count",
     "ingredients_from_or_that_may_be_from_palm_oil_n": "ingredients_from_or_that_may_be_from_palm_oil_count",
 }
-PRODUCT_V2_TAG = "product_v2"
+PRODUCT_TAG = "product"
 
 PRODUCT_FIELD_SCANS_COLUMNS = {
     "scans_n": "scan_count",
     "unique_scans_n": "unique_scan_count",
 }
 PRODUCT_SCANS_TAG = "product_scans"
+PARTIAL_TAGS.append(PRODUCT_SCANS_TAG)
 
-PRODUCT_FIELD_COLUMNS = (
-    PRODUCT_FIELD_COLUMNS_V1 | PRODUCT_FIELD_COLUMNS_V2 | PRODUCT_FIELD_SCANS_COLUMNS
-)
+PRODUCT_FIELD_COLUMNS = PRODUCT_FIELD_BASE_COLUMNS | PRODUCT_FIELD_SCANS_COLUMNS
 
 
 def stored_root_product_fields():
@@ -56,11 +53,11 @@ def stored_root_product_fields():
 
 def get_product_column_for_field(field, loaded_tags):
     """The column name for the corresponding MonoDB field name. Returns None if field isn't loaded yet"""
-    column = PRODUCT_FIELD_COLUMNS_V1.get(field, None)
-    if not column and PRODUCT_V2_TAG in loaded_tags:
-        column = PRODUCT_FIELD_COLUMNS_V2.get(field, None)
-    if not column and PRODUCT_SCANS_TAG in loaded_tags:
+    column = PRODUCT_FIELD_BASE_COLUMNS.get(field, None)
+    if not column:
         column = PRODUCT_FIELD_SCANS_COLUMNS.get(field, None)
+        if column:
+            check_tag_is_loaded(PRODUCT_SCANS_TAG, loaded_tags)
 
     return column
 
@@ -86,6 +83,17 @@ async def create_table(transaction: Connection):
             source varchar(255) null,
             revision int null,
             process_id bigint null,
+            last_modified timestamptz null,
+            created timestamptz null,
+            completeness double precision null,
+            nutriscore int null,
+            environmental_score int null,
+            ingredients_from_palm_oil_count int null,
+            ingredients_that_may_be_from_palm_oil_count int null,
+            additives_count int null,
+            ingredients_from_or_that_may_be_from_palm_oil_count int null,
+            scan_count int null,
+            unique_scan_count int,
             constraint product_pkey primary key (id));""",
     )
     await transaction.execute(
@@ -100,47 +108,29 @@ async def create_table(transaction: Connection):
     await transaction.execute(
         "create index product_owners_tags_index on product (owners_tags);"
     )
-
-
-async def add_v2_columns(transaction: Connection):
-    # Had to add IF NOT EXISTS here as MongoDB import that follows this can fail
     await transaction.execute(
-        """alter table product
-            add column IF NOT EXISTS last_modified timestamptz null,
-            add column IF NOT EXISTS created timestamptz null,
-            add column IF NOT EXISTS completeness double precision null,
-            add column IF NOT EXISTS nutriscore int null,
-            add column IF NOT EXISTS environmental_score int null,
-            add column IF NOT EXISTS ingredients_from_palm_oil_count int null,
-            add column IF NOT EXISTS ingredients_that_may_be_from_palm_oil_count int null,
-            add column IF NOT EXISTS additives_count int null,
-            add column IF NOT EXISTS ingredients_from_or_that_may_be_from_palm_oil_count int null,
-            add column IF NOT EXISTS scan_count int null,
-            add column IF NOT EXISTS unique_scan_count int null;""",
+        "create index product_created_index on product (created DESC NULLS LAST, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_created_index on product (created DESC NULLS LAST, id);",
+        "create index product_completeness_index on product (completeness, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_completeness_index on product (completeness, id);",
+        "create index product_nutriscore_index on product (nutriscore, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_nutriscore_index on product (nutriscore, id);",
+        "create index product_environmental_score_index on product (environmental_score DESC NULLS LAST, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_environmental_score_index on product (environmental_score DESC NULLS LAST, id);",
+        "create index product_name_index on product (name, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_name_index on product (name, id);",
+        "create index product_last_modified_index on product (last_modified DESC NULLS LAST, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_last_modified_index on product (last_modified DESC NULLS LAST, id);",
+        "create index product_scan_count_index on product (scan_count DESC NULLS LAST, id);",
     )
     await transaction.execute(
-        "create index IF NOT EXISTS product_scan_count_index on product (scan_count DESC NULLS LAST, id);",
-    )
-    await transaction.execute(
-        "create index IF NOT EXISTS product_unique_scan_count_index on product (unique_scan_count DESC NULLS LAST, id);",
+        "create index product_unique_scan_count_index on product (unique_scan_count DESC NULLS LAST, id);",
     )
 
 
@@ -149,6 +139,14 @@ async def update_products_from_staging(
 ):
     """Apply updates to products from the product_temp table. Assumes that a minimal product record has already been created"""
 
+    # Don't update the source and last_updated date for partial updates
+    params = [obsolete, process_id, datetime.now(timezone.utc)]
+
+    last_updated_sql = ""
+    if source != Source.partial:
+        params.append(source)
+        last_updated_sql = f"last_updated = tp.last_updated, source = $4,"
+
     # Note we cast as numeric rather than int in the SQL below as casting something like "2.0" as an int will fail
     product_results = await transaction.execute(
         f"""
@@ -156,10 +154,10 @@ async def update_products_from_staging(
       set name = tp.data->>'product_name',
         creator = tp.data->>'creator',
         owners_tags = tp.data->>'owners_tags',
+        {last_updated_sql}
         obsolete = $1,
         ingredients_count = (tp.data->>'ingredients_n')::numeric,
         ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
-        last_updated = tp.last_updated,
         created = to_timestamp((tp.data->>'created_t')::numeric),
         last_modified = to_timestamp((tp.data->>'last_modified_t')::numeric),
         completeness = (tp.data->>'completeness')::double precision,
@@ -171,14 +169,10 @@ async def update_products_from_staging(
         ingredients_from_or_that_may_be_from_palm_oil_count = (tp.data->>'ingredients_from_or_that_may_be_from_palm_oil_n')::numeric,
         process_id = $2,
         last_processed = $3,
-        source = $4,
         revision = (tp.data->>'rev')::numeric
       from product_temp tp
       where product.id = tp.id""",
-        obsolete,
-        process_id,
-        datetime.now(timezone.utc),
-        source,
+        *params,
     )
     log(f"Updated {get_rows_affected(product_results)} products")
 

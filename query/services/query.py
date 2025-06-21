@@ -6,6 +6,8 @@ from typing import Dict, List
 from asyncpg import Connection
 from fastapi import HTTPException, status
 
+from query.tables.product_nutrient import NUTRIENT_TAG
+
 from ..database import get_transaction
 from ..models.query import (
     AggregateCountResult,
@@ -17,13 +19,11 @@ from ..models.query import (
 )
 from ..mongodb import find_products
 from ..tables.country import get_country
-from ..tables.loaded_tag import get_loaded_tags
+from ..tables.loaded_tag import check_tag_is_loaded, get_loaded_tags
 from ..tables.product import (
     PRODUCT_FIELD_COLUMNS,
-    PRODUCT_FIELD_COLUMNS_V2,
     PRODUCT_FIELD_SCANS_COLUMNS,
     PRODUCT_SCANS_TAG,
-    PRODUCT_V2_TAG,
     get_product_column_for_field,
 )
 from ..tables.product_country import PRODUCT_COUNTRY_TAG
@@ -124,25 +124,11 @@ async def find(query: FindQuery, obsolete=False):
 
         # Abort for sort on scan field if scans have not yet been fully loaded
         loaded_tags = await get_loaded_tags(transaction)
-        if (
-            sort_key == SortColumn.popularity and PRODUCT_COUNTRY_TAG not in loaded_tags
-        ) or (
-            sort_key in PRODUCT_FIELD_SCANS_COLUMNS.keys()
-            and PRODUCT_SCANS_TAG not in loaded_tags
-        ):
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY, "Scans have not been fully loaded"
-            )
-
-        # Abort for sort on product fields a full load hasn't happened
-        if (
-            sort_key in PRODUCT_FIELD_COLUMNS_V2.keys()
-            and PRODUCT_V2_TAG not in loaded_tags
-        ):
-            raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                f"Field {sort_key} has not been fully loaded",
-            )
+        # TODO: Could probably encapsulate this a bit more
+        if sort_key == SortColumn.popularity:
+            check_tag_is_loaded(PRODUCT_COUNTRY_TAG, loaded_tags)
+        elif sort_key in PRODUCT_FIELD_SCANS_COLUMNS.keys():
+            check_tag_is_loaded(PRODUCT_SCANS_TAG, loaded_tags)
 
         if sort_key == SortColumn.popularity:
             # The country we are filtering by determines which scans we use to sort the results
@@ -217,10 +203,10 @@ async def find(query: FindQuery, obsolete=False):
         logger.debug(f"Find: Codes: {repr(product_codes)}")
 
         # Make sure we pass the code to MongoDB so that we can match up results
-        if "code" not in query.projection:
+        if query.projection and "code" not in query.projection:
             query.projection["code"] = 1
 
-        if len(query.projection.keys()) == 1:
+        if query.projection and len(query.projection.keys()) == 1:
             # Only requesting code so we don't need to go to MongoDB. Could extend this for other fields we store in off-query
             # Nee to convert rows to regular dictionaries to keep Pydantic happy
             return [dict(result) for result in results]
@@ -266,10 +252,8 @@ def append_sql_fragments(
             exclude_defaults=True, by_alias=True
         ).items():
             product_column_name = get_product_column_for_field(tag, loaded_tags)
-            if not product_column_name and tag not in loaded_tags:
-                raise HTTPException(
-                    status.HTTP_422_UNPROCESSABLE_ENTITY, f"Tag '{tag}' is not loaded"
-                )
+            if not product_column_name:
+                check_tag_is_loaded(tag, loaded_tags)
 
             is_not = False
             values = [value]
@@ -338,6 +322,15 @@ def append_sql_fragments(
                             f" AND EXISTS (SELECT * FROM product WHERE id = p.product_id{where_expression})"
                         )
 
+                elif tag.startswith(f"{NUTRIENT_TAG}."):
+                    nutrient_tag = tag.split(".")[1][:-5]  # Strip off the _100g
+                    params.append(nutrient_tag)
+                    sql_fragments.append(
+                        f""" AND {'NOT ' if is_not else ''}EXISTS 
+                        (SELECT * FROM product_nutrient 
+                        JOIN nutrient ON id = nutrient_id AND tag = ${len(params)}
+                        WHERE product_id = p.{parent_id_column}{where_expression})"""
+                    )
                 else:
                     # If the filter is on a tag table then always do this using an exists
                     sql_fragments.append(

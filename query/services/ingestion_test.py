@@ -1,8 +1,12 @@
 import asyncio
 import math
+import random
 import time
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
+
+from query.tables.nutrient import get_nutrient
+from query.tables.product_nutrient import get_product_nutrients
 
 from ..database import get_transaction
 from ..models.product import Source
@@ -34,6 +38,12 @@ def get_test_products():
             "code": random_code(),
             "last_updated_t": last_updated,
             "ingredients_tags": ["test"],
+            "nutriments": {
+                f"{random_code()}_100g": random.uniform(100, 0.000001),
+                "carbohydrates_100g": 20,
+                "ignored": 10,
+                "carbohydrates_prepared_100g": 30,  # Should also be ignored
+            },
             "rev": 1,
         },
         {
@@ -48,9 +58,8 @@ def get_test_products():
 
 @patch.object(ingestion, "find_products")
 @patch.object(ingestion, "get_process_id")
-@patch.object(ingestion, "append_loaded_tags")
 async def test_import_from_mongo_should_import_a_new_product_update_existing_products_and_delete_missing_products(
-    append_loaded_tags: Mock, get_process_id_mock: Mock, find_products_mock: Mock
+    get_process_id_mock: Mock, find_products_mock: Mock
 ):
     async with get_transaction() as transaction:
         # mock the process id so it doesn't delete records from other tests
@@ -158,37 +167,27 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         found_later_product = await get_product_by_id(transaction, product_later["id"])
         assert found_later_product["obsolete"] == False
 
-        assert append_loaded_tags.called
+        # Check nutrients and product nutrients are created
+        added_nutrient = [
+            item
+            for item in products[0]["nutriments"].items()
+            if item[0] not in ["carbohydrates_100g"]
+        ][0]
+        nutrient = await get_nutrient(
+            transaction, added_nutrient[0][:-5]  # Should not include the last _100g
+        )
+        assert nutrient
 
+        # No prepared figures created
+        assert (await get_nutrient(transaction, "carbohydrates_prepared")) == None
 
-@patch.object(ingestion, "find_products")
-@patch.object(ingestion, "append_loaded_tags")
-async def test_incremental_import_should_not_update_loaded_tags(
-    set_loaded_tags_mock, find_products_mock: Mock
-):
-    async with get_transaction() as transaction:
-        # when: doing an incremental import from mongo_db
-        products = get_test_products()
-        patch_context_manager(find_products_mock, mock_cursor(products))
-
-        last_updated = datetime.now(timezone.utc)
-        await set_last_updated(transaction, last_updated)
-
-    await ingestion.import_from_mongo("")
-
-    async with get_transaction() as transaction:
-        # then: set loaded tags is not updated
-        assert not set_loaded_tags_mock.called
-
-        product_new = await get_product(transaction, products[0]["code"])
-        assert product_new
-        assert product_new["source"] == Source.incremental_load
-
-        # MongoDB called with the correct filter
-        call_args = find_products_mock.call_args[0][0]
-        assert call_args == {
-            "last_updated_t": {"$gt": math.floor(last_updated.timestamp())}
-        }
+        product_nutrients = await get_product_nutrients(transaction, product_new)
+        assert len(product_nutrients) == 2
+        new_nutrient = [
+            item for item in product_nutrients if item["nutrient_id"] == nutrient["id"]
+        ]
+        assert new_nutrient
+        assert new_nutrient[0]["value"] == added_nutrient[1]
 
 
 @patch.object(ingestion, "find_products")
@@ -262,6 +261,9 @@ async def test_cope_with_nul_characters(
                         "code": product_code,
                         "last_updated_t": 1692032161,
                         "ingredients_tags": ["test \0 test2 \0 end"],
+                        "nutriments": {
+                            "test_nutrient": "\x002",
+                        }
                     }
                 ]
             ),

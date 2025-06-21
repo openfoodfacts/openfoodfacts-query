@@ -13,7 +13,7 @@ from .config import config_settings
 from .database import get_transaction, strip_nuls
 from .models.domain_event import DomainEvent
 from .services.event import process_events
-from .tables.settings import get_last_message_id, set_last_message_id
+from .tables.settings import apply_pre_migration_message_id, get_last_message_id, set_last_message_id
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +89,8 @@ async def stop_redis_listener():
 async def redis_lifespan():
     """Lifespan handler for starting and stopping Redis with FastAPI"""
     try:
+        # Reset last_message_id to before any data migrations
+        await apply_pre_migration_message_id()
         start_redis_listener()
         yield
     finally:

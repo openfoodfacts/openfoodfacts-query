@@ -13,28 +13,32 @@ NoValues = Annotated[
     Field(description="Special value used to match a null or empty array"),
 ]
 
+ScalarValue = str | int | float
+
 
 class Qualify(BaseModel, validate_by_name=True, extra="forbid"):
     """Qualifiers are special words used as keys in mongo queries
     that roughly correspond to operators"""
 
     # Because of the `$`, we enable validation using the name when we populate models in code
-    qualify_ne: str | int = Field(None, alias="$ne", description="Not equal to")
-    qualify_lt: str | int = Field(None, alias="$lt", description="Less than")
-    qualify_lte: str | int = Field(None, alias="$lte", description="Less than or equal")
-    qualify_gt: str | int = Field(None, alias="$gt", description="Greater than")
-    qualify_gte: str | int = Field(
+    qualify_ne: ScalarValue = Field(None, alias="$ne", description="Not equal to")
+    qualify_lt: ScalarValue = Field(None, alias="$lt", description="Less than")
+    qualify_lte: ScalarValue = Field(
+        None, alias="$lte", description="Less than or equal"
+    )
+    qualify_gt: ScalarValue = Field(None, alias="$gt", description="Greater than")
+    qualify_gte: ScalarValue = Field(
         None, alias="$gte", description="Greater than or equal"
     )
-    qualify_all: List[str] = Field(
+    qualify_all: List[ScalarValue] = Field(
         None,
         alias="$all",
         description="All of the listed values must appear in the referenced tag",
     )
-    qualify_in: List[str] | NoValues = Field(
+    qualify_in: List[ScalarValue] | NoValues = Field(
         None, alias="$in", description="Value matches at least one of the items listed"
     )
-    qualify_nin: List[str] | NoValues = Field(
+    qualify_nin: List[ScalarValue] | NoValues = Field(
         None, alias="$nin", description="None of the value are in the items listed"
     )
 
@@ -43,19 +47,16 @@ class Fragment(BaseModel, extra="allow"):
     """Fragment of a query"""
 
     # the real class is dynamically generated below
-    # extra=allow is there to avoid type checking to fail
-    # Could add this for generic IDE validation but VSCode doesn't seem to recognise it
-    # __pydantic_extra__: Dict[str, str | Qualify] = Field(init=False)
+    __pydantic_extra__: Dict[str, ScalarValue | Qualify]
 
 
 # The type checker can't cope with a dynamic model so skip that here
 if not typing.TYPE_CHECKING:
     # This provides the full list of allowed fields that can be qualified
     keys = {
-        key.replace("_", "-"): (str | Qualify, Field(alias=key, default=None))
+        key.replace("_", "-"): (ScalarValue | Qualify, Field(alias=key, default=None))
         for key in product_fields()
     }
-    Fragment.model_config["extra"] = "forbid"
     Fragment = create_model("Fragment", __base__=Fragment, **keys)
 
 
@@ -144,7 +145,7 @@ class SortColumn(str, Enum):
 class FindQuery(BaseModel):
     filter: Filter
     projection: Annotated[
-        Dict[str, bool], Field(description="Fields that should be returned")
+        Dict[str, bool], Field(None, description="Fields that should be returned")
     ]
     sort: Annotated[
         List[Tuple[SortColumn, SortDirection]],

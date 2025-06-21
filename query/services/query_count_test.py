@@ -6,24 +6,29 @@ from asyncpg import Record
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
+from query.tables.nutrient import create_nutrient
+from query.tables.product_nutrient import NUTRIENT_TAG, create_product_nutrient
+
 from ..database import get_transaction
 from ..models.query import Filter, Qualify
 from ..services import query
 from ..tables.country import create_country
-from ..tables.product import create_product
+from ..tables.product import PRODUCT_SCANS_TAG, create_product
 from ..tables.product_tags import create_tag
 from ..test_helper import random_code
 from . import query
 
 
 async def create_random_product(
-    transaction, name=None, additives_count=None, creator=None, obsolete=False
+    transaction, name=None, additives_count=None, scan_count=None, unique_scan_count=None, creator=None, obsolete=False
 ):
     return await create_product(
         transaction,
         code=random_code(),
         name=name,
         additives_count=additives_count,
+        scan_count=scan_count,
+        unique_scan_count=unique_scan_count,
         creator=creator,
         obsolete=obsolete,
     )
@@ -91,6 +96,7 @@ class TagValues:
     amino_value2: str
     neucleotide_value: str
     creator_value: str
+    nutrient_tag: str
     country: Record
     product1: Record
     product2: Record
@@ -105,12 +111,13 @@ async def create_test_tags(transaction):
     amino_value2 = random_code()
     neucleotide_value = random_code()
     creator_value = random_code()
+    nutrient_tag = random_code()
 
     # Create some dummy products with a specific tag
-    product1 = await create_random_product(transaction, "d", 1)
-    product2 = await create_random_product(transaction, "a", 2, creator=creator_value)
-    product3 = await create_random_product(transaction, "b", 3, creator=creator_value)
-    product4 = await create_random_product(transaction, "c", 4, obsolete=True)
+    product1 = await create_random_product(transaction, "d", 1, 100, 10)
+    product2 = await create_random_product(transaction, "a", 2, 200, 30, creator=creator_value)
+    product3 = await create_random_product(transaction, "b", 3, 300, 20, creator=creator_value)
+    product4 = await create_random_product(transaction, "c", 4, 400, 40, obsolete=True)
 
     # Matrix for testing
     # Product  | Origin | AminoAcid | AminoAcid2 | Neucleotide | Obsolete | Creator
@@ -140,12 +147,20 @@ async def create_test_tags(transaction):
     await create_tag(transaction, "countries_tags", product3, country["tag"])
     await create_tag(transaction, "countries_tags", product4, country["tag"])
 
+    # Create nutrients
+    nutrient = await create_nutrient(transaction, tag=nutrient_tag)
+    await create_product_nutrient(transaction, product1, nutrient, 0.1)
+    await create_product_nutrient(transaction, product2, nutrient, 0.2)
+    await create_product_nutrient(transaction, product3, nutrient, 0.3)
+    await create_product_nutrient(transaction, product4, nutrient, 0.4)
+
     return TagValues(
         origin_value=origin_value,
         amino_value=amino_value,
         amino_value2=amino_value2,
         neucleotide_value=neucleotide_value,
         creator_value=creator_value,
+        nutrient_tag=nutrient_tag,
         country=country,
         product1=product1,
         product2=product2,
@@ -169,11 +184,11 @@ async def test_count_the_number_of_products_without_a_specified_tag():
 
 
 async def test_throw_an_exception_for_an_unknown_tag():
-    with pytest.raises(ValidationError) as e:
+    with pytest.raises(HTTPException) as e:
         await query.count(Filter(invalid_tags="x"))
-    main_error = e.value.errors()[0]
-    assert main_error["type"] == "extra_forbidden"
-    assert main_error["loc"][0] == "invalid_tags"
+    main_error = e.value
+    assert "invalid_tag" in main_error.detail
+    assert main_error.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @patch.object(query, "get_loaded_tags", return_value=["dummy_tag"])
@@ -181,10 +196,10 @@ async def test_throw_an_unprocessable_exception_for_a_tag_that_has_not_been_load
     get_loaded_tags_mock,
 ):
     with pytest.raises(HTTPException) as e:
-        await query.count(Filter(ingredients_tags="x"))
+        await query.count(Filter(scans_n=1))
     assert get_loaded_tags_mock.called
     assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    assert "ingredients_tags" in repr(e.value.detail)
+    assert PRODUCT_SCANS_TAG in repr(e.value.detail)
 
 
 async def test_throw_and_unprocessable_exception_for_an_unrecognized_value_object():
@@ -390,3 +405,13 @@ async def test_cope_with_nin_unknown_on_a_product_field():
         )
     )
     assert response == 2
+
+
+async def test_nutrient_filter():
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
+
+    results = await query.count(
+        Filter(**{f"{NUTRIENT_TAG}.{tags.nutrient_tag}_100g": Qualify(qualify_lte=0.2)})
+    )
+    assert results == 2
