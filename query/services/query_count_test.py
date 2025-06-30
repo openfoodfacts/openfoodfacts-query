@@ -10,7 +10,7 @@ from query.tables.nutrient import create_nutrient
 from query.tables.product_nutrient import NUTRIENT_TAG, create_product_nutrient
 
 from ..database import get_transaction
-from ..models.query import Filter, Qualify
+from ..models.query import Filter, Fragment, Qualify
 from ..services import query
 from ..tables.country import create_country
 from ..tables.product import PRODUCT_SCANS_TAG, create_product
@@ -415,3 +415,16 @@ async def test_nutrient_filter():
         Filter(**{f"{NUTRIENT_TAG}.{tags.nutrient_tag}_100g": Qualify(qualify_lte=0.2)})
     )
     assert results == 2
+
+
+async def test_can_combine_root_filter_with_and():
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
+
+    response = await query.count(
+        Filter(
+            nucleotides_tags=tags.neucleotide_value,
+            qualify_and=[Fragment(amino_acids_tags=tags.amino_value),Fragment(amino_acids_tags=tags.amino_value2)]
+        )
+    )
+    assert response == 0

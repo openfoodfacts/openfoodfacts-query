@@ -41,7 +41,7 @@ jobs:
           echo "LOG_LEVEL=debug" >> $GITHUB_ENV
 
           # Postgres config
-          echo "POSTGRES_SHM_SIZE=256m" >> $GITHUB_ENV
+          echo "POSTGRES_SHM_SIZE=512m" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_SHARED_BUFFERS=4GB" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_WORK_MEM=256MB" >> $GITHUB_ENV
       - name: Set various variable for production deployment

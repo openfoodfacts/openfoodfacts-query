@@ -246,11 +246,15 @@ def append_sql_fragments(
     query directly to MongoDB instead.
     The parent_id_column determines how inner queries join to the product id of the parent table,
     which is assumed to have an alias of 'p'"""
-    fragments = filter.qualify_and or [filter]
+    # Merge the top level with any $and criteria
+    fragments = [filter] + (filter.qualify_and or [])
     for fragment in fragments:
         for tag, value in fragment.model_dump(
             exclude_defaults=True, by_alias=True
         ).items():
+            # Skip qualify_and as already merged above
+            if tag == "$and":
+                continue
             product_column_name = get_product_column_for_field(tag, loaded_tags)
             if not product_column_name:
                 check_tag_is_loaded(tag, loaded_tags)
