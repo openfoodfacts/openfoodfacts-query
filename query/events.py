@@ -36,7 +36,7 @@ def get_retry_interval():
     """Use exponential backoff if we get an error"""
     global error_count
     error_count += 1
-    return 2**error_count
+    return 2**(error_count - 1)
 
 
 async def redis_listener():
@@ -57,11 +57,15 @@ async def redis_listener():
                         # Each message is a tuple of the message id followed by a dict that is the payload
                         last_message_id = response[0][1][-1][0]
                         await set_last_message_id(transaction, last_message_id)
+                        
+                # Reset error count on success
+                error_count = 0
 
             except Exception as e:
-                logger.error(repr(e))
+                retry_in = get_retry_interval()
+                logger.error(f"Error processing messages. Retrying {retry_in} s. {repr(e)}")
                 # Exponential back-off indefinitely, Listener will be completely stopped by scheduled import every 24 hours
-                await asyncio.sleep(get_retry_interval())
+                await asyncio.sleep(retry_in)
 
 
 redis_listener_task = None
