@@ -182,7 +182,7 @@ jobs:
           script: |
             cd ${{ env.PROJECT_DIR }}
             exit_code=0
-            for service in `docker compose config  --service | tr '\n' ' '`; do 
+            for service in `docker compose config  --services | tr '\n' ' '`; do 
               if [ -z `docker compose ps -q $service` ] || [ -z `docker ps -q --no-trunc | grep $(docker compose ${{ env.compose_args }} ps -q $service)` ]; then
                 echo "$service: DOWN"
                 exit_code=1
