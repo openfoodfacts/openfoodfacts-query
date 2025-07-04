@@ -103,8 +103,8 @@ class Stage(BaseModel, populate_by_name=True):
         examples=[1],
         description="Whether to just count the number of groups (like count distinct)",
     )
-    limit: int = Field(None, alias="$limit", description=LIMIT_DESCRIPTION)
-    skip: int = Field(None, alias="$skip", description=SKIP_DESCRIPTION)
+    limit: int = Field(None, alias="$limit", description=LIMIT_DESCRIPTION, gt=0)
+    skip: int = Field(None, alias="$skip", description=SKIP_DESCRIPTION, ge=0)
 
 
 class AggregateResult(BaseModel, populate_by_name=True):
@@ -154,5 +154,5 @@ class FindQuery(BaseModel):
             description="How the data should be sorted. Note sorting by a single field is currently supported",
         ),
     ]
-    limit: int = Field(None, description=LIMIT_DESCRIPTION)
-    skip: int = Field(None, description=SKIP_DESCRIPTION)
+    limit: int = Field(None, description=LIMIT_DESCRIPTION, gt=0)
+    skip: int = Field(None, description=SKIP_DESCRIPTION, ge=0)
