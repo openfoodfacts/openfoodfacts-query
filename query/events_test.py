@@ -128,6 +128,10 @@ async def test_listener_keeps_track_of_last_message_id(
         # Start the redis listener
         redis_listener_task = asyncio.create_task(redis_listener())
 
+        # Simulate some previous retries
+        get_retry_interval()
+        get_retry_interval()
+        
         await messages_processed(messages_received)
         await cancel_task(redis_listener_task)
 
@@ -135,6 +139,8 @@ async def test_listener_keeps_track_of_last_message_id(
         assert set_id.call_count == 1
         # messages_received should only have been called once
         assert messages_received.call_count == 1
+        
+        assert get_retry_interval() == 1
 
 
 def test_retry_interval():
@@ -142,6 +148,39 @@ def test_retry_interval():
     interval2 = get_retry_interval()
     assert interval2 == interval1 * 2
 
+
+@patch.object(events, "get_last_message_id")
+@patch.object(events, "set_last_message_id")
+@patch.object(events, "messages_received")
+async def test_retry_reset_on_success(
+    messages_received: Mock, set_id: Mock, get_id: Mock
+):
+    async with redis_client() as redis:
+        # Get the most recent message id so we don't pick up old messages
+        get_id.return_value = await get_last_message_id(redis, STREAM_NAME)
+
+        # Add a message
+        product_code = random_code()
+        await add_test_message(redis, product_code)
+
+        # Start the redis listener
+        redis_listener_task = asyncio.create_task(redis_listener())
+
+        await messages_processed(messages_received)
+
+        # Simulate some previous retries
+        get_retry_interval()
+        get_retry_interval()
+
+        # Add another message
+        product_code = random_code()
+        await add_test_message(redis, product_code)
+
+        await messages_processed(messages_received)
+
+        await cancel_task(redis_listener_task)
+        
+        assert get_retry_interval() == 1
 
 @patch.object(events, "get_last_message_id")
 @patch.object(events, "set_last_message_id")
