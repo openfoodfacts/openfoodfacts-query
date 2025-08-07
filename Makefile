@@ -58,7 +58,7 @@ refresh_countries:
 # Run dependent projects
 run_deps: clone_deps
 	@for dep in ${DEPS} ; do \
-		cd ${DEPS_DIR}/$$dep && make run; \
+		cd ${DEPS_DIR}/$$dep && $(MAKE) run; \
 	done
 
 # Clone dependent projects without running them
@@ -77,7 +77,7 @@ clone_deps:
 # Stop dependent projects
 stop_deps:
 	@for dep in ${DEPS} ; do \
-		cd ${DEPS_DIR}/$$dep && make stop; \
+		cd ${DEPS_DIR}/$$dep && $(MAKE) stop; \
 	done
 
 # Called from other projects to stop this project
