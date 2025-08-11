@@ -23,12 +23,14 @@ updates:
       include: "scope"
     schedule:
       interval: "weekly"
+    allow:
+      - dependency-type: "all"
     groups:
       deps-production:
-        dependency-type: production
+        dependency-type: "production"
         patterns:
           - "*"
       deps-dev:
-        dependency-type: development
+        dependency-type: "development"
         patterns:
           - "*"
