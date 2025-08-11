@@ -12,6 +12,9 @@ updates:
       include: "scope"
     schedule:
       interval: "weekly"
+    groups:
+      deps-github-actions:
+        dependency-type: development
   - package-ecosystem: "pip" # See documentation for possible values
     directory: "/" # Location of package manifests
     commit-message:
@@ -19,3 +22,8 @@ updates:
       include: "scope"
     schedule:
       interval: "weekly"
+    groups:
+      deps-production:
+        dependency-type: production
+      deps-dev:
+        dependency-type: development
