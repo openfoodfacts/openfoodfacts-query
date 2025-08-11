@@ -14,7 +14,8 @@ updates:
       interval: "weekly"
     groups:
       deps-github-actions:
-        dependency-type: development
+        patterns:
+          - "*"
   - package-ecosystem: "pip" # See documentation for possible values
     directory: "/" # Location of package manifests
     commit-message:
@@ -25,5 +26,9 @@ updates:
     groups:
       deps-production:
         dependency-type: production
+        patterns:
+          - "*"
       deps-dev:
         dependency-type: development
+        patterns:
+          - "*"
