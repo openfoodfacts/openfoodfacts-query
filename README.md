@@ -130,8 +130,8 @@ The "count", "aggregate" and "find" POST endpoints accept a MongoDB style filter
 
 You can test with curl with something like:
 ```bash
-# selection
-curl -d '{"categories_tags": "en:teas"}' -H "Content-Type: application/json" http://localhost:5510/select
+# find. Note that this fetches the actual product data from MongoDB
+curl -d '{"filter":{"categories_tags": "en:teas"},"projection":{"_id":0,"product_name":1},"limit":10}' -H "Content-Type: application/json" http://localhost:5510/find
 # aggergation
 curl -d '[{"$match": {"countries_tags": "en:france"}},{"$group":{"_id":"$brands_tags"}}]' -H "Content-Type: application/json" http://localhost:5510/aggregate
 ```
