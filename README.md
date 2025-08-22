@@ -84,6 +84,12 @@ Note that when uploading scans the off-query PostgreSQL database username and pa
 QUERY_URL=http://DATABASE_USER:DATABASE_PASSWORD@query:5510
 ```
 
+## Product Refresh Process
+
+The service subscribes to `product_updates` events, as documented [here](./docs/events/openfoodfacts-query.html). Data for changed products is fetched directly from MongoDB.
+
+An incremental refresh is also performed every night.
+
 ## Running in Docker
 
 The project joins the Product Opener `COMMON_NET_NAME` network.

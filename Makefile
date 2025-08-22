@@ -55,6 +55,10 @@ lint:
 refresh_countries:
 	python scripts/refresh_countries.py
 
+build_asyncapi:
+	npm list -g @asyncapi/cli || npm install -g @asyncapi/cli
+	cd docs/events && asyncapi generate fromTemplate openfoodfacts-query.yaml @asyncapi/html-template@3.0.0 --use-new-generator --param singleFile=true outFilename=openfoodfacts-query.html --force-write --output=.
+
 # Run dependent projects
 run_deps: clone_deps
 	@for dep in ${DEPS} ; do \

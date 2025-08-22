@@ -15,4 +15,4 @@ operations:
     action: receive
     channel:
       messages:
-        $ref: "https://raw.githubusercontent.com/openfoodfacts/openfoodfacts-server/refs/heads/redis-docs/docs/events/messages/product_updated.yaml"
+        $ref: "https://raw.githubusercontent.com/openfoodfacts/openfoodfacts-server/refs/heads/main/docs/events/messages/product_updated.yaml"
