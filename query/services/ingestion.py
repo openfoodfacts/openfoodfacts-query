@@ -9,6 +9,7 @@ from asyncpg import Connection
 
 from query.tables.product_nutrient import (
     NUTRIENT_TAG,
+    NUTRITION_TAG,
     create_product_nutrients_from_staging,
 )
 
@@ -30,7 +31,11 @@ from ..tables.product_ingredient import (
     create_ingredients_from_staging,
 )
 from ..tables.product_tags import COUNTRIES_TAG, TAG_TABLES, create_tags_from_staging
-from ..tables.settings import get_last_updated, set_last_updated, set_pre_migration_message_id
+from ..tables.settings import (
+    get_last_updated,
+    set_last_updated,
+    set_pre_migration_message_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +121,9 @@ async def import_with_filter(
                 "last_modified_t": True,
                 "last_updated_t": True,
             }
+        # Cater for new nutrition structure
+        if NUTRIENT_TAG in tags:
+            projection |= {NUTRITION_TAG: True}
 
         for obsolete in [False, True]:
             update_count = 0
@@ -156,11 +164,10 @@ async def import_with_filter(
                             transaction, product_code
                         )
 
-                    # Strip any nulls from tag text
+                    # Strip any nulls from tag text. Note new nutrition schema doesn't allow ad-hoc entries so should not have this problem
                     for tag in list(TAG_TABLES.keys()) + [NUTRIENT_TAG]:
                         tag_data = product_data.get(tag, None)
                         strip_nuls(tag_data, f"Product: {product_code}, tag: {tag}")
-                    
 
                     await transaction.execute(
                         "INSERT INTO product_temp (id, last_updated, data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",

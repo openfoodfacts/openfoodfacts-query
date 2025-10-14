@@ -7,7 +7,7 @@ from query.tables.nutrient import create_nutrients_from_staging
 from ..database import create_record, get_rows_affected
 
 NUTRIENT_TAG = "nutriments"
-
+NUTRITION_TAG = "nutrition.aggregated_set.nutrients"
 
 async def create_table(transaction):
     await transaction.execute(
@@ -56,12 +56,16 @@ async def create_product_nutrients_from_staging(transaction: Connection, log):
     product_nutrients_added = get_rows_affected(
         await transaction.execute(
             f"""insert into product_nutrient (product_id, nutrient_id, value)
-        select distinct pt.id, n.id, source.value::double precision
+        select pt.id, n.id, source.value::double precision
         from product_temp pt
         cross join jsonb_each(data->'nutriments') source
         join nutrient n on n.tag = left(source.key, -5)
         where right(source.key, 5) = '_100g'
         and right(source.key, 13) != 'prepared_100g'
+        union select pt.id, n.id, (source.value->'value')::double precision
+        from product_temp pt
+        cross join jsonb_each(data->'nutrition'->'aggregated_set'->'nutrients') source
+        join nutrient n on n.tag = source.key
         """
         )
     )
