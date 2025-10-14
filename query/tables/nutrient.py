@@ -16,12 +16,16 @@ async def create_nutrients_from_staging(transaction):
     return get_rows_affected(
         await transaction.execute(
             f"""insert into nutrient (tag)
-        select distinct left(new_tag, -5)
+        select left(new_tag, -5)
         from product_temp pt
         cross join jsonb_object_keys(data->'nutriments') new_tag
         where right(new_tag, 5) = '_100g'
         and right(new_tag, 13) != 'prepared_100g'
         and not exists (select * from nutrient where tag = left(new_tag, -5))
+        union select new_tag
+        from product_temp pt
+        cross join jsonb_object_keys(data->'nutrition'->'aggregated_set'->'nutrients') new_tag
+        where not exists (select * from nutrient where tag = new_tag)
         on conflict (tag) 
         do nothing
         """

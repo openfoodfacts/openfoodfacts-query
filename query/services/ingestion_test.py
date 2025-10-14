@@ -52,6 +52,18 @@ def get_test_products():
             "last_updated_t": last_updated,
             "ingredients_tags": ["new_ingredient", "old_ingredient"],
             "countries_tags": ["en:france", random_code()],
+            "nutrition": {
+                "aggregated_set": {
+                    "nutrients": {
+                        "carbohydrates": {
+                            "value": 21,
+                        },
+                        f"{random_code()}": {
+                            "value": random.uniform(100, 0.000001),
+                        },
+                    }
+                }
+            },
         },
     ]
 
@@ -171,7 +183,8 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         added_nutrient = [
             item
             for item in products[0]["nutriments"].items()
-            if item[0] not in ["carbohydrates_100g"]
+            if item[0]
+            not in ["carbohydrates_100g", "ignored", "carbohydrates_prepared_100g"]
         ][0]
         nutrient = await get_nutrient(
             transaction, added_nutrient[0][:-5]  # Should not include the last _100g
@@ -188,6 +201,32 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         ]
         assert new_nutrient
         assert new_nutrient[0]["value"] == added_nutrient[1]
+
+        # New nutrition schema
+        supplied_random_nutrient = [
+            item
+            for item in products[1]["nutrition"]["aggregated_set"]["nutrients"].items()
+            if item[0] not in ["carbohydrates"]
+        ][0]
+        found_random_nutrient = await get_nutrient(
+            transaction, supplied_random_nutrient[0]
+        )
+        assert found_random_nutrient
+
+        existing_product_nutrients = await get_product_nutrients(
+            transaction, product_existing
+        )
+        assert len(existing_product_nutrients) == 2
+        found_random_product_nutrient = [
+            item
+            for item in existing_product_nutrients
+            if item["nutrient_id"] == found_random_nutrient["id"]
+        ]
+        assert found_random_product_nutrient
+        assert (
+            found_random_product_nutrient[0]["value"]
+            == supplied_random_nutrient[1]["value"]
+        )
 
 
 @patch.object(ingestion, "find_products")
@@ -263,7 +302,7 @@ async def test_cope_with_nul_characters(
                         "ingredients_tags": ["test \0 test2 \0 end"],
                         "nutriments": {
                             "test_nutrient": "\x002",
-                        }
+                        },
                     }
                 ]
             ),
