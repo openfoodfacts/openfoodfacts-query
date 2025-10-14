@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from query.tables.loaded_tag import append_loaded_tags
 from query.tables.product import PRODUCT_SCANS_TAG
-from query.tables.product_nutrient import NUTRIENT_TAG
+from query.tables.product_nutrient import NUTRIENT_TAG, NUTRITION_TAG
 
 from ..database import get_transaction
 from ..models.query import Filter, FindQuery, Fragment, Qualify, SortColumn
@@ -324,6 +324,22 @@ async def test_nutrient_filter():
         FindQuery(
             filter=Filter(
                 **{f"{NUTRIENT_TAG}.{tags.nutrient_tag}_100g": Qualify(qualify_lt=0.2)}
+            ),
+            projection={"code": True},
+        )
+    )
+    assert len(results) == 1
+    assert results[0]["code"] == tags.product1["code"]
+
+
+async def test_new_nutrition_filter():
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
+
+    results = await query.find(
+        FindQuery(
+            filter=Filter(
+                **{f"{NUTRITION_TAG}.{tags.nutrient_tag}": Qualify(qualify_lt=0.2)}
             ),
             projection={"code": True},
         )
