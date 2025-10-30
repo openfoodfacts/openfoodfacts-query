@@ -37,5 +37,18 @@ updates:
   - package-ecosystem: docker
     directory: "/"
     schedule:
-      interval: "monthly"
-    open-pull-requests-limit: 5
+      interval: "weekly"
+    groups:
+      docker:
+        patterns:
+          - "*"
+  - package-ecosystem: docker-compose
+    directories:
+      - "/"
+      - "docker"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker-compose:
+        patterns:
+          - "*"
