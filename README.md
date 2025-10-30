@@ -2,6 +2,10 @@
 
 This project extracts key product data from MongoDB into a Postgres database in order to support faster aggregate calculations
 
+# Contributing
+
+In this project we are attempting to use discussions to explore ideas and only converting these to issues when development is imminent or if it is a reproducible bug. See [here](https://github.com/openfoodfacts/openfoodfacts-query/discussions?discussions_q=is%3Aopen+label%3A%22good+first+issue%22) for "good first issues".
+
 # Development
 
 ## Running locally
