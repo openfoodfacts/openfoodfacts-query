@@ -120,7 +120,7 @@ The main `docker-compose.yml` creates the openfoodfacts-query service and associ
 
 The `docker-compose-run.yml` override explicitly sets the `MONGO_URI` and `REDIS_URL` variables to access those services within Docker.
 
-The `dev.yml` override simply adds the Docker build instruction.
+The `compose-dev.yml` override simply adds the Docker build instruction.
 
 # Use
 
