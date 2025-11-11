@@ -149,7 +149,7 @@ async def test_exception_when_scans_not_loaded(_):
             ),
             True,
         )
-    assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 async def test_exception_when_sort_key_not_supported():
