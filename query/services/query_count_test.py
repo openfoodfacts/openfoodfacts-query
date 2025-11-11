@@ -188,7 +188,7 @@ async def test_throw_an_exception_for_an_unknown_tag():
         await query.count(Filter(invalid_tags="x"))
     main_error = e.value
     assert "invalid_tag" in main_error.detail
-    assert main_error.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert main_error.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @patch.object(query, "get_loaded_tags", return_value=["dummy_tag"])
@@ -198,7 +198,7 @@ async def test_throw_an_unprocessable_exception_for_a_tag_that_has_not_been_load
     with pytest.raises(HTTPException) as e:
         await query.count(Filter(scans_n=1))
     assert get_loaded_tags_mock.called
-    assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert e.value.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert PRODUCT_SCANS_TAG in repr(e.value.detail)
 
 

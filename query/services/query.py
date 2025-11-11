@@ -118,7 +118,7 @@ async def find(query: FindQuery, obsolete=False):
         sort_key = query.sort[0][0] if query.sort and len(query.sort) > 0 else None
         if sort_key and len(query.sort) > 1:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
                 "Only a single sort field is supported",
             )
 
