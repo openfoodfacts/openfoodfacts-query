@@ -34,3 +34,21 @@ updates:
         dependency-type: "development"
         patterns:
           - "*"
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker:
+        patterns:
+          - "*"
+  - package-ecosystem: docker-compose
+    directories:
+      - "/"
+      - "docker"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker-compose:
+        patterns:
+          - "*"

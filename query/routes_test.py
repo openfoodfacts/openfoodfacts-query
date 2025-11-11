@@ -42,7 +42,7 @@ async def test_count_invalid_tag():
     client = TestClient(app)
 
     response = client.post("/count", json={"invalid_tag": "z"})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert "invalid_tag" in response.text
 
 
@@ -50,7 +50,7 @@ async def test_count_invalid_qualifier():
     client = TestClient(app)
 
     response = client.post("/count", json={"origins_tags": {"$invalid": [1, 2]}})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert "$invalid" in response.text
 
 
