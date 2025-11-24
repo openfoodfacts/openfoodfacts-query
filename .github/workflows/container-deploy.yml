@@ -16,6 +16,9 @@ jobs:
           # FIXME name you envs, see reuse below
           # it's also the name of the directory for the application
           - ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-org' || 'off-query-net' }}
+          - ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-replica-org' || 'NONE' }}
+        exclude:
+          - env: 'NONE'
     environment: ${{ matrix.env }}
     concurrency: ${{ matrix.env }}
     steps:
@@ -43,6 +46,7 @@ jobs:
           echo "POSTGRES_SHM_SIZE=512m" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_SHARED_BUFFERS=4GB" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_WORK_MEM=256MB" >> $GITHUB_ENV
+
       - name: Set various variable for production deployment
         if: matrix.env == 'off-query-org'
         run: |
@@ -66,6 +70,27 @@ jobs:
           echo "POSTGRES_SHM_SIZE=2g" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
+
+      - name: Set various variable for prod replica deployment
+        if: matrix.env == 'off-query-replica-org'
+        run: |
+          # This is deployed on Hetzner, close to superset
+          echo "SSH_PROXY_HOST=hetzner-02.infra.openfoodfacts.org" >> $GITHUB_ENV
+          echo "SSH_USERNAME=off" >> $GITHUB_ENV
+          echo "SSH_PROXY_USERNAME=off" >> $GITHUB_ENV
+          echo "SSH_HOST=10.3.0.201" >> $GITHUB_ENV
+
+          # we don't need to be in common net, use a specific name
+          echo "COMMON_NET_NAME=off-query-replica-org_default" >> $GITHUB_ENV
+
+          # Reduce log level on production
+          echo "LOG_LEVEL=log" >> $GITHUB_ENV
+
+          # Postgres config. We use memory to gain performance on reads and writes
+          echo "POSTGRES_SHM_SIZE=2g" >> $GITHUB_ENV
+          echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
+          echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
+
       - name: Wait for container build workflow
         uses: tomchv/wait-my-workflow@v1.1.0
         id: wait-build
@@ -110,7 +135,7 @@ jobs:
             # Checkout current commit SHA
             git checkout -qf ${{ github.sha }}
 
-      - name: Set environment variables
+      - name: Set common environment variables
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.SSH_HOST }}
@@ -130,6 +155,7 @@ jobs:
             echo "DOCKER_CLIENT_TIMEOUT=120" >> .env
             echo "COMPOSE_HTTP_TIMEOUT=120" >> .env
             echo "COMPOSE_PROJECT_NAME=off-query" >> .env
+            echo "COMPOSE_PROFILES=app" >> .env
             echo "COMPOSE_PATH_SEPARATOR=," >> .env
             echo "RESTART_POLICY=always" >> .env
             echo "COMPOSE_FILE=docker-compose.yml" >> .env
@@ -140,6 +166,7 @@ jobs:
             echo "POSTGRES_USER=postgres" >> .env
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
             echo "POSTGRES_DB=query" >> .env
+            echo "POSTGRES_CONFIG_FILE=./confs/postgresql/prod.conf" >> .env
             echo "COMMON_NET_NAME=${{ env.COMMON_NET_NAME }}" >> .env
             echo "MONGO_URI=${{ env.MONGO_URI }}" >> .env
             echo "REDIS_URL=${{ env.REDIS_URL }}" >> .env
@@ -152,6 +179,29 @@ jobs:
             # Use docker volume for now
             echo "QUERY_DATA_DIR=dbdata" >> .env
             echo "LOG_LEVEL=${{ env.LOG_LEVEL }}" >> .env
+
+      - name: Create Postgresql config file
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ env.SSH_PROXY_HOST }}
+          proxy_username: ${{ env.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # start from the dev file
+            cp confs/postgresql/dev.conf confs/postgresql/prod.conf
+            # add replication settings
+            echo >>confs/postgresql/prod.conf <<END_CONF
+            # replication settings
+            wal_level=replica
+            max_wal_senders=3
+            # we don't set a large wal_keep_size because we will use slots
+            max_slot_wal_keep_size=20G
+            # this is large (current db size 140G)
+            max_slot_wal_keep_size=100G
+            END_CONF
 
       - name: Start services
         uses: appleboy/ssh-action@master
