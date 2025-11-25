@@ -1,5 +1,5 @@
-"""List of tags tables
-"""
+"""List of tags tables"""
+
 # we keep it in this simple module to enable easy import eg. for export script.
 
 COUNTRIES_TAG = "countries_tags"
@@ -70,6 +70,6 @@ tag_tables_v1 = {
     "weighers_tags": "product_weighers_tag",
 }
 
-# Append additional tag tables to this list when we introduce them 
+# Append additional tag tables to this list when we introduce them
 # and then add a migration to create the new tables
 TAG_TABLES = tag_tables_v1

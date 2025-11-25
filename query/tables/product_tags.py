@@ -2,7 +2,7 @@
 The order of tags is not preserved"""
 
 from ..database import create_record, get_rows_affected
-from .product_tags_list import COUNTRIES_TAG, TAG_TABLES
+from .product_tags_list import TAG_TABLES, tag_tables_v1
 
 
 async def create_tables(transaction, tag_tables):

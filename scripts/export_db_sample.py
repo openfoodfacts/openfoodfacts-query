@@ -1,12 +1,11 @@
-#/usr/bin/env python3
+# /usr/bin/env python3
 import argparse
-import sys
 import datetime as dt
+import sys
 from textwrap import dedent
 
 sys.path.append(".")
 from query.tables import product_tags_list
-
 
 DESCRIPTION = """
 Generate a script to export some data from openfoodfacts-query database,
@@ -26,13 +25,13 @@ This scripts currently only export part of the tables.
 
 def generate_export_script(from_date, to_date, export_dir):
 
-  outputs = []
+    outputs = []
 
-  def cmd(sql):
-    outputs.append(dedent(sql))
+    def cmd(sql):
+        outputs.append(dedent(sql))
 
-  cmd(
-    f"""
+    cmd(
+        f"""
     \\! mkdir -p {export_dir}
     -- enable writing by postgres process
     \\! chmod a+rwX {export_dir}
@@ -40,10 +39,10 @@ def generate_export_script(from_date, to_date, export_dir):
     \\set from_date '{from_date}'
     \\set to_date '{to_date}'
     """
-  )
+    )
 
-  cmd(
-    """
+    cmd(
+        """
     \\set export_path :export_dir/product_update_event.csv
 
     COPY (
@@ -53,10 +52,10 @@ def generate_export_script(from_date, to_date, export_dir):
     )
     TO :'export_path' DELIMITER ',' CSV HEADER;
     """
-  )
+    )
 
-  cmd(
-    """
+    cmd(
+        """
     \\set export_path :export_dir/product_update.csv
 
     COPY (
@@ -68,9 +67,9 @@ def generate_export_script(from_date, to_date, export_dir):
     )
     TO :'export_path' DELIMITER ',' CSV HEADER;
     """
-  )
-  cmd(
-    """
+    )
+    cmd(
+        """
     \\set export_path :export_dir/product.csv
     COPY (
       select * from product
@@ -84,11 +83,11 @@ def generate_export_script(from_date, to_date, export_dir):
     )
     TO :'export_path' DELIMITER ',' CSV HEADER;
     """
-  )
-  # should use product_tags.TAG_TABLES
-  for table_name in product_tags_list.TAG_TABLES.values():
-    cmd(
-      f"""
+    )
+    # should use product_tags.TAG_TABLES
+    for table_name in product_tags_list.TAG_TABLES.values():
+        cmd(
+            f"""
       \\set table_name {table_name}
       \\set export_path :export_dir/:table_name.csv
 
@@ -104,44 +103,49 @@ def generate_export_script(from_date, to_date, export_dir):
       )
       TO :'export_path' DELIMITER ',' CSV HEADER;
       """
-    )
-  return outputs
+        )
+    return outputs
 
 
 def get_parser():
-  now = dt.datetime.now()
-  default_start = (now - dt.timedelta(minutes=20)).strftime("%Y-%m-%d %H:%M:%S")
-  default_end = now.strftime("%Y-%m-%d %H:%M:%S")
-  default_folder="/opt/data/exports/" + now.strftime("%Y-%m-%d_%H:%M:%S")
-  parser = argparse.ArgumentParser(description=DESCRIPTION)
-  parser.add_argument(
-    'from_date', default=default_start, type=str, nargs="?",
-    help=(
-      "Start date in iso format, e.g. 2025-11-21 11:00:00\n" +
-      "If empty, it's now - 20 minutes"
+    now = dt.datetime.now()
+    default_start = (now - dt.timedelta(minutes=20)).strftime("%Y-%m-%d %H:%M:%S")
+    default_end = now.strftime("%Y-%m-%d %H:%M:%S")
+    default_folder = "/opt/data/exports/" + now.strftime("%Y-%m-%d_%H:%M:%S")
+    parser = argparse.ArgumentParser(description=DESCRIPTION)
+    parser.add_argument(
+        "from_date",
+        default=default_start,
+        type=str,
+        nargs="?",
+        help=(
+            "Start date in iso format, e.g. 2025-11-21 11:00:00\n"
+            + "If empty, it's now - 20 minutes"
+        ),
     )
-  )
-  parser.add_argument(
-    'to_date', default=default_end, type=str, nargs="?",
-    help=(
-      "End date in iso format, e.g. 2025-11-21 11:20:00\n" +
-      "If empty, it's now"
+    parser.add_argument(
+        "to_date",
+        default=default_end,
+        type=str,
+        nargs="?",
+        help=(
+            "End date in iso format, e.g. 2025-11-21 11:20:00\n" + "If empty, it's now"
+        ),
     )
-  )
-  parser.add_argument(
-    '--dest', default=default_folder, type=str,
-    help=(
-      "Target directory, it will be created if it does not exists," +
-      f"defaults to {default_folder} (according to current time)"
-    ),
-  )
-  return parser
+    parser.add_argument(
+        "--dest",
+        default=default_folder,
+        type=str,
+        help=(
+            "Target directory, it will be created if it does not exists,"
+            + f"defaults to {default_folder} (according to current time)"
+        ),
+    )
+    return parser
 
 
 if __name__ == "__main__":
-  parser = get_parser()
-  args = parser.parse_args()
-  outputs = generate_export_script(args.from_date, args.to_date, args.dest)
-  print("\n".join(outputs))
-
-
+    parser = get_parser()
+    args = parser.parse_args()
+    outputs = generate_export_script(args.from_date, args.to_date, args.dest)
+    print("\n".join(outputs))
