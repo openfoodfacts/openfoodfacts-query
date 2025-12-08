@@ -1,6 +1,7 @@
 """Configuration information loaded from environment variables and / or .env files"""
 
 import logging
+from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -23,7 +24,8 @@ class ConfigSettings(BaseSettings):
     LOG_LEVEL: str
 
     SKIP_DATA_MIGRATIONS: bool = False
-
+    
+    DEV_USER: Optional[str] = None
 
 config_settings = ConfigSettings()
 

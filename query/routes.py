@@ -110,6 +110,9 @@ security = HTTPBasic()
 def get_current_username(
     credentials: HTTPBasicCredentials = Depends(security),
 ):
+    if config_settings.DEV_USER:
+        return config_settings.DEV_USER
+
     current_username_bytes = credentials.username.encode("utf8")
     correct_username_bytes = config_settings.POSTGRES_USER.encode("utf8")
     is_correct_username = secrets.compare_digest(
