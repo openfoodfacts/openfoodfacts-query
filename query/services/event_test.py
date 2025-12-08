@@ -6,12 +6,13 @@ from ..database import get_transaction
 from ..events import STREAM_NAME
 from ..models.domain_event import DomainEvent
 from ..models.product import Source
-from ..services.event import process_events
+from ..services.event import import_events, process_events
 from ..test_helper import random_code
 from . import event
 
-
 message_index = 0
+
+
 def sample_event(payload={}):
     global message_index
     timestamp = math.floor(time.time())
@@ -86,3 +87,25 @@ async def test_process_events_does_not_import_with_filter_at_all_if_no_food_prod
 
         # Import is not called
         assert not import_with_filter.called
+
+
+@patch.object(event, "create_events")
+async def test_import_events(create_events: Mock):
+    product_code = random_code()
+    test_message1 = {
+        "timestamp": math.floor(time.time()),
+        "code": product_code,
+        "rev": 1,
+        "product_type": "food",
+    }
+    test_message2 = {
+        "timestamp": math.floor(time.time()),
+        "code": product_code,
+        "rev": 2,
+        "product_type": "food",
+    }
+
+    await import_events([test_message1, test_message2])
+
+    assert create_events.called
+    assert len(create_events.call_args[0][1]) == 2

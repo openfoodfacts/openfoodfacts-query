@@ -1,11 +1,17 @@
 """Business logic for processing domain events"""
 
-from typing import List
+import math
+from datetime import datetime, timezone
+from typing import Dict, List
+
+from query.database import get_transaction
 
 from ..models.domain_event import DomainEvent
 from ..models.product import Source
 from ..services.ingestion import import_with_filter
 from ..tables.product_update_event import create_events
+
+STREAM_NAME = "product_updates"
 
 
 async def process_events(transaction, events: List[DomainEvent]):
@@ -22,3 +28,33 @@ async def process_events(transaction, events: List[DomainEvent]):
         await import_with_filter(
             transaction, {"code": {"$in": product_codes}}, Source.event
         )
+
+
+message_index = 0
+
+
+async def import_events(payloads: List[Dict]):
+    """Bulk load historic events without triggering a product import"""
+    global message_index
+
+    events: List[DomainEvent] = []
+    for payload in payloads:
+        """Determine the time that the domain event took place"""
+        try:
+            # Use the timestamp property on the message payload if it is provided
+            timestamp = datetime.fromtimestamp(payload["timestamp"], timezone.utc)
+        except:
+            # If all else fails use the current time
+            timestamp = datetime.now(timezone.utc)
+
+        # Always ensure we have a unique message id
+        message_id = f"{math.floor(timestamp.timestamp())}-{message_index}"
+        message_index += 1
+        events.append(
+            DomainEvent(
+                id=message_id, timestamp=timestamp, type=STREAM_NAME, payload=payload
+            )
+        )
+
+    async with get_transaction() as transaction:
+        await create_events(transaction, events)
