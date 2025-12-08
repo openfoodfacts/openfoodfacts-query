@@ -19,6 +19,7 @@ async def create_table(transaction):
       message jsonb NOT NULL)"""
     )
 
+
 async def add_message_id_constraint(transaction):
     # Create a temporary index so the following updates run faster
     await transaction.execute(
@@ -31,22 +32,20 @@ async def add_message_id_constraint(transaction):
         (SELECT min(id) FROM product_update_event WHERE message_id = 
         (SELECT message_id FROM product_update_event WHERE id = event_id))"""
     )
-    
+
     # Remove any later duplicates
     await transaction.execute(
         """DELETE FROM product_update_event pue WHERE
         EXISTS (SELECT * FROM product_update_event pue2 WHERE pue2.id < pue.id AND pue2.message_id = pue.message_id)"""
     )
-    
+
     # Add constraint
     await transaction.execute(
         """ALTER TABLE product_update_event ADD CONSTRAINT message_id UNIQUE (message_id)"""
     )
-    
+
     # Drop temporary index
-    await transaction.execute(
-        "DROP INDEX product_update_event_temp"
-    )
+    await transaction.execute("DROP INDEX product_update_event_temp")
 
 
 async def create_events(transaction: Connection, events: List[DomainEvent]):

@@ -9,6 +9,7 @@ from ..database import create_record, get_rows_affected
 NUTRIENT_TAG = "nutriments"
 NUTRITION_TAG = "nutrition.aggregated_set.nutrients"
 
+
 async def create_table(transaction):
     await transaction.execute(
         'create table "product_nutrient" ("product_id" int not null, "nutrient_id" int not null, "value" double precision not null, primary key ("product_id", "nutrient_id"));',

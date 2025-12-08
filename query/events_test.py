@@ -131,7 +131,7 @@ async def test_listener_keeps_track_of_last_message_id(
         # Simulate some previous retries
         get_retry_interval()
         get_retry_interval()
-        
+
         await messages_processed(messages_received)
         await cancel_task(redis_listener_task)
 
@@ -139,7 +139,7 @@ async def test_listener_keeps_track_of_last_message_id(
         assert set_id.call_count == 1
         # messages_received should only have been called once
         assert messages_received.call_count == 1
-        
+
         assert get_retry_interval() == 1
 
 
@@ -179,8 +179,9 @@ async def test_retry_reset_on_success(
         await messages_processed(messages_received)
 
         await cancel_task(redis_listener_task)
-        
+
         assert get_retry_interval() == 1
+
 
 @patch.object(events, "get_last_message_id")
 @patch.object(events, "set_last_message_id")
