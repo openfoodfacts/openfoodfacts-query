@@ -11,9 +11,12 @@ from ..test_helper import random_code
 from . import event
 
 
+message_index = 0
 def sample_event(payload={}):
+    global message_index
     timestamp = math.floor(time.time())
-    message_id = f"{timestamp}-0"
+    message_id = f"{timestamp}-{message_index}"
+    message_index += 1
     if "code" not in payload:
         payload["code"] = random_code()
     return DomainEvent(
