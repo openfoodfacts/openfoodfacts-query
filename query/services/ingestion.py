@@ -30,8 +30,7 @@ from ..tables.product_ingredient import (
     INGREDIENTS_TAG,
     create_ingredients_from_staging,
 )
-from ..tables.product_tags import create_tags_from_staging
-from ..tables.product_tags_list import COUNTRIES_TAG, TAG_TABLES
+from ..tables.product_tags import COUNTRIES_TAG, TAG_TABLES, create_tags_from_staging
 from ..tables.settings import (
     get_last_updated,
     set_last_updated,

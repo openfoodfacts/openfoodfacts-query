@@ -19,8 +19,6 @@ services:
       - "${POSTGRES_EXPOSE:-5512}:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
-      # a shared folder makes it easy to share data for import / exports
-      - ./data:/opt/data
     networks:
       - common_net
 
