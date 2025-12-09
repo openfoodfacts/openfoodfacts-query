@@ -56,7 +56,11 @@ def strip_nuls(enumerable: dict | list, context):
     for key, value in enumeration:
         value_type = type(value)
         if value_type is str and "\0" in value:
-            logger.warning(f"{context}: Nuls stripped from {key}: {value}")
+            logger.warning(
+                f"{context}: Nuls stripped from {key}: {value}".replace(
+                    "\r\n", ""
+                ).replace("\n", "")
+            )
             enumerable[key] = value.replace("\0", "")
         elif value_type is list or value_type is dict:
-            strip_nuls(value, context)
+            strip_nuls(value, f"{context}.{key}")
