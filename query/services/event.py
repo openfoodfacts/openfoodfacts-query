@@ -44,7 +44,7 @@ async def import_events(payloads: List[Dict]):
 
         # Always ensure we have a unique message id
         message_id = (
-            f"{math.floor(timestamp.timestamp())}-{payload['code']}-{payload['rev']}"
+            f"{math.floor(timestamp.timestamp())}-{payload.get('code')}-{payload.get('rev')}"
         )
         events.append(
             DomainEvent(
