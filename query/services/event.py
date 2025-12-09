@@ -4,7 +4,7 @@ import math
 from datetime import datetime, timezone
 from typing import Dict, List
 
-from query.database import get_transaction
+from query.database import get_transaction, strip_nuls
 
 from ..models.domain_event import DomainEvent
 from ..models.product import Source
@@ -46,6 +46,7 @@ async def import_events(payloads: List[Dict]):
         message_id = (
             f"{math.floor(timestamp.timestamp())}-{payload.get('code')}-{payload.get('rev')}"
         )
+        strip_nuls(payload, f"import_event {message_id}")
         events.append(
             DomainEvent(
                 id=message_id, timestamp=timestamp, type=STREAM_NAME, payload=payload
@@ -53,4 +54,6 @@ async def import_events(payloads: List[Dict]):
         )
 
     async with get_transaction() as transaction:
-        await create_events(transaction, events)
+        event_ids = await create_events(transaction, events)
+        
+    return event_ids

@@ -9,6 +9,8 @@ import pytest
 from redis.asyncio import Redis, ResponseError, from_url
 from testcontainers.redis import RedisContainer
 
+from query.services import event
+
 from . import events
 from .database import get_transaction
 from .events import (
@@ -246,12 +248,14 @@ async def test_listener_retrys_on_error(
         redis_container.stop()
 
 
-@patch.object(events, "process_events")
-async def test_messages_received_strips_nulls(process_events: Mock):
+@patch.object(event, "import_with_filter")
+async def test_messages_received_strips_nulls(import_with_filter: Mock):
     async with get_transaction() as transaction:
+        timestamp = math.floor(time.time())
+        code = random_code()
         test_message = {
-            "timestamp": 1692032161,
-            "code": random_code(),
+            "timestamp": timestamp,
+            "code": code,
             "rev": 1,
             "flavor": "off",
             "product_type": "food",
@@ -261,19 +265,24 @@ async def test_messages_received_strips_nulls(process_events: Mock):
             "diffs": '{"fields":{"change":["categories\0 after null"],"delete":["product_name"]}}',
         }
 
+        message_id = f"{timestamp}-{code}"
         await messages_received(
-            transaction, [["test-stream", [["test-id", test_message]]]]
+            transaction, [["test-stream", [[message_id, test_message]]]]
         )
 
-        assert process_events.called
-        assert process_events.call_args[0][1]
-        event = process_events.call_args[0][1][0]
-        assert event.id == "test-id"
-        assert event.timestamp == datetime.fromtimestamp(
+        assert import_with_filter.called
+        event = await transaction.fetchrow(
+            "select * from product_update_event where message_id = $1",
+            message_id,
+        )
+
+        assert event["message"]["comment"] == "Test  after null"
+        assert (
+            event["message"]["diffs"]["fields"]["change"][0] == "categories after null"
+        )
+        assert event["updated_at"] == datetime.fromtimestamp(
             test_message["timestamp"], timezone.utc
         )
-        assert event.payload["comment"] == "Test  after null"
-        assert event.payload["diffs"]["fields"]["change"][0] == "categories after null"
 
 
 @patch.object(events, "process_events")

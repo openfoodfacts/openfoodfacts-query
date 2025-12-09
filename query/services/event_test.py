@@ -109,3 +109,33 @@ async def test_import_events(create_events: Mock):
 
     assert create_events.called
     assert len(create_events.call_args[0][1]) == 2
+
+
+async def test_import_events_strips_nuls():
+    product_code = random_code()
+    test_message1 = {
+        "timestamp": math.floor(time.time()),
+        "code": product_code,
+        "rev": 1,
+        "product_type": "food",
+        "comment": "Test \0 after null",
+        "diffs": {
+            "fields": {
+                "change": ["categories\0 after null"],
+                "delete": ["product_name"],
+            }
+        },
+    }
+    event_ids = await import_events([test_message1])
+    assert len(event_ids) == 1
+
+    async with get_transaction() as transaction:
+        event = await transaction.fetchrow(
+            "select * from product_update_event where id = $1",
+            event_ids[0],
+        )
+
+        assert event["message"]["comment"] == "Test  after null"
+        assert (
+            event["message"]["diffs"]["fields"]["change"][0] == "categories after null"
+        )

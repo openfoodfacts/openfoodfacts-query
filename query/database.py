@@ -54,6 +54,9 @@ def strip_nuls(enumerable: dict | list, context):
         enumerable.items() if isinstance(enumerable, dict) else enumerate(enumerable)
     )
     for key, value in enumeration:
-        if isinstance(value, str) and "\0" in value:
+        value_type = type(value)
+        if value_type is str and "\0" in value:
             logger.warning(f"{context}: Nuls stripped from {key}: {value}")
             enumerable[key] = value.replace("\0", "")
+        elif value_type is list or value_type is dict:
+            strip_nuls(value, context)
