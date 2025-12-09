@@ -89,26 +89,35 @@ async def test_process_events_does_not_import_with_filter_at_all_if_no_food_prod
         assert not import_with_filter.called
 
 
-@patch.object(event, "create_events")
-async def test_import_events(create_events: Mock):
+async def test_import_events():
     product_code = random_code()
     test_message1 = {
         "timestamp": math.floor(time.time()),
         "code": product_code,
         "rev": 1,
         "product_type": "food",
+        "user_id": "test",
+        "action": "created",
     }
     test_message2 = {
         "timestamp": math.floor(time.time()),
         "code": product_code,
         "rev": 2,
         "product_type": "food",
+        "user_id": "test",
+        "action": "updated",
     }
 
-    await import_events([test_message1, test_message2])
+    event_ids = await import_events([test_message1, test_message2])
+    assert len(event_ids) == 2
 
-    assert create_events.called
-    assert len(create_events.call_args[0][1]) == 2
+    async with get_transaction() as transaction:
+        # Check that product updates are also created (need an embryonic product)
+        product_updates = await transaction.fetch(
+            "select * from product_update where event_id = ANY($1)",
+            event_ids,
+        )
+        assert len(product_updates) == 2
 
 
 async def test_import_events_strips_nuls():
