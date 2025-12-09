@@ -24,6 +24,7 @@ class ConfigSettings(BaseSettings):
 
     SKIP_DATA_MIGRATIONS: bool = False
 
+
 config_settings = ConfigSettings()
 
 # Make the log levels match the current ones from NestJS

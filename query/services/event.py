@@ -43,7 +43,9 @@ async def import_events(payloads: List[Dict]):
             timestamp = datetime.now(timezone.utc)
 
         # Always ensure we have a unique message id
-        message_id = f"{math.floor(timestamp.timestamp())}-{payload['code']}-{payload['rev']}"
+        message_id = (
+            f"{math.floor(timestamp.timestamp())}-{payload['code']}-{payload['rev']}"
+        )
         events.append(
             DomainEvent(
                 id=message_id, timestamp=timestamp, type=STREAM_NAME, payload=payload

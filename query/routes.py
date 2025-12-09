@@ -149,6 +149,7 @@ async def product_updates(
     payloads: List[Dict],
     _: str = Depends(get_current_username),
 ):
-    """Used for bulk loading product change history without triggering a product import
-    Use `scripts/product_revision_to_historical_events.pl` in Product Opener to load data for development."""
+    """Used for bulk loading product change history without triggering a product import.
+    Use `scripts/product_revision_to_historical_events.pl` in Product Opener to load data for development.
+    """
     await import_events(payloads)
