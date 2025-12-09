@@ -30,13 +30,8 @@ async def process_events(transaction, events: List[DomainEvent]):
         )
 
 
-message_index = 0
-
-
 async def import_events(payloads: List[Dict]):
     """Bulk load historic events without triggering a product import"""
-    global message_index
-
     events: List[DomainEvent] = []
     for payload in payloads:
         """Determine the time that the domain event took place"""
@@ -48,8 +43,7 @@ async def import_events(payloads: List[Dict]):
             timestamp = datetime.now(timezone.utc)
 
         # Always ensure we have a unique message id
-        message_id = f"{math.floor(timestamp.timestamp())}-{message_index}"
-        message_index += 1
+        message_id = f"{math.floor(timestamp.timestamp())}-{payload['code']}-{payload['rev']}"
         events.append(
             DomainEvent(
                 id=message_id, timestamp=timestamp, type=STREAM_NAME, payload=payload
