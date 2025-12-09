@@ -4,8 +4,7 @@ import math
 from datetime import datetime, timezone
 from typing import Dict, List
 
-from query.database import get_transaction, strip_nuls
-
+from ..database import get_transaction, strip_nuls
 from ..models.domain_event import DomainEvent
 from ..models.product import Source
 from ..services.ingestion import import_with_filter
@@ -43,9 +42,7 @@ async def import_events(payloads: List[Dict]):
             timestamp = datetime.now(timezone.utc)
 
         # Always ensure we have a unique message id
-        message_id = (
-            f"{math.floor(timestamp.timestamp())}-{payload.get('code')}-{payload.get('rev')}"
-        )
+        message_id = f"{math.floor(timestamp.timestamp())}-{payload.get('code')}-{payload.get('rev')}"
         strip_nuls(payload, f"import_event {message_id}")
         events.append(
             DomainEvent(
@@ -55,5 +52,5 @@ async def import_events(payloads: List[Dict]):
 
     async with get_transaction() as transaction:
         event_ids = await create_events(transaction, events)
-        
+
     return event_ids

@@ -50,7 +50,7 @@ async def add_message_id_constraint(transaction):
 
 async def create_events(transaction: Connection, events: List[DomainEvent]):
     received_at = datetime.now(timezone.utc)
-    
+
     results = await transaction.fetchmany(
         """INSERT into product_update_event (message_id, received_at, updated_at, message) VALUES ($1, $2, $3, $4)
         ON CONFLICT (message_id) DO NOTHING

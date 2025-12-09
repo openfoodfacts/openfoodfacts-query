@@ -68,6 +68,7 @@ def test_strip_nuls_copes_with_dict_values():
     strip_nuls(test_dict, "test")
     assert test_dict == {"test": "1"}
 
+
 def test_strip_nuls_copes_with_sub_objects():
     test_dict = {"test": [{"a": "\x001"}]}
     strip_nuls(test_dict, "test")
