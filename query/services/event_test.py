@@ -6,14 +6,18 @@ from ..database import get_transaction
 from ..events import STREAM_NAME
 from ..models.domain_event import DomainEvent
 from ..models.product import Source
-from ..services.event import process_events
+from ..services.event import import_events, process_events
 from ..test_helper import random_code
 from . import event
 
+message_index = 0
+
 
 def sample_event(payload={}):
+    global message_index
     timestamp = math.floor(time.time())
-    message_id = f"{timestamp}-0"
+    message_id = f"{timestamp}-{message_index}"
+    message_index += 1
     if "code" not in payload:
         payload["code"] = random_code()
     return DomainEvent(
@@ -83,3 +87,64 @@ async def test_process_events_does_not_import_with_filter_at_all_if_no_food_prod
 
         # Import is not called
         assert not import_with_filter.called
+
+
+async def test_import_events():
+    product_code = random_code()
+    test_message1 = {
+        "timestamp": math.floor(time.time()),
+        "code": product_code,
+        "rev": 1,
+        "product_type": "food",
+        "user_id": "test",
+        "action": "created",
+    }
+    test_message2 = {
+        "timestamp": math.floor(time.time()),
+        "code": product_code,
+        "rev": 2,
+        "product_type": "food",
+        "user_id": "test",
+        "action": "updated",
+    }
+
+    event_ids = await import_events([test_message1, test_message2])
+    assert len(event_ids) == 2
+
+    async with get_transaction() as transaction:
+        # Check that product updates are also created (need an embryonic product)
+        product_updates = await transaction.fetch(
+            "select * from product_update where event_id = ANY($1)",
+            event_ids,
+        )
+        assert len(product_updates) == 2
+
+
+async def test_import_events_strips_nuls():
+    product_code = random_code()
+    test_message1 = {
+        "timestamp": math.floor(time.time()),
+        "code": product_code,
+        "rev": 1,
+        "product_type": "food",
+        "comment": "Test \0 after null",
+        "diffs": {
+            "fields": {
+                "change": ["categories\0 after null"],
+                "delete": ["product_name"],
+            }
+        },
+    }
+    event_ids = await import_events([test_message1])
+    assert len(event_ids) == 1
+
+    async with get_transaction() as transaction:
+        event = await transaction.fetchrow(
+            "select * from product_update_event where id = $1",
+            event_ids[0],
+        )
+
+        assert event["message"]["comment"] == "Test  after null"
+        assert (
+            event["message"]["diffs"]["fields"]["change"][0] == "categories after null"
+        )

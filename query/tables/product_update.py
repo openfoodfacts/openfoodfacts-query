@@ -5,6 +5,7 @@ from typing import List
 from asyncpg import Connection
 
 from ..tables.contributor import create_contributors_from_events
+from ..tables.product import create_minimal_product_from_events
 from ..tables.update_type import create_update_types_from_events
 
 
@@ -29,7 +30,10 @@ async def create_updates_from_events(transaction: Connection, event_ids: List[in
 
     await create_update_types_from_events(transaction, event_ids)
 
-    # Update counts on product_update after products have been imported
+    # Create embryonic products to attach the events to if the product doesn't currently exist
+    await create_minimal_product_from_events(transaction, event_ids)
+
+    # Update counts on product_update
     # Note coalesce on rev is only needed for transition if an older version of PO is deployed
     await transaction.execute(
         """INSERT INTO product_update (

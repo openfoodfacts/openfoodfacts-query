@@ -4,7 +4,7 @@ from ..tables.product_update_event import create_events
 from ..test_helper import random_code
 
 
-async def test_create_events_should_load_duplicates():
+async def test_create_events_should_ignore_duplicates():
     event = sample_event()
     async with get_transaction() as transaction:
         await create_events(transaction, [event, event])
@@ -13,7 +13,7 @@ async def test_create_events_should_load_duplicates():
             "SELECT * FROM product_update_event WHERE message->>'code' = $1",
             event.payload["code"],
         )
-        assert len(result) == 2
+        assert len(result) == 1
 
 
 async def test_create_events_creates_contributors():

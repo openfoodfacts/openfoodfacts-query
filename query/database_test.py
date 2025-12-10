@@ -62,7 +62,14 @@ async def test_transaction_error_closes_connection():
         # Verify the transaction was rolled back
         assert fetched_id != str(id)
 
+
 def test_strip_nuls_copes_with_dict_values():
     test_dict = {"test": "\x001"}
-    strip_nuls( test_dict, "test")
+    strip_nuls(test_dict, "test")
     assert test_dict == {"test": "1"}
+
+
+def test_strip_nuls_copes_with_sub_objects():
+    test_dict = {"test": [{"a": "\x001"}]}
+    strip_nuls(test_dict, "test")
+    assert test_dict == {"test": [{"a": "1"}]}

@@ -326,9 +326,15 @@ def append_sql_fragments(
                             f" AND EXISTS (SELECT * FROM product WHERE id = p.product_id{where_expression})"
                         )
 
-                elif tag.startswith(f"{NUTRIENT_TAG}.") or tag.startswith(f"{NUTRITION_TAG}."):
+                elif tag.startswith(f"{NUTRIENT_TAG}.") or tag.startswith(
+                    f"{NUTRITION_TAG}."
+                ):
                     # Strip off the _100g for the old format or get the item before the "value" for the new format
-                    nutrient_tag = tag.split(".")[1][:-5] if tag.startswith(f"{NUTRIENT_TAG}.") else tag.split(".")[3] 
+                    nutrient_tag = (
+                        tag.split(".")[1][:-5]
+                        if tag.startswith(f"{NUTRIENT_TAG}.")
+                        else tag.split(".")[3]
+                    )
                     params.append(nutrient_tag)
                     sql_fragments.append(
                         f""" AND {'NOT ' if is_not else ''}EXISTS 
