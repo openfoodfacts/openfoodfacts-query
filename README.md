@@ -48,6 +48,24 @@ make watch
 
 The service is exposed on port 5510, to avoid clashing with Robotoff. You can check the service is running by viewing the [health check](http://localhost:5510/health) endpoint.
 
+### Importing Sample Data
+
+Product Opener will automatically trigger a product refresh on off-query as part of `make dev`, but if off-query was not running when you did this you can trigger a refresh by running `make refresh_product_tags` from Product Opener or by simply browsing to `http://localhost:5510/importfrommongo`.
+
+Note that Product Opener will look for an instance of off-query running in Docker. To get it to use one running locally you will need to change the `QUERY_URL` variable to something like:
+
+`QUERY_URL=http://productopener:productopener@172.17.0.1:5510`
+
+The `productopener:productopener` part adds basic authentication (which must match the PostgreSQL credentials) which is needed when importing scan data and historic product change history.
+
+To import product change history run the following script from a bash shell on the Product Opener backend:
+
+`perl ./scripts/product_revision_to_historical_events.pl`
+
+To import scan data run:
+
+`perl ./scripts/export_scans_to_query.pl`
+
 ## Frameworks and libraries
 
 [FastAPI](https://fastapi.tiangolo.com/) is used to support the REST APIs. Non-blocking I/O is achieved using [asyncio](https://docs.python.org/3/library/asyncio.html) and this influences the PostgreSQL. MongoDB and Redis clients used.

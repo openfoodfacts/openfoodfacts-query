@@ -1,8 +1,8 @@
 """Refreshes the countries.json file from the currently published Open Food Facts taxonomy"""
 
 import json
-import requests
 
+import requests
 
 res = requests.get("https://static.openfoodfacts.org/data/taxonomies/countries.json")
 response = res.json()
