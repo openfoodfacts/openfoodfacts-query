@@ -21,7 +21,7 @@ services:
       - dbdata:/var/lib/postgresql/data
       # mounting configuration file
       - ${POSTGRES_CONFIG_FILE}:/etc/postgresql.conf
-      - ${POSTGRES_HBA_FILE}:/etc/postgresql_hba.conf
+      - ${POSTGRES_HBA_FILE}:/etc/pg_hba.conf
     networks:
       - common_net
 

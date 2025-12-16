@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - 'main'
+      # FIXME: temporary
+      - 'feat-replication'
     tags:
       - v*.*.*
 
@@ -16,7 +18,8 @@ jobs:
           # FIXME name you envs, see reuse below
           # it's also the name of the directory for the application
           - ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-org' || 'off-query-net' }}
-          - ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-replica-org' || 'NONE' }}
+          # FIXME temporary changes in conditions
+          - ${{ (startsWith(github.ref, 'refs/tags/v') || true ) && 'off-query-replica-org' || 'NONE' }}
         exclude:
           - env: 'NONE'
     environment: ${{ matrix.env }}
@@ -175,13 +178,18 @@ jobs:
             echo "POSTGRES_SHM_SIZE=${{ env.POSTGRES_SHM_SIZE }}" >> .env
             echo "QUERY_POSTGRES_SHARED_BUFFERS=${{ env.QUERY_POSTGRES_SHARED_BUFFERS }}" >> .env
             echo "QUERY_POSTGRES_WORK_MEM=${{ env.QUERY_POSTGRES_WORK_MEM }}" >> .env
+            echo "POSTGRES_CONFIG_FILE=./confs/postgresql/prod.conf" >> .env"
+            echo "POSTGRES_HBA_FILE=./confs/postgresql/prod_hba.conf" >> .env
 
             # Use docker volume for now
             echo "QUERY_DATA_DIR=dbdata" >> .env
             echo "LOG_LEVEL=${{ env.LOG_LEVEL }}" >> .env
 
-      - name: Create Postgresql config file
+      - name: Create Postgresql config file for primary postgres
         uses: appleboy/ssh-action@master
+        # although .net instance is not currently replicated,
+        # we set it up to be able to run tests if needed
+        if: "! contains(matrix.env, '-replica-')"
         with:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USERNAME }}
@@ -190,17 +198,51 @@ jobs:
           proxy_username: ${{ env.SSH_USERNAME }}
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # start from the dev file
+            # start from the dev files
             cp confs/postgresql/dev.conf confs/postgresql/prod.conf
-            # add replication settings
+            cp confs/postgresql/dev_hba.conf confs/postgresql/prod_hba.conf
+
+            # Edit config to add replication settings
             echo >>confs/postgresql/prod.conf <<END_CONF
-            # replication settings
+            # Add replication settings for main postgres
             wal_level=replica
             max_wal_senders=3
-            # we don't set a large wal_keep_size because we will use slots
+            # We don't set a large wal_keep_size because we will use slots
             max_slot_wal_keep_size=20G
-            # this is large (current db size 140G)
+            # This is large (current db size 140G)
             max_slot_wal_keep_size=100G
+            END_CONF
+
+            # Edit hba file to enable connection of replica
+            echo >>confs/postgresql/prod_hba.conf <<END_CONF
+            # Replica connects through stunnel,
+            # so they are viewed as in local network
+            host    replication     all             10.0.0.0/8                 scram-sha-256
+            END_CONF
+
+      - name: Create Postgresql config file for replica postgres
+        uses: appleboy/ssh-action@master
+        if: "contains(matrix.env, '-replica-')"
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ env.SSH_PROXY_HOST }}
+          proxy_username: ${{ env.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # start from the dev files
+            cp confs/postgresql/dev.conf confs/postgresql/prod.conf
+            cp confs/postgresql/dev_hba.conf confs/postgresql/prod_hba.conf
+
+            # add replication settings
+            echo >>confs/postgresql/prod.conf <<END_CONF
+            # replication settings for replicate
+            primary_conninfo=FIXME
+            # use our env name as slot name
+            primary_slot_name=${{ matrix.env }}
+            # we don't need host standby
+            hot_standby=off
             END_CONF
 
       - name: Start services
