@@ -43,8 +43,8 @@ migrate_database_docker:
 # used for deployment
 create_external_networks:
 		@echo "🥫 Creating external networks (production only) …"
-        docker network create ${COMMON_NET_NAME} \
-        || echo "network already exists"
+		docker network create ${COMMON_NET_NAME} \
+		|| echo "network already exists"
 
 
 watch: migrate_database_local
