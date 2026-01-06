@@ -20,7 +20,13 @@ from . import query
 
 
 async def create_random_product(
-    transaction, name=None, additives_count=None, scan_count=None, unique_scan_count=None, creator=None, obsolete=False
+    transaction,
+    name=None,
+    additives_count=None,
+    scan_count=None,
+    unique_scan_count=None,
+    creator=None,
+    obsolete=False,
 ):
     return await create_product(
         transaction,
@@ -115,8 +121,12 @@ async def create_test_tags(transaction):
 
     # Create some dummy products with a specific tag
     product1 = await create_random_product(transaction, "d", 1, 100, 10)
-    product2 = await create_random_product(transaction, "a", 2, 200, 30, creator=creator_value)
-    product3 = await create_random_product(transaction, "b", 3, 300, 20, creator=creator_value)
+    product2 = await create_random_product(
+        transaction, "a", 2, 200, 30, creator=creator_value
+    )
+    product3 = await create_random_product(
+        transaction, "b", 3, 300, 20, creator=creator_value
+    )
     product4 = await create_random_product(transaction, "c", 4, 400, 40, obsolete=True)
 
     # Matrix for testing
@@ -424,7 +434,10 @@ async def test_can_combine_root_filter_with_and():
     response = await query.count(
         Filter(
             nucleotides_tags=tags.neucleotide_value,
-            qualify_and=[Fragment(amino_acids_tags=tags.amino_value),Fragment(amino_acids_tags=tags.amino_value2)]
+            qualify_and=[
+                Fragment(amino_acids_tags=tags.amino_value),
+                Fragment(amino_acids_tags=tags.amino_value2),
+            ],
         )
     )
     assert response == 0
