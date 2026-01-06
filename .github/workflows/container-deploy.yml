@@ -80,10 +80,10 @@ jobs:
         if: matrix.env == 'off-query-replica-org'
         run: |
           # This is deployed on Hetzner, close to superset
-          echo "SSH_PROXY_HOST=hetzner-02.infra.openfoodfacts.org" >> $GITHUB_ENV
+          echo "SSH_PROXY_HOST=hetzner-03.infra.openfoodfacts.org" >> $GITHUB_ENV
           echo "SSH_USERNAME=off" >> $GITHUB_ENV
           echo "SSH_PROXY_USERNAME=off" >> $GITHUB_ENV
-          echo "SSH_HOST=10.3.0.201" >> $GITHUB_ENV
+          echo "SSH_HOST=10.12.1.201" >> $GITHUB_ENV
 
           # we don't need to be in common net, use a specific name
           echo "COMMON_NET_NAME=off-query-replica-org_default" >> $GITHUB_ENV
