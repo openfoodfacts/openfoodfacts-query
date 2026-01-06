@@ -181,7 +181,7 @@ jobs:
             echo "POSTGRES_SHM_SIZE=${{ env.POSTGRES_SHM_SIZE }}" >> .env
             echo "QUERY_POSTGRES_SHARED_BUFFERS=${{ env.QUERY_POSTGRES_SHARED_BUFFERS }}" >> .env
             echo "QUERY_POSTGRES_WORK_MEM=${{ env.QUERY_POSTGRES_WORK_MEM }}" >> .env
-            echo "POSTGRES_CONFIG_FILE=./confs/postgresql/prod.conf" >> .env"
+            echo "POSTGRES_CONFIG_FILE=./confs/postgresql/prod.conf" >> .env
             echo "POSTGRES_HBA_FILE=./confs/postgresql/prod_hba.conf" >> .env
 
             # Use docker volume for now
