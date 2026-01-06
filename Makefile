@@ -40,6 +40,13 @@ migrate_database_local: start_postgres
 migrate_database_docker:
 	docker compose run --rm query python -m query.migrator
 
+# used for deployment
+create_external_networks:
+		@echo "🥫 Creating external networks (production only) …"
+        docker network create ${COMMON_NET_NAME} \
+        || echo "network already exists"
+
+
 watch: migrate_database_local
 	poetry run python -m query.main watch
 
