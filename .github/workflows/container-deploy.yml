@@ -201,6 +201,8 @@ jobs:
           proxy_username: ${{ env.SSH_USERNAME }}
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            cd ${{ env.PROJECT_DIR }}
+
             # start from the dev files
             cp confs/postgresql/dev.conf confs/postgresql/prod.conf
             cp confs/postgresql/dev_hba.conf confs/postgresql/prod_hba.conf
@@ -234,6 +236,8 @@ jobs:
           proxy_username: ${{ env.SSH_USERNAME }}
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            cd ${{ env.PROJECT_DIR }}
+
             # start from the dev files
             cp confs/postgresql/dev.conf confs/postgresql/prod.conf
             cp confs/postgresql/dev_hba.conf confs/postgresql/prod_hba.conf
