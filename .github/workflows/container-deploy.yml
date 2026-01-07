@@ -252,7 +252,7 @@ jobs:
             hot_standby=off
             END_CONF
 
-      - name: Start services
+      - name: Start services (primary)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.SSH_HOST }}
@@ -268,6 +268,25 @@ jobs:
             make create_external_networks
             make create_external_volumes
             make migrate_database_docker && docker compose up -d 2>&1
+
+      - name: Start services (replica)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ env.SSH_PROXY_HOST }}
+          proxy_username: ${{ env.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ env.PROJECT_DIR }}
+            make create_external_networks
+            make create_external_volumes
+            # Note: if you are deploying for the first time,
+            # This will fail.
+            # you have to manually run:
+            # docker compose run --rm query_postgres pg_basebackup -h <primary_ip> -U replicator -D /var/lib/postgresql/data -P --wal-method=stream --write-recovery-conf -C -S <repslot> -v
+            docker compose up -d 2>&1
 
       - name: Check services are up
         uses: appleboy/ssh-action@master
