@@ -266,6 +266,7 @@ jobs:
           script: |
             cd ${{ env.PROJECT_DIR }}
             make create_external_networks
+            make create_external_volumes
             make migrate_database_docker && docker compose up -d 2>&1
 
       - name: Check services are up

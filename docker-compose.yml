@@ -54,3 +54,5 @@ networks:
 
 volumes:
   dbdata:
+    name: ${COMPOSE_PROJECT_NAME}_dbdata
+    external: true

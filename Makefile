@@ -24,6 +24,9 @@ build:
 up: run_deps build
 	docker compose up --wait
 
+_up: run_deps
+	docker compose up --wait
+
 # Called by other projects to start this project as a dependency
 run: run_deps
 	COMPOSE_FILE=${COMPOSE_FILE_RUN} docker compose up -d
@@ -42,10 +45,16 @@ migrate_database_docker:
 
 # used for deployment
 create_external_networks:
-		@echo "🥫 Creating external networks (production only) …"
+		@echo "🔍 Creating external networks (production only) …"
 		docker network create ${COMMON_NET_NAME} \
 		|| echo "network already exists"
 
+# in staging/prod, volumes might be on virtiofs,
+# so we prefer to create them manually
+create_external_volumes:
+		@echo  "🔍 Creating external volumes (production only) …"
+		docker volume create ${COMPOSE_PROJECT_NAME}_dbdata \
+		|| echo "volume already exists"
 
 watch: migrate_database_local
 	poetry run python -m query.main watch
