@@ -208,22 +208,18 @@ jobs:
             cp confs/postgresql/dev_hba.conf confs/postgresql/prod_hba.conf
 
             # Edit config to add replication settings
-            echo >>confs/postgresql/prod.conf <<END_CONF
-            # Add replication settings for main postgres
-            wal_level=replica
-            max_wal_senders=3
-            # We don't set a large wal_keep_size because we will use slots
-            max_slot_wal_keep_size=20G
-            # This is large (current db size 140G)
-            max_slot_wal_keep_size=100G
-            END_CONF
+            echo "# Add replication settings for main postgres" >> confs/postgresql/prod.conf
+            echo "wal_level=replica" >> confs/postgresql/prod.conf
+            echo "max_wal_senders=3" >> confs/postgresql/prod.conf
+            echo "# We don't set a large wal_keep_size because we will use slots" >> confs/postgresql/prod.conf
+            echo "max_slot_wal_keep_size=20G" >> confs/postgresql/prod.conf
+            echo "# This is large (current db size 140G)" >> confs/postgresql/prod.conf
+            echo "max_slot_wal_keep_size=100G" >> confs/postgresql/prod.conf
 
             # Edit hba file to enable connection of replica
-            echo >>confs/postgresql/prod_hba.conf <<END_CONF
-            # Replica connects through stunnel,
-            # so they are viewed as in local network
-            host    replication     all             10.0.0.0/8                 scram-sha-256
-            END_CONF
+            echo "# Replica connects through stunnel," >> confs/postgresql/prod_hba.conf
+            echo "# so they are viewed as in local network" >> confs/postgresql/prod_hba.conf
+            echo "host    replication     all             10.0.0.0/8                 scram-sha-256" >> confs/postgresql/prod_hba.conf
 
       - name: Create Postgresql config file for replica postgres
         uses: appleboy/ssh-action@master
@@ -243,14 +239,12 @@ jobs:
             cp confs/postgresql/dev_hba.conf confs/postgresql/prod_hba.conf
 
             # add replication settings
-            echo >>confs/postgresql/prod.conf <<END_CONF
-            # replication settings for replicate
-            primary_conninfo=FIXME
-            # use our env name as slot name
-            primary_slot_name=${{ matrix.env }}
-            # we don't need host standby
-            hot_standby=off
-            END_CONF
+            echo "# replication settings for replicate" >> confs/postgresql/prod.conf
+            echo "primary_conninfo=FIXME" >> confs/postgresql/prod.conf
+            echo "# use our env name as slot name" >> confs/postgresql/prod.conf
+            echo "primary_slot_name=${{ matrix.env }}" >> confs/postgresql/prod.conf
+            echo "# we don't need host standby" >> confs/postgresql/prod.conf
+            echo "hot_standby=off" >> confs/postgresql/prod.conf
 
       - name: Start services (primary)
         uses: appleboy/ssh-action@master
@@ -285,7 +279,7 @@ jobs:
             # Note: if you are deploying for the first time,
             # This will fail.
             # you have to manually run:
-            # docker compose run --rm query_postgres pg_basebackup -h <primary_ip> -U replicator -D /var/lib/postgresql/data -P --wal-method=stream --write-recovery-conf -C -S <repslot> -v
+            # docker compose run --rm --entrypoint sh query_postgres pg_basebackup -h <primary_ip> -U replicator -D /var/lib/postgresql/data -P --wal-method=stream --write-recovery-conf -C -S <repslot> -v
             docker compose up -d 2>&1
 
       - name: Check services are up
