@@ -2,3 +2,9 @@ services:
   query:
     build: .
     image: openfoodfacts-query:dev
+
+volumes:
+  # in dev let, docker compose manage it
+  dbdata:
+    name: ${COMPOSE_PROJECT_NAME}_dbdata
+    external: false
