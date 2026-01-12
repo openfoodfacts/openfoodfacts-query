@@ -212,9 +212,9 @@ jobs:
             echo "wal_level=replica" >> confs/postgresql/prod.conf
             echo "max_wal_senders=3" >> confs/postgresql/prod.conf
             echo "# We don't set a large wal_keep_size because we will use slots" >> confs/postgresql/prod.conf
-            echo "max_slot_wal_keep_size=20G" >> confs/postgresql/prod.conf
+            echo "max_slot_wal_keep_size=20GB" >> confs/postgresql/prod.conf
             echo "# This is large (current db size 140G)" >> confs/postgresql/prod.conf
-            echo "max_slot_wal_keep_size=100G" >> confs/postgresql/prod.conf
+            echo "max_slot_wal_keep_size=100GB" >> confs/postgresql/prod.conf
 
             # Edit hba file to enable connection of replica
             echo "# Replica connects through stunnel," >> confs/postgresql/prod_hba.conf
