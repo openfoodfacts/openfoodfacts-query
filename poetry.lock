@@ -909,15 +909,21 @@ files = [
 
 [[package]]
 name = "pathspec"
-version = "0.12.1"
+version = "1.0.3"
 description = "Utility library for gitignore style pattern matching of file paths."
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["dev"]
 files = [
-    {file = "pathspec-0.12.1-py3-none-any.whl", hash = "sha256:a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08"},
-    {file = "pathspec-0.12.1.tar.gz", hash = "sha256:a482d51503a1ab33b1c67a6c3813a26953dbdc71c31dacaef9a838c4e29f5712"},
+    {file = "pathspec-1.0.3-py3-none-any.whl", hash = "sha256:e80767021c1cc524aa3fb14bedda9c34406591343cc42797b386ce7b9354fb6c"},
+    {file = "pathspec-1.0.3.tar.gz", hash = "sha256:bac5cf97ae2c2876e2d25ebb15078eb04d76e4b98921ee31c6f85ade8b59444d"},
 ]
+
+[package.extras]
+hyperscan = ["hyperscan (>=0.7)"]
+optional = ["typing-extensions (>=4)"]
+re2 = ["google-re2 (>=1.1)"]
+tests = ["pytest (>=9)", "typing-extensions (>=4.15)"]
 
 [[package]]
 name = "platformdirs"
@@ -1572,58 +1578,58 @@ full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart 
 
 [[package]]
 name = "testcontainers"
-version = "4.13.3"
+version = "4.14.0"
 description = "Python library for throwaway instances of anything that can run in a Docker container"
 optional = false
-python-versions = ">=3.9.2"
+python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "testcontainers-4.13.3-py3-none-any.whl", hash = "sha256:063278c4805ffa6dd85e56648a9da3036939e6c0ac1001e851c9276b19b05970"},
-    {file = "testcontainers-4.13.3.tar.gz", hash = "sha256:9d82a7052c9a53c58b69e1dc31da8e7a715e8b3ec1c4df5027561b47e2efe646"},
+    {file = "testcontainers-4.14.0-py3-none-any.whl", hash = "sha256:64e79b6b1e6d2b9b9e125539d35056caab4be739f7b7158c816d717f3596fa59"},
+    {file = "testcontainers-4.14.0.tar.gz", hash = "sha256:3b2d4fa487af23024f00fcaa2d1cf4a5c6ad0c22e638a49799813cb49b3176c7"},
 ]
 
 [package.dependencies]
 docker = "*"
 python-dotenv = "*"
-redis = {version = "*", optional = true, markers = "extra == \"generic\" or extra == \"redis\""}
+redis = {version = ">=7,<8", optional = true, markers = "extra == \"generic\" or extra == \"redis\""}
 typing-extensions = "*"
 urllib3 = "*"
 wrapt = "*"
 
 [package.extras]
-arangodb = ["python-arango (>=7.8,<8.0)"]
-aws = ["boto3", "httpx"]
-azurite = ["azure-storage-blob (>=12.19,<13.0)"]
-chroma = ["chromadb-client (>=1.0.0,<2.0.0)"]
-cosmosdb = ["azure-cosmos"]
-db2 = ["ibm_db_sa ; platform_machine != \"aarch64\" and platform_machine != \"arm64\"", "sqlalchemy"]
-generic = ["httpx", "redis"]
-google = ["google-cloud-datastore (>=2)", "google-cloud-pubsub (>=2)"]
-influxdb = ["influxdb", "influxdb-client"]
+arangodb = ["python-arango (>=8,<9)"]
+aws = ["boto3 (>=1,<2)", "httpx"]
+azurite = ["azure-storage-blob (>=12,<13)"]
+chroma = ["chromadb-client (>=1,<2)"]
+cosmosdb = ["azure-cosmos (>=4,<5)"]
+db2 = ["ibm_db_sa ; platform_machine != \"aarch64\" and platform_machine != \"arm64\"", "sqlalchemy (>=2,<3)"]
+generic = ["httpx", "redis (>=7,<8)"]
+google = ["google-cloud-datastore (>=2,<3)", "google-cloud-pubsub (>=2,<3)"]
+influxdb = ["influxdb (>=5,<6)", "influxdb-client (>=1,<2)"]
 k3s = ["kubernetes", "pyyaml (>=6.0.3)"]
-keycloak = ["python-keycloak"]
-localstack = ["boto3"]
+keycloak = ["python-keycloak (>=6,<7) ; python_version < \"4.0\""]
+localstack = ["boto3 (>=1,<2)"]
 mailpit = ["cryptography"]
-minio = ["minio"]
-mongodb = ["pymongo"]
-mssql = ["pymssql (>=2.3.9) ; platform_machine != \"arm64\" or python_version >= \"3.10\"", "sqlalchemy"]
-mysql = ["pymysql[rsa]", "sqlalchemy"]
-nats = ["nats-py"]
-neo4j = ["neo4j"]
-openfga = ["openfga-sdk ; python_version >= \"3.10\""]
-opensearch = ["opensearch-py ; python_version < \"4.0\""]
-oracle = ["oracledb (>=3.4.1)", "sqlalchemy"]
-oracle-free = ["oracledb (>=3.4.1)", "sqlalchemy"]
-qdrant = ["qdrant-client"]
-rabbitmq = ["pika"]
-redis = ["redis"]
-registry = ["bcrypt"]
-scylla = ["cassandra-driver (==3.29.1)"]
-selenium = ["selenium"]
+minio = ["minio (>=7,<8)"]
+mongodb = ["pymongo (>=4,<5)"]
+mssql = ["pymssql (>=2,<3)", "sqlalchemy (>=2,<3)"]
+mysql = ["pymysql[rsa] (>=1,<2)", "sqlalchemy (>=2,<3)"]
+nats = ["nats-py (>=2,<3)"]
+neo4j = ["neo4j (>=6,<7)"]
+openfga = ["openfga-sdk"]
+opensearch = ["opensearch-py (>=3,<4) ; python_version < \"4.0\""]
+oracle = ["oracledb (>=3,<4)", "sqlalchemy (>=2,<3)"]
+oracle-free = ["oracledb (>=3,<4)", "sqlalchemy (>=2,<3)"]
+qdrant = ["qdrant-client (>=1,<2)"]
+rabbitmq = ["pika (>=1,<2)"]
+redis = ["redis (>=7,<8)"]
+registry = ["bcrypt (>=5,<6)"]
+scylla = ["cassandra-driver (>=3,<4)"]
+selenium = ["selenium (>=4,<5)"]
 sftp = ["cryptography"]
 test-module-import = ["httpx"]
 trino = ["trino"]
-weaviate = ["weaviate-client (>=4.5.4,<5.0.0)"]
+weaviate = ["weaviate-client (>=4,<5)"]
 
 [[package]]
 name = "toml"
@@ -1639,14 +1645,14 @@ files = [
 
 [[package]]
 name = "typer"
-version = "0.21.0"
+version = "0.21.1"
 description = "Typer, build great CLIs. Easy to code. Based on Python type hints."
 optional = false
 python-versions = ">=3.9"
 groups = ["dev"]
 files = [
-    {file = "typer-0.21.0-py3-none-any.whl", hash = "sha256:c79c01ca6b30af9fd48284058a7056ba0d3bf5cf10d0ff3d0c5b11b68c258ac6"},
-    {file = "typer-0.21.0.tar.gz", hash = "sha256:c87c0d2b6eee3b49c5c64649ec92425492c14488096dfbc8a0c2799b2f6f9c53"},
+    {file = "typer-0.21.1-py3-none-any.whl", hash = "sha256:7985e89081c636b88d172c2ee0cfe33c253160994d47bdfdc302defd7d1f1d01"},
+    {file = "typer-0.21.1.tar.gz", hash = "sha256:ea835607cd752343b6b2b7ce676893e5a0324082268b48f27aa058bdb7d2145d"},
 ]
 
 [package.dependencies]
@@ -1715,14 +1721,14 @@ devenv = ["check-manifest", "pytest (>=4.3)", "pytest-cov", "pytest-mock (>=3.3)
 
 [[package]]
 name = "urllib3"
-version = "2.6.2"
+version = "2.6.3"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.9"
 groups = ["dev"]
 files = [
-    {file = "urllib3-2.6.2-py3-none-any.whl", hash = "sha256:ec21cddfe7724fc7cb4ba4bea7aa8e2ef36f607a4bab81aa6ce42a13dc3f03dd"},
-    {file = "urllib3-2.6.2.tar.gz", hash = "sha256:016f9c98bb7e98085cb2b4b17b87d2c702975664e4f060c6532e64d1c1a5e797"},
+    {file = "urllib3-2.6.3-py3-none-any.whl", hash = "sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4"},
+    {file = "urllib3-2.6.3.tar.gz", hash = "sha256:1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed"},
 ]
 
 [package.extras]
