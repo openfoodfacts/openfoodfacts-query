@@ -176,6 +176,7 @@ jobs:
             echo "COMMON_NET_NAME=${{ env.COMMON_NET_NAME }}" >> .env
             echo "MONGO_URI=${{ env.MONGO_URI }}" >> .env
             echo "REDIS_URL=${{ env.REDIS_URL }}" >> .env
+            echo "POSTGRES_REPLICATION_PASSWORD=${{ secrets.POSTGRES_REPLICATION_PASSWORD }}" >> .env
 
             # Postgres config
             echo "POSTGRES_SHM_SIZE=${{ env.POSTGRES_SHM_SIZE }}" >> .env
@@ -262,6 +263,8 @@ jobs:
             make create_external_networks
             make create_external_volumes
             make migrate_database_docker && docker compose up -d 2>&1
+            # also create replication user
+            make create_replication_user
 
       - name: Start services (replica)
         uses: appleboy/ssh-action@master

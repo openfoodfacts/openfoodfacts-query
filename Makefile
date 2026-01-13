@@ -56,6 +56,13 @@ create_external_volumes:
 		docker volume create ${COMPOSE_PROJECT_NAME}_dbdata \
 		|| echo "volume already exists"
 
+create_replication_user:
+	@echo  "🔍 Creating replication user (production only) …"
+# user @ to avoid exposing password
+	@docker compose exec query_postgres \
+	  bash -c "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U ${POSTGRES_USER} ${POSTGRES_DB} -c \"create role replication with replication login password '${POSTGRES_REPLICATION_PASSWORD}'\" || true "
+
+
 watch: migrate_database_local
 	poetry run python -m query.main watch
 
