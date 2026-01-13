@@ -39,6 +39,7 @@ jobs:
 
           # configurations
           echo "COMPOSE_PROJECT_NAME=off-query" >> $GITHUB_ENV
+          echo "COMPOSE_PROFILES=app" >> $GITHUB_ENV
           echo "COMMON_NET_NAME=po_webnet" >> $GITHUB_ENV
           echo "MONGO_URI=mongodb://10.1.0.200:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://redis:6379" >> $GITHUB_ENV
@@ -63,6 +64,7 @@ jobs:
           # configurations
           echo "COMMON_NET_NAME=common_net" >> $GITHUB_ENV
           echo "COMPOSE_PROJECT_NAME=off-query" >> $GITHUB_ENV
+          echo "COMPOSE_PROFILES=app" >> $GITHUB_ENV
 
           # Reduce log level on production
           echo "LOG_LEVEL=log" >> $GITHUB_ENV
@@ -88,6 +90,7 @@ jobs:
           # we don't need to be in common net, use a specific name
           echo "COMMON_NET_NAME=off-query-replica-org_default" >> $GITHUB_ENV
           echo "COMPOSE_PROJECT_NAME=off-query-replica" >> $GITHUB_ENV
+          echo "COMPOSE_PROFILES=replica" >> $GITHUB_ENV
 
           # Reduce log level on production
           echo "LOG_LEVEL=log" >> $GITHUB_ENV
@@ -161,7 +164,7 @@ jobs:
             echo "DOCKER_CLIENT_TIMEOUT=120" >> .env
             echo "COMPOSE_HTTP_TIMEOUT=120" >> .env
             echo "COMPOSE_PROJECT_NAME=${{ env.COMPOSE_PROJECT_NAME }}" >> .env
-            echo "COMPOSE_PROFILES=app" >> .env
+            echo "COMPOSE_PROFILES=${{ env.COMPOSE_PROFILES }}" >> .env
             echo "COMPOSE_PATH_SEPARATOR=," >> .env
             echo "RESTART_POLICY=always" >> .env
             echo "COMPOSE_FILE=docker-compose.yml" >> .env
