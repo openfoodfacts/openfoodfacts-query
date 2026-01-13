@@ -244,8 +244,8 @@ jobs:
             echo "primary_conninfo=FIXME" >> confs/postgresql/prod.conf
             echo "# use our env name as slot name" >> confs/postgresql/prod.conf
             echo "primary_slot_name=${{ matrix.env }}" >> confs/postgresql/prod.conf
-            echo "# we don't need host standby" >> confs/postgresql/prod.conf
-            echo "hot_standby=off" >> confs/postgresql/prod.conf
+            echo "# we need hot standby if we want to run requests" >> confs/postgresql/prod.conf
+            echo "hot_standby=on" >> confs/postgresql/prod.conf
 
       - name: Start services (primary)
         uses: appleboy/ssh-action@master
