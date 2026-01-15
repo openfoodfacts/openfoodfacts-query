@@ -65,9 +65,9 @@ create_replication_user:
 create_superset_user:
 	@docker compose exec query_postgres \
 	  bash -c "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U ${POSTGRES_USER} ${POSTGRES_DB} -c \
-	  \"
-	  create role superset login password '${POSTGRES_SUPERSET_PASSWORD}';
-	  grant pg_read_all_data to superset;
+	  \" \
+	  create role superset login password '${POSTGRES_SUPERSET_PASSWORD}'; \
+	  grant pg_read_all_data to superset; \
 	  \" \
 	  || true "
 
