@@ -253,6 +253,7 @@ jobs:
 
       - name: Start services (primary)
         uses: appleboy/ssh-action@master
+        if: "! contains(matrix.env, '-replica-')"
         with:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USERNAME }}
@@ -267,12 +268,10 @@ jobs:
             make create_external_networks
             make create_external_volumes
             make migrate_database_docker && docker compose up -d 2>&1
-            # also create replication user and superset user
-            make create_replication_user
-            make create_superset_user
 
       - name: Start services (replica)
         uses: appleboy/ssh-action@master
+        if: "contains(matrix.env, '-replica-')"
         with:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USERNAME }}
@@ -313,6 +312,24 @@ jobs:
               fi
             done;
             exit $exit_code;
+
+      - name: Post config (primary)
+        uses: appleboy/ssh-action@master
+        if: "! contains(matrix.env, '-replica-')"
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ env.SSH_PROXY_HOST }}
+          proxy_username: ${{ env.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # Migrations can take a long time so extend to the default maximum GitHub action timeout of 6 hours
+          command_timeout: 360m
+          script: |
+            cd ${{ env.PROJECT_DIR }}
+            # create replication user and superset user
+            make create_replication_user
+            make create_superset_user
 
       - name: Cleanup obsolete Docker objects
         uses: appleboy/ssh-action@master
