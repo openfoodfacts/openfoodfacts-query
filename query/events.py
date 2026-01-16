@@ -4,6 +4,7 @@ import asyncio
 import hmac
 import json
 import logging
+import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Dict, List
@@ -107,6 +108,9 @@ async def redis_lifespan():
         await stop_redis_listener()
 
 
+# this roughly match an ipv4/ipv6 address
+IP_ADDR_RE = re.compile(r"(\d+\.\d+\.\d+\.\d+|[0-9a-hA-H]+:[0-9a-hA-H:])+")
+
 async def messages_received(transaction, streams):
     """Converts a list of messages in one or more streams into domain events for onward processing"""
     for stream in streams:
@@ -127,7 +131,7 @@ async def messages_received(transaction, streams):
                     payload["diffs"] = json.loads(payload["diffs"])
 
                 # anonymize ip
-                if payload.get("ip"):
+                if payload.get("ip") and IP_ADDR_RE.search(payload["ip"]) :
                     payload["ip"] = hmac.digest(
                         config_settings.APP_SECRET_KEY.encode("utf-8"),
                         str(payload["ip"]).encode("utf-8"),

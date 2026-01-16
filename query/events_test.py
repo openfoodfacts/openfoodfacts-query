@@ -1,4 +1,5 @@
 import asyncio
+import hmac
 import logging
 import math
 import re
@@ -320,6 +321,22 @@ async def test_ip_obfuscation(process_events: Mock):
         assert len(event.payload["ip"]) == 64
         assert re.match(r"^[a-f0-9]+$", event.payload["ip"])
 
+@patch.object(events, "process_events")
+async def test_ip_obfuscation_not_applied_twice(process_events: Mock):
+    async with get_transaction() as transaction:
+        test_hmac = hmac.new(b"test", b"123.123.123.123", "sha256").hexdigest()
+        test_message = {"ip": test_hmac}
+        timestamp = math.floor(time.time())
+
+        await messages_received(
+            transaction, [["test-stream", [[f"{timestamp}-0", test_message]]]]
+        )
+
+        assert process_events.called
+        assert process_events.call_args[0][1]
+        event = process_events.call_args[0][1][0]
+        # we didn't obfuscate what was already a hmac
+        assert event.payload["ip"] == test_hmac
 
 def test_message_timestamp_returns_a_date_from_a_message_id():
     time_number = math.floor(time.time())
