@@ -125,7 +125,7 @@ jobs:
 
             if [ -z "${{ secrets.APP_SECRET_KEY}}"]
             then
-              echo "APP_SERCRET_KEY is mandatory"
+              echo "APP_SECRET_KEY is mandatory"
               exit 1
             done
 
