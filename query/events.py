@@ -1,6 +1,7 @@
 """Redis is used to handle asynchronous message exchange between Open Food Facts components"""
 
 import asyncio
+import hmac
 import json
 import logging
 from contextlib import asynccontextmanager
@@ -124,6 +125,16 @@ async def messages_received(transaction, streams):
                 strip_nuls(payload, f"Redis event id {id}")
                 if "diffs" in payload:
                     payload["diffs"] = json.loads(payload["diffs"])
+
+                # anonymize ip
+                if payload.get("ip"):
+                    payload["ip"] = hmac.digest(
+                        config_settings.APP_SECRET_KEY,
+                        str(payload["ip"]).encode("utf-8"),
+                        "sha256",
+                    ).hex()
+
+
 
                 events.append(
                     DomainEvent(

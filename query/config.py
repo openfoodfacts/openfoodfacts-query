@@ -24,6 +24,9 @@ class ConfigSettings(BaseSettings):
 
     SKIP_DATA_MIGRATIONS: bool = False
 
+    # used to compute hmac
+    APP_SECRET_KEY: str
+
 
 config_settings = ConfigSettings()
 

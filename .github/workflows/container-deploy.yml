@@ -123,6 +123,12 @@ jobs:
             # Go to repository directory
             cd ${{ env.PROJECT_DIR }}
 
+            if [ -z "${{ secrets.APP_SECRET_KEY}}"]
+            then
+              echo "APP_SERCRET_KEY is mandatory"
+              exit 1
+            done
+
             # new env
             rm .env
             touch .env
@@ -143,6 +149,7 @@ jobs:
             echo "COMMON_NET_NAME=${{ env.COMMON_NET_NAME }}" >> .env
             echo "MONGO_URI=${{ env.MONGO_URI }}" >> .env
             echo "REDIS_URL=${{ env.REDIS_URL }}" >> .env
+            echo "APP_SECRET_KEY=${{ secrets.APP_SECRET_KEY }}" >> .env
 
             # Postgres config
             echo "POSTGRES_SHM_SIZE=${{ env.POSTGRES_SHM_SIZE }}" >> .env

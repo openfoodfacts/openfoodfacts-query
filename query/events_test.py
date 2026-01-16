@@ -48,6 +48,7 @@ async def add_test_message(redis: Redis, product_code):
             "user_id": "test_user",
             "action": "updated",
             "comment": "Test",
+            "ip": "123.123.123.123",
             "diffs": '{"fields":{"change":["categories"],"delete":["product_name"]}}',
         },
     )
@@ -299,6 +300,23 @@ async def test_copes_with_missing_fields(process_events: Mock):
         event = process_events.call_args[0][1][0]
         assert event.id == "1692032161-0"
         assert event.timestamp == datetime.fromtimestamp(1692032161, timezone.utc)
+
+
+@patch.object(events, "process_events")
+async def test_ip_obfuscation(process_events: Mock):
+    async with get_transaction() as transaction:
+        test_message = {"ip": "123.123.123.123"}
+
+        await messages_received(
+            transaction, [["test-stream", [[f"1692032161-0", test_message]]]]
+        )
+
+        assert process_events.called
+        assert process_events.call_args[0][1]
+        event = process_events.call_args[0][1][0]
+        assert event.message["ip"]
+        assert len(event.message["ip"]) == 64
+        assert re.match(r"^[a-f0-9]+$", event.message["ip"])
 
 
 def test_message_timestamp_returns_a_date_from_a_message_id():

@@ -52,7 +52,7 @@ async def create_events(transaction: Connection, events: List[DomainEvent]):
     received_at = datetime.now(timezone.utc)
 
     results = await transaction.fetchmany(
-        """INSERT into product_update_event (message_id, received_at, updated_at, message) 
+        """INSERT into product_update_event (message_id, received_at, updated_at, message)
         SELECT $1, $2, $3, $4
         WHERE NOT EXISTS (SELECT * FROM product_update_event pue2 WHERE pue2.message_id = $1)
         ON CONFLICT (message_id) DO NOTHING
