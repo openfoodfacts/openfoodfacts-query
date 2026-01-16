@@ -125,6 +125,9 @@ async def messages_received(transaction, streams):
                 if "diffs" in payload:
                     payload["diffs"] = json.loads(payload["diffs"])
 
+                # remove ip if there is one
+                payload.pop("ip", None)
+
                 events.append(
                     DomainEvent(
                         id=id, timestamp=timestamp, payload=payload, type=stream_name
