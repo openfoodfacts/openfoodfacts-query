@@ -129,7 +129,7 @@ async def messages_received(transaction, streams):
                 # anonymize ip
                 if payload.get("ip"):
                     payload["ip"] = hmac.digest(
-                        config_settings.APP_SECRET_KEY,
+                        config_settings.APP_SECRET_KEY.encode("utf-8"),
                         str(payload["ip"]).encode("utf-8"),
                         "sha256",
                     ).hex()

@@ -15,5 +15,5 @@ async def up(transaction):
             message->>'ip' IS NOT NULL AND
             message->>'ip' SIMILAR TO '(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|[0-9a-fA-F]+:[[0-9a-fA-F:]+)';
         """,
-        [config_settings.APP_SECRET_KEY],
+        config_settings.APP_SECRET_KEY,
     )

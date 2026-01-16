@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import math
+import re
 import time
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
@@ -306,17 +307,18 @@ async def test_copes_with_missing_fields(process_events: Mock):
 async def test_ip_obfuscation(process_events: Mock):
     async with get_transaction() as transaction:
         test_message = {"ip": "123.123.123.123"}
+        timestamp = math.floor(time.time())
 
         await messages_received(
-            transaction, [["test-stream", [[f"1692032161-0", test_message]]]]
+            transaction, [["test-stream", [[f"{timestamp}-0", test_message]]]]
         )
 
         assert process_events.called
         assert process_events.call_args[0][1]
         event = process_events.call_args[0][1][0]
-        assert event.message["ip"]
-        assert len(event.message["ip"]) == 64
-        assert re.match(r"^[a-f0-9]+$", event.message["ip"])
+        assert event.payload["ip"]
+        assert len(event.payload["ip"]) == 64
+        assert re.match(r"^[a-f0-9]+$", event.payload["ip"])
 
 
 def test_message_timestamp_returns_a_date_from_a_message_id():
