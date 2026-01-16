@@ -192,7 +192,7 @@ async def create_minimal_product(transaction, code):
 
 async def create_minimal_product_from_events(transaction, event_ids: List[int]):
     """Create a product entry corresponding to cited product of a set of events
-    
+
     This is useful for example when we import sample events in a database
     (for developers).
     """

@@ -300,6 +300,7 @@ async def test_copes_with_missing_fields(process_events: Mock):
         assert event.id == "1692032161-0"
         assert event.timestamp == datetime.fromtimestamp(1692032161, timezone.utc)
 
+
 @patch.object(events, "process_events")
 async def test_ip_removal(process_events: Mock):
     async with get_transaction() as transaction:
@@ -314,6 +315,7 @@ async def test_ip_removal(process_events: Mock):
         assert process_events.call_args[0][1]
         event = process_events.call_args[0][1][0]
         assert "ip" not in event.payload
+
 
 def test_message_timestamp_returns_a_date_from_a_message_id():
     time_number = math.floor(time.time())
