@@ -99,7 +99,9 @@ jobs:
           echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
 
-          echo "POSTGRES_REPLICATION_SOURCE=10.12.1.112:16002" >> $GITHUB_ENV
+          echo "POSTGRES_REPLICATION_SOURCE_HOST=10.12.1.112" >> $GITHUB_ENV
+          # FIMXE for testing only
+          echo "POSTGRES_REPLICATION_SOURCE_PORT=16022" >> $GITHUB_ENV
 
       - name: Wait for container build workflow
         uses: tomchv/wait-my-workflow@v1.1.0
@@ -246,7 +248,7 @@ jobs:
 
             # add replication settings
             echo "# replication settings for replicate" >> confs/postgresql/prod.conf
-            echo "primary_conninfo=ostgresql://replication:${{ secrets.POSTGRES_REPLICATION_PASSWORD }}@${{ env.POSTGRES_REPLICATION_SOURCE }}" >> confs/postgresql/prod.conf
+            echo "primary_conninfo='host=${{ env.POSTGRES_REPLICATION_SOURCE_HOST }} port=${{ env.POSTGRES_REPLICATION_SOURCE_PORT }} user=replication password=${{ secrets.POSTGRES_REPLICATION_PASSWORD }}" >> confs/postgresql/prod.conf
             echo "# use our env name as slot name" >> confs/postgresql/prod.conf
             echo "primary_slot_name=${{ matrix.env }}" >> confs/postgresql/prod.conf
             echo "# we need hot standby if we want to run requests" >> confs/postgresql/prod.conf
