@@ -12,6 +12,8 @@ from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
+from query.services.event import import_events
+
 from .config import config_settings
 from .events import redis_lifespan
 from .models.health import Health
@@ -140,3 +142,14 @@ async def scans(
 ):
     """Used for bulk loading product scan data from logs"""
     await import_scans(scans, fullyloaded)
+
+
+@app.post("/productupdates")
+async def product_updates(
+    payloads: List[Dict],
+    _: str = Depends(get_current_username),
+):
+    """Used for bulk loading product change history without triggering a product import.
+    Use `scripts/product_revision_to_historical_events.pl` in Product Opener to load data for development.
+    """
+    await import_events(payloads)

@@ -12,8 +12,12 @@ import redis.asyncio as redis
 from .config import config_settings
 from .database import get_transaction, strip_nuls
 from .models.domain_event import DomainEvent
-from .services.event import process_events
-from .tables.settings import apply_pre_migration_message_id, get_last_message_id, set_last_message_id
+from .services.event import STREAM_NAME, process_events
+from .tables.settings import (
+    apply_pre_migration_message_id,
+    get_last_message_id,
+    set_last_message_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +32,6 @@ async def redis_client() -> AsyncGenerator[redis.Redis, Any]:
         await client.aclose()
 
 
-STREAM_NAME = "product_updates"
 error_count = 0
 
 
@@ -36,7 +39,7 @@ def get_retry_interval():
     """Use exponential backoff if we get an error"""
     global error_count
     error_count += 1
-    return 2**(error_count - 1)
+    return 2 ** (error_count - 1)
 
 
 async def redis_listener():
@@ -57,13 +60,15 @@ async def redis_listener():
                         # Each message is a tuple of the message id followed by a dict that is the payload
                         last_message_id = response[0][1][-1][0]
                         await set_last_message_id(transaction, last_message_id)
-                        
+
                 # Reset error count on success
                 error_count = 0
 
             except Exception as e:
                 retry_in = get_retry_interval()
-                logger.error(f"Error processing messages. Retrying {retry_in} s. {repr(e)}")
+                logger.error(
+                    f"Error processing messages. Retrying {retry_in} s. {repr(e)}"
+                )
                 # Exponential back-off indefinitely, Listener will be completely stopped by scheduled import every 24 hours
                 await asyncio.sleep(retry_in)
 
@@ -119,6 +124,9 @@ async def messages_received(transaction, streams):
                 strip_nuls(payload, f"Redis event id {id}")
                 if "diffs" in payload:
                     payload["diffs"] = json.loads(payload["diffs"])
+
+                # remove ip if there is one
+                payload.pop("ip", None)
 
                 events.append(
                     DomainEvent(

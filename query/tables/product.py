@@ -2,6 +2,7 @@
 
 import re
 from datetime import datetime, timezone
+from typing import List
 
 from asyncpg import Connection
 
@@ -186,6 +187,22 @@ async def get_minimal_product(transaction, code):
 async def create_minimal_product(transaction, code):
     return await transaction.fetchrow(
         "INSERT INTO product (code) VALUES ($1) RETURNING id", code
+    )
+
+
+async def create_minimal_product_from_events(transaction, event_ids: List[int]):
+    """Create a product entry corresponding to cited product of a set of events
+
+    This is useful for example when we import sample events in a database
+    (for developers).
+    """
+    await transaction.execute(
+        """INSERT INTO product (code)
+      SELECT DISTINCT pe.message->>'code'
+      FROM product_update_event pe
+      where pe.id = ANY($1)
+      AND NOT EXISTS (SELECT * FROM product p2 WHERE p2.code = pe.message->>'code')""",
+        event_ids,
     )
 
 
