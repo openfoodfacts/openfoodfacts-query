@@ -63,11 +63,16 @@ create_replication_user:
 	  bash -c "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U ${POSTGRES_USER} ${POSTGRES_DB} -c \"create role replication with replication login password '${POSTGRES_REPLICATION_PASSWORD}'\" || true "
 
 create_superset_user:
+# Note: pg_read_all enables select on all tables
+# usage on schema enable listing tables and so on
+# search_path enable \d to work and avoiding the schema prefix
 	@docker compose exec query_postgres \
 	  bash -c "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U ${POSTGRES_USER} ${POSTGRES_DB} -c \
 	  \" \
 	  create role superset login password '${POSTGRES_SUPERSET_PASSWORD}'; \
 	  grant pg_read_all_data to superset; \
+	  grant usage on schema public, query to superset; \
+	  ALTER ROLE superset SET search_path = public, query; \
 	  \" \
 	  || true "
 
