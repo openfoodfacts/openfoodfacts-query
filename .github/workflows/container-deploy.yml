@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - 'main'
-      # FIXME: temporary
-      - 'feat-replication'
     tags:
       - v*.*.*
 
@@ -17,8 +15,8 @@ jobs:
         env:
           # env is also the name of the directory for the application
           - ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-org' || 'off-query-net' }}
-          # FIXME temporary changes in conditions
-          - ${{ (startsWith(github.ref, 'refs/tags/v') || true ) && 'off-query-replica-org' || 'NONE' }}
+          # replica is only for production environment
+          - ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-replica-org' || 'NONE' }}
         exclude:
           - env: 'NONE'
     environment: ${{ matrix.env }}
@@ -99,9 +97,9 @@ jobs:
           echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
 
+          # Postgres is reached through stunnel
           echo "POSTGRES_REPLICATION_SOURCE_HOST=10.12.1.112" >> $GITHUB_ENV
-          # FIMXE for testing only
-          echo "POSTGRES_REPLICATION_SOURCE_PORT=16022" >> $GITHUB_ENV
+          echo "POSTGRES_REPLICATION_SOURCE_PORT=16002" >> $GITHUB_ENV
 
       - name: Wait for container build workflow
         uses: tomchv/wait-my-workflow@v1.1.0
