@@ -697,3 +697,67 @@ async def test_each_batch_has_its_own_transaction(find_products_mock: Mock):
             "SELECT last_updated FROM product WHERE code = $1", last_code
         )
         assert first_updated != dummy_time
+
+
+@patch.object(ingestion, "find_products")
+async def test_event_load_should_restore_deleted_products(
+    find_products_mock: Mock,
+):
+    async with get_transaction() as transaction:
+        # Create products
+        products = get_test_products()
+        patch_context_manager(find_products_mock, mock_cursor(products))
+        await ingestion.import_with_filter(
+            transaction,
+            {
+                "code": {
+                    "$in": [
+                        products[0]["code"],
+                        products[1]["code"],
+                    ]
+                }
+            },
+            Source.event,
+        )
+        # Flag one as deleted
+        patch_context_manager(find_products_mock, mock_cursor([]))
+        await ingestion.import_with_filter(
+            transaction,
+            {
+                "code": {
+                    "$in": [
+                        products[0]["code"],
+                    ]
+                }
+            },
+            Source.event,
+        )
+        
+        # then: obsolete flag should get set to null
+        deleted_product = await get_product(transaction, products[0]["code"])
+        assert deleted_product["obsolete"] == None
+
+        product_countries = await get_product_countries(transaction, deleted_product)
+        assert len(product_countries) == 1
+        assert product_countries[0]["obsolete"] == None
+        
+        # Reinstate product
+        patch_context_manager(find_products_mock, mock_cursor(products))
+        await ingestion.import_with_filter(
+            transaction,
+            {
+                "code": {
+                    "$in": [
+                        products[0]["code"],
+                    ]
+                }
+            },
+            Source.event,
+        )
+        
+        deleted_product = await get_product(transaction, products[0]["code"])
+        assert deleted_product["obsolete"] == False
+
+        product_countries = await get_product_countries(transaction, deleted_product)
+        assert len(product_countries) == 1
+        assert product_countries[0]["obsolete"] == False
