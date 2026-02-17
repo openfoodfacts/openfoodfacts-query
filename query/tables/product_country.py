@@ -78,7 +78,7 @@ async def fixup_product_countries(transaction, obsolete):
             FROM (SELECT product_id, value FROM product_temp JOIN product_countries_tag ON product_id = id
                 UNION SELECT id, 'en:world' FROM product_temp) pct
             JOIN country c ON c.tag = pct.value
-            ON CONFLICT (product_id, country_id) DO NOTHING""",
+            ON CONFLICT (product_id, country_id) DO UPDATE set obsolete = $1""",
         obsolete,
     )
     # Delete any product countries where there is no tag
