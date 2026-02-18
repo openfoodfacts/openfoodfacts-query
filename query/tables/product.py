@@ -6,7 +6,6 @@ from typing import List
 
 from asyncpg import Connection
 
-from query.models.scan import ProductScans
 from query.tables.loaded_tag import PARTIAL_TAGS, check_tag_is_loaded
 from query.tables.product_country import delete_product_countries
 

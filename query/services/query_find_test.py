@@ -18,8 +18,8 @@ from ..tables.product_scans_by_country import create_scan
 from ..test_helper import mock_cursor, patch_context_manager
 from . import query
 
-
 TEST_YEAR = 1900
+
 
 @patch.object(query, "find_products")
 async def test_sorts_by_country_scans(mocked_mongo):

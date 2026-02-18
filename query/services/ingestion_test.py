@@ -732,7 +732,7 @@ async def test_event_load_should_restore_deleted_products(
             },
             Source.event,
         )
-        
+
         # then: obsolete flag should get set to null
         deleted_product = await get_product(transaction, products[0]["code"])
         assert deleted_product["obsolete"] == None
@@ -740,7 +740,7 @@ async def test_event_load_should_restore_deleted_products(
         product_countries = await get_product_countries(transaction, deleted_product)
         assert len(product_countries) == 1
         assert product_countries[0]["obsolete"] == None
-        
+
         # Reinstate product
         patch_context_manager(find_products_mock, mock_cursor(products))
         await ingestion.import_with_filter(
@@ -754,7 +754,7 @@ async def test_event_load_should_restore_deleted_products(
             },
             Source.event,
         )
-        
+
         deleted_product = await get_product(transaction, products[0]["code"])
         assert deleted_product["obsolete"] == False
 

@@ -13,6 +13,7 @@ from . import scan
 
 OLDEST_YEAR = TEST_YEAR - 5
 
+
 @patch.object(scan, "get_current_scan_year", return_value=TEST_YEAR)
 @patch.object(scan, "normalize_code", side_effect=normalize_code)
 async def test_create_product_scans(normalize_code_wrapper: Mock, _):
@@ -66,7 +67,7 @@ async def test_create_product_scans(normalize_code_wrapper: Mock, _):
                 },
             }
         ),
-        True
+        True,
     )
 
     async with get_transaction() as transaction:

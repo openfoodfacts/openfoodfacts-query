@@ -1,6 +1,7 @@
 """The Number of scans for each product by year"""
 
 from query.database import create_record
+
 from ..models.scan import ProductScans
 
 
@@ -19,7 +20,14 @@ async def insert_product_scans(transaction, scans: ProductScans):
         for year, scan_counts in years.root.items():
             # For some reason the combination of execute many and using a values source in the SQL
             # converts everything to text, so need to supply text here and cast as int in the SQL
-            scans_by_product.append([code, str(year), str(scan_counts.scans_n), str(scan_counts.unique_scans_n)])
+            scans_by_product.append(
+                [
+                    code,
+                    str(year),
+                    str(scan_counts.scans_n),
+                    str(scan_counts.unique_scans_n),
+                ]
+            )
 
     if scans_by_product:
         # As mentioned above, need to cast ints in the SQL because of the source values clause
@@ -34,7 +42,9 @@ async def insert_product_scans(transaction, scans: ProductScans):
         )
 
 
-async def create_product_scan(transaction, product, year, scan_count, unique_scan_count):
+async def create_product_scan(
+    transaction, product, year, scan_count, unique_scan_count
+):
     """This is only currently used in tests"""
     scan = await create_record(
         transaction,
@@ -45,4 +55,3 @@ async def create_product_scan(transaction, product, year, scan_count, unique_sca
         unique_scan_count=unique_scan_count,
     )
     return scan
-
