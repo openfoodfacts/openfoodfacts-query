@@ -6,8 +6,8 @@ from query.tables.loaded_tag import PARTIAL_TAGS
 
 from ..database import create_record
 
-OLDEST_YEAR = 2019
-CURRENT_YEAR = 2024
+OLDEST_YEAR = 2020
+CURRENT_YEAR = 2025
 PRODUCT_COUNTRY_TAG = "product_country"
 PARTIAL_TAGS.append(PRODUCT_COUNTRY_TAG)
 
