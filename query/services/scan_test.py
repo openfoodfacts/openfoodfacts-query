@@ -1,17 +1,21 @@
 from unittest.mock import ANY, Mock, patch
 
+from query.services.query_find_test import TEST_YEAR
+
 from ..database import get_transaction
 from ..models.scan import ProductScans
 from ..services.scan import import_scans
 from ..tables.country import add_all_countries
 from ..tables.product import PRODUCT_SCANS_TAG, normalize_code
-from ..tables.product_country import CURRENT_YEAR, OLDEST_YEAR, PRODUCT_COUNTRY_TAG
+from ..tables.product_country import PRODUCT_COUNTRY_TAG
 from ..test_helper import random_code
 from . import scan
 
+OLDEST_YEAR = TEST_YEAR - 5
 
+@patch.object(scan, "get_current_scan_year", return_value=TEST_YEAR)
 @patch.object(scan, "normalize_code", side_effect=normalize_code)
-async def test_create_product_scans(normalize_code_wrapper: Mock):
+async def test_create_product_scans(normalize_code_wrapper: Mock, _):
     async with get_transaction() as transaction:
         # refresh country table
         await add_all_countries(transaction)
@@ -47,21 +51,22 @@ async def test_create_product_scans(normalize_code_wrapper: Mock):
                         "unique_scans_n": 3,
                         "unique_scans_n_by_country": {"uk": 1, "gb": 2, "world": 3},
                     },
-                    str(CURRENT_YEAR): {
+                    str(TEST_YEAR): {
                         "scans_n": 10,
                         "unique_scans_n": 7,
                         "unique_scans_n_by_country": {"uk": 2, "fr": 5, "world": 7},
                     },
                 },
                 code2: {
-                    str(CURRENT_YEAR): {
+                    str(TEST_YEAR): {
                         "scans_n": 11,
                         "unique_scans_n": 8,
                         "unique_scans_n_by_country": {"ru": 1, "fr": 4, "world": 5},
                     },
                 },
             }
-        )
+        ),
+        True
     )
 
     async with get_transaction() as transaction:
@@ -101,9 +106,20 @@ async def test_create_product_scans(normalize_code_wrapper: Mock):
         assert product["scan_count"] == 10
         assert product["unique_scan_count"] == 7
 
+        product_scans = await transaction.fetch(
+            """SELECT year, scan_count, unique_scan_count FROM product_scans
+                WHERE product_id = (select id from product where code = $1) ORDER BY year""",
+            code1,
+        )
+        assert len(product_scans) == 3
+        assert product_scans[0]["year"] == OLDEST_YEAR - 1
+        assert product_scans[0]["scan_count"] == 3
+        assert product_scans[0]["unique_scan_count"] == 2
 
+
+@patch.object(scan, "get_current_scan_year", return_value=TEST_YEAR)
 @patch.object(scan, "append_loaded_tags")
-async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock):
+async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock, _):
     async with get_transaction() as transaction:
         # refresh country table
         await add_all_countries(transaction)
@@ -116,7 +132,7 @@ async def test_update_tags_when_fully_loaded(append_loaded_tags: Mock):
             ProductScans.model_validate(
                 {
                     code: {
-                        str(CURRENT_YEAR): {
+                        str(TEST_YEAR): {
                             "scans_n": 10,
                             "unique_scans_n": 7,
                             "unique_scans_n_by_country": {"uk": 2, "fr": 5, "world": 7},

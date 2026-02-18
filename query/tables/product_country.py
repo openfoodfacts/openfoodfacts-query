@@ -6,8 +6,6 @@ from query.tables.loaded_tag import PARTIAL_TAGS
 
 from ..database import create_record
 
-OLDEST_YEAR = 2020
-CURRENT_YEAR = 2025
 PRODUCT_COUNTRY_TAG = "product_country"
 PARTIAL_TAGS.append(PRODUCT_COUNTRY_TAG)
 
@@ -94,27 +92,26 @@ async def fixup_product_countries(transaction, obsolete):
     )
 
 
-async def fixup_product_countries_for_products(transaction, ids_updated):
+async def fixup_product_country_scans(transaction, current_year, oldest_year):
+    """Set the current and recent scans by country to use the scans from the supplied years"""
     # Note we only create a product_country entry if there is a corresponding product_countries_tag
     await transaction.execute(
         """insert into product_country (product_id, obsolete, country_id, recent_scans, total_scans)
             select s.product_id,
                 p.obsolete,
                 s.country_id,
-                sum(CASE WHEN s.year = $3 THEN s.unique_scans ELSE 0 END),
-                sum(CASE WHEN s.year >= $2 THEN unique_scans ELSE 0 END)
+                sum(CASE WHEN s.year = $2 THEN s.unique_scans ELSE 0 END),
+                sum(CASE WHEN s.year >= $1 THEN unique_scans ELSE 0 END)
             from product_scans_by_country s
             join product p on p.id = s.product_id
             join country c on c.id = s.country_id
-            where s.product_id = ANY($1) and (
-                c.code = 'world' or
+            where (c.code = 'world' or
                 exists (select * from product_countries_tag t where t.product_id = s.product_id and t.value = c.tag))
             group by product_id, p.obsolete, country_id
             on conflict (product_id, country_id)
             do update set recent_scans = excluded.recent_scans, total_scans = excluded.total_scans, obsolete = excluded.obsolete""",
-        ids_updated,
-        OLDEST_YEAR,
-        CURRENT_YEAR,
+        oldest_year,
+        current_year,
     )
 
 

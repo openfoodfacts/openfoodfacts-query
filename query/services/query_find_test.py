@@ -4,20 +4,22 @@ import pytest
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
-from query.tables.loaded_tag import append_loaded_tags
-from query.tables.product import PRODUCT_SCANS_TAG
+from query.services import scan
+from query.services.scan import scans_fully_loaded
 from query.tables.product_nutrient import NUTRIENT_TAG, NUTRITION_TAG
+from query.tables.product_scans import create_product_scan
 
 from ..database import get_transaction
 from ..models.query import Filter, FindQuery, Fragment, Qualify, SortColumn
 from ..services import query
 from ..services.query_count_test import create_test_tags
 from ..tables.country import get_country
-from ..tables.product_country import CURRENT_YEAR, PRODUCT_COUNTRY_TAG
 from ..tables.product_scans_by_country import create_scan
 from ..test_helper import mock_cursor, patch_context_manager
 from . import query
 
+
+TEST_YEAR = 1900
 
 @patch.object(query, "find_products")
 async def test_sorts_by_country_scans(mocked_mongo):
@@ -353,17 +355,27 @@ async def create_tags_and_scans():
         tags = await create_test_tags(transaction)
         world = await get_country(transaction, "en:world")
         # Country sequence should be: 3,2,1. World sequence: 2,3,1
-        await create_scan(transaction, tags.product1, tags.country, CURRENT_YEAR, 10)
-        await create_scan(transaction, tags.product2, tags.country, CURRENT_YEAR, 100)
-        await create_scan(transaction, tags.product3, tags.country, CURRENT_YEAR, 100)
-        await create_scan(transaction, tags.product3, tags.country, CURRENT_YEAR - 1, 1)
-        await create_scan(transaction, tags.product4, tags.country, CURRENT_YEAR, 50)
-        await create_scan(transaction, tags.product1, world, CURRENT_YEAR, 20)
-        await create_scan(transaction, tags.product2, world, CURRENT_YEAR, 201)
-        await create_scan(transaction, tags.product3, world, CURRENT_YEAR, 200)
-        await create_scan(transaction, tags.product3, world, CURRENT_YEAR - 1, 100)
-        await create_scan(transaction, tags.product4, world, CURRENT_YEAR, 50)
+        await create_scan(transaction, tags.product1, tags.country, TEST_YEAR, 10)
+        await create_scan(transaction, tags.product1, world, TEST_YEAR, 20)
+        await create_product_scan(transaction, tags.product1, TEST_YEAR, 30, 30)
+
+        await create_scan(transaction, tags.product2, tags.country, TEST_YEAR, 100)
+        await create_scan(transaction, tags.product2, world, TEST_YEAR, 201)
+        await create_product_scan(transaction, tags.product2, TEST_YEAR, 301, 301)
+
+        await create_scan(transaction, tags.product3, world, TEST_YEAR - 1, 100)
+        await create_scan(transaction, tags.product3, tags.country, TEST_YEAR - 1, 1)
+        await create_product_scan(transaction, tags.product3, TEST_YEAR - 1, 101, 101)
+        await create_scan(transaction, tags.product3, world, TEST_YEAR, 200)
+        await create_scan(transaction, tags.product3, tags.country, TEST_YEAR, 100)
+        await create_product_scan(transaction, tags.product3, TEST_YEAR, 300, 300)
+
+        await create_scan(transaction, tags.product4, world, TEST_YEAR, 50)
+        await create_scan(transaction, tags.product4, tags.country, TEST_YEAR, 50)
+        await create_product_scan(transaction, tags.product4, TEST_YEAR, 100, 100)
+
         # Make sure scans are flagged as fully loaded
-        await append_loaded_tags(transaction, [PRODUCT_COUNTRY_TAG, PRODUCT_SCANS_TAG])
+        with patch.object(scan, "get_current_scan_year", return_value=TEST_YEAR) as _:
+            await scans_fully_loaded(transaction)
 
         return tags
