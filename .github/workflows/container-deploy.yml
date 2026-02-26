@@ -13,9 +13,12 @@ jobs:
     strategy:
       matrix:
         env:
-          # FIXME name you envs, see reuse below
-          # it's also the name of the directory for the application
+          # env is also the name of the directory for the application
           - ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-org' || 'off-query-net' }}
+          # replica is only for production environment
+          - ${{ startsWith(github.ref, 'refs/tags/v') && 'off-query-replica-org' || 'NONE' }}
+        exclude:
+          - env: 'NONE'
     environment: ${{ matrix.env }}
     concurrency: ${{ matrix.env }}
     steps:
@@ -32,6 +35,8 @@ jobs:
           echo "SSH_HOST=10.1.0.200" >> $GITHUB_ENV
 
           # configurations
+          echo "COMPOSE_PROJECT_NAME=off-query" >> $GITHUB_ENV
+          echo "COMPOSE_PROFILES=app" >> $GITHUB_ENV
           echo "COMMON_NET_NAME=po_webnet" >> $GITHUB_ENV
           echo "MONGO_URI=mongodb://10.1.0.200:27017" >> $GITHUB_ENV
           echo "REDIS_URL=redis://redis:6379" >> $GITHUB_ENV
@@ -43,6 +48,7 @@ jobs:
           echo "POSTGRES_SHM_SIZE=512m" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_SHARED_BUFFERS=4GB" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_WORK_MEM=256MB" >> $GITHUB_ENV
+
       - name: Set various variable for production deployment
         if: matrix.env == 'off-query-org'
         run: |
@@ -54,6 +60,8 @@ jobs:
 
           # configurations
           echo "COMMON_NET_NAME=common_net" >> $GITHUB_ENV
+          echo "COMPOSE_PROJECT_NAME=off-query" >> $GITHUB_ENV
+          echo "COMPOSE_PROFILES=app" >> $GITHUB_ENV
 
           # Reduce log level on production
           echo "LOG_LEVEL=log" >> $GITHUB_ENV
@@ -66,6 +74,33 @@ jobs:
           echo "POSTGRES_SHM_SIZE=2g" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
+
+      - name: Set various variable for prod replica deployment
+        if: matrix.env == 'off-query-replica-org'
+        run: |
+          # This is deployed on Hetzner, close to superset
+          echo "SSH_PROXY_HOST=hetzner-03.infra.openfoodfacts.org" >> $GITHUB_ENV
+          echo "SSH_USERNAME=off" >> $GITHUB_ENV
+          echo "SSH_PROXY_USERNAME=off" >> $GITHUB_ENV
+          echo "SSH_HOST=10.12.1.202" >> $GITHUB_ENV
+
+          # we don't need to be in common net, use a specific name
+          echo "COMMON_NET_NAME=off-query-replica-org_default" >> $GITHUB_ENV
+          echo "COMPOSE_PROJECT_NAME=off-query-replica" >> $GITHUB_ENV
+          echo "COMPOSE_PROFILES=replica" >> $GITHUB_ENV
+
+          # Reduce log level on production
+          echo "LOG_LEVEL=log" >> $GITHUB_ENV
+
+          # Postgres config. We use memory to gain performance on reads and writes
+          echo "POSTGRES_SHM_SIZE=2g" >> $GITHUB_ENV
+          echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
+          echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
+
+          # Postgres is reached through stunnel
+          echo "POSTGRES_REPLICATION_SOURCE_HOST=10.12.1.112" >> $GITHUB_ENV
+          echo "POSTGRES_REPLICATION_SOURCE_PORT=16002" >> $GITHUB_ENV
+
       - name: Wait for container build workflow
         uses: tomchv/wait-my-workflow@v1.1.0
         id: wait-build
@@ -110,7 +145,7 @@ jobs:
             # Checkout current commit SHA
             git checkout -qf ${{ github.sha }}
 
-      - name: Set environment variables
+      - name: Set common environment variables
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.SSH_HOST }}
@@ -129,7 +164,8 @@ jobs:
             # Set Docker Compose variables
             echo "DOCKER_CLIENT_TIMEOUT=120" >> .env
             echo "COMPOSE_HTTP_TIMEOUT=120" >> .env
-            echo "COMPOSE_PROJECT_NAME=off-query" >> .env
+            echo "COMPOSE_PROJECT_NAME=${{ env.COMPOSE_PROJECT_NAME }}" >> .env
+            echo "COMPOSE_PROFILES=${{ env.COMPOSE_PROFILES }}" >> .env
             echo "COMPOSE_PATH_SEPARATOR=," >> .env
             echo "RESTART_POLICY=always" >> .env
             echo "COMPOSE_FILE=docker-compose.yml" >> .env
@@ -140,21 +176,85 @@ jobs:
             echo "POSTGRES_USER=postgres" >> .env
             echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
             echo "POSTGRES_DB=query" >> .env
+            echo "POSTGRES_CONFIG_FILE=./confs/postgresql/prod.conf" >> .env
             echo "COMMON_NET_NAME=${{ env.COMMON_NET_NAME }}" >> .env
             echo "MONGO_URI=${{ env.MONGO_URI }}" >> .env
             echo "REDIS_URL=${{ env.REDIS_URL }}" >> .env
+            echo "POSTGRES_REPLICATION_PASSWORD=${{ secrets.POSTGRES_REPLICATION_PASSWORD }}" >> .env
+            echo "POSTGRES_SUPERSET_PASSWORD=${{ secrets.POSTGRES_SUPERSET_PASSWORD }}" >> .env
 
             # Postgres config
             echo "POSTGRES_SHM_SIZE=${{ env.POSTGRES_SHM_SIZE }}" >> .env
             echo "QUERY_POSTGRES_SHARED_BUFFERS=${{ env.QUERY_POSTGRES_SHARED_BUFFERS }}" >> .env
             echo "QUERY_POSTGRES_WORK_MEM=${{ env.QUERY_POSTGRES_WORK_MEM }}" >> .env
+            echo "POSTGRES_CONFIG_FILE=./confs/postgresql/prod.conf" >> .env
+            echo "POSTGRES_HBA_FILE=./confs/postgresql/prod_hba.conf" >> .env
 
             # Use docker volume for now
             echo "QUERY_DATA_DIR=dbdata" >> .env
             echo "LOG_LEVEL=${{ env.LOG_LEVEL }}" >> .env
 
-      - name: Start services
+      - name: Create Postgresql config file for primary postgres
         uses: appleboy/ssh-action@master
+        # although .net instance is not currently replicated,
+        # we set it up to be able to run tests if needed
+        if: "! contains(matrix.env, '-replica-')"
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ env.SSH_PROXY_HOST }}
+          proxy_username: ${{ env.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ env.PROJECT_DIR }}
+
+            # start from the dev files
+            cp confs/postgresql/dev.conf confs/postgresql/prod.conf
+            cp confs/postgresql/dev_hba.conf confs/postgresql/prod_hba.conf
+
+            # Edit config to add replication settings
+            echo "# Add replication settings for main postgres" >> confs/postgresql/prod.conf
+            echo "wal_level=replica" >> confs/postgresql/prod.conf
+            echo "max_wal_senders=3" >> confs/postgresql/prod.conf
+            echo "# We don't set a large wal_keep_size because we will use slots" >> confs/postgresql/prod.conf
+            echo "max_slot_wal_keep_size=20GB" >> confs/postgresql/prod.conf
+            echo "# This is large (current db size 140G)" >> confs/postgresql/prod.conf
+            echo "max_slot_wal_keep_size=100GB" >> confs/postgresql/prod.conf
+
+            # Edit hba file to enable connection of replica
+            echo "# Replica connects through stunnel," >> confs/postgresql/prod_hba.conf
+            echo "# so they are viewed as in local network" >> confs/postgresql/prod_hba.conf
+            echo "host    replication     all             10.0.0.0/8                 scram-sha-256" >> confs/postgresql/prod_hba.conf
+
+      - name: Create Postgresql config file for replica postgres
+        uses: appleboy/ssh-action@master
+        if: "contains(matrix.env, '-replica-')"
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ env.SSH_PROXY_HOST }}
+          proxy_username: ${{ env.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ env.PROJECT_DIR }}
+
+            # start from the dev files
+            cp confs/postgresql/dev.conf confs/postgresql/prod.conf
+            cp confs/postgresql/dev_hba.conf confs/postgresql/prod_hba.conf
+
+            # add replication settings
+            echo "# replication settings for replicate" >> confs/postgresql/prod.conf
+            echo "primary_conninfo='host=${{ env.POSTGRES_REPLICATION_SOURCE_HOST }} port=${{ env.POSTGRES_REPLICATION_SOURCE_PORT }} user=replication password=${{ secrets.POSTGRES_REPLICATION_PASSWORD }}" >> confs/postgresql/prod.conf
+            echo "# use our env name as slot name" >> confs/postgresql/prod.conf
+            echo "primary_slot_name=${{ matrix.env }}" >> confs/postgresql/prod.conf
+            echo "# we need hot standby if we want to run requests" >> confs/postgresql/prod.conf
+            echo "hot_standby=on" >> confs/postgresql/prod.conf
+
+      - name: Start services (primary)
+        uses: appleboy/ssh-action@master
+        if: "! contains(matrix.env, '-replica-')"
         with:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USERNAME }}
@@ -166,7 +266,29 @@ jobs:
           command_timeout: 360m
           script: |
             cd ${{ env.PROJECT_DIR }}
+            make create_external_networks
+            make create_external_volumes
             make migrate_database_docker && docker compose up -d 2>&1
+
+      - name: Start services (replica)
+        uses: appleboy/ssh-action@master
+        if: "contains(matrix.env, '-replica-')"
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ env.SSH_PROXY_HOST }}
+          proxy_username: ${{ env.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ env.PROJECT_DIR }}
+            make create_external_networks
+            make create_external_volumes
+            # Note: if you are deploying for the first time,
+            # This will fail.
+            # you have to manually run:
+            # docker compose run --rm --entrypoint sh query_postgres pg_basebackup -h <primary_ip> -U replicator -D /var/lib/postgresql/data -P --wal-method=stream --write-recovery-conf -C -S <repslot> -v
+            docker compose up -d 2>&1
 
       - name: Check services are up
         uses: appleboy/ssh-action@master
@@ -191,6 +313,22 @@ jobs:
               fi
             done;
             exit $exit_code;
+
+      - name: Post config (primary)
+        uses: appleboy/ssh-action@master
+        if: "! contains(matrix.env, '-replica-')"
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_host: ${{ env.SSH_PROXY_HOST }}
+          proxy_username: ${{ env.SSH_USERNAME }}
+          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ env.PROJECT_DIR }}
+            # create replication user and superset user
+            make create_replication_user
+            make create_superset_user
 
       - name: Cleanup obsolete Docker objects
         uses: appleboy/ssh-action@master

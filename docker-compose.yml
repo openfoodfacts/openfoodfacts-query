@@ -1,7 +1,7 @@
 services:
   query_postgres:
     image: ${POSTGRES_IMAGE}
-    command: postgres -c shared_buffers=${QUERY_POSTGRES_SHARED_BUFFERS} -c work_mem=${QUERY_POSTGRES_WORK_MEM} -c listen_addresses='*'
+    command: postgres -c config_file=/etc/postgresql.conf -c shared_buffers=${QUERY_POSTGRES_SHARED_BUFFERS} -c work_mem=${QUERY_POSTGRES_WORK_MEM} -c listen_addresses='*'
     restart: ${RESTART_POLICY:-always}
     environment:
       - POSTGRES_USER
@@ -19,6 +19,9 @@ services:
       - "${POSTGRES_EXPOSE:-5512}:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
+      # mounting configuration file
+      - ${POSTGRES_CONFIG_FILE}:/etc/postgresql.conf
+      - ${POSTGRES_HBA_FILE}:/etc/pg_hba.conf
     networks:
       - common_net
 
@@ -41,6 +44,8 @@ services:
         condition: service_healthy
     networks:
       - common_net
+    profiles:
+      - app
 
 networks:
   common_net:
@@ -49,3 +54,5 @@ networks:
 
 volumes:
   dbdata:
+    name: ${COMPOSE_PROJECT_NAME}_dbdata
+    external: true
