@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, AsyncGenerator, Dict, List
 
 import redis.asyncio as redis
@@ -51,7 +51,10 @@ def split_messages(redis_response):
 def add_failed_item_to_retry(items_to_retry, item):
     # there must be only one message
     if len(item[1]) > 1:
-        logger.error("Expecting a single message in add_failed_item_to_retry, got %d", len(item[1]))
+        logger.error(
+            "Expecting a single message in add_failed_item_to_retry, got %d",
+            len(item[1]),
+        )
         # continue all the same
     stream_name = item[0]
     msg_id, msg = item[1][0]
@@ -60,13 +63,17 @@ def add_failed_item_to_retry(items_to_retry, item):
         error_count = 1
     else:
         error_count = items_to_retry[(stream_name, msg_id)][2] + 1
-    items_to_retry[(stream_name, msg_id)] = [item, datetime.now() + timedelta(seconds=get_retry_interval(error_count)), error_count]
+    items_to_retry[(stream_name, msg_id)] = [
+        item,
+        datetime.now() + timedelta(seconds=get_retry_interval(error_count)),
+        error_count,
+    ]
     return (stream_name, msg_id)
 
 
 def clear_items_to_retry(items_to_retry, processed_chunk):
     for stream_name, messages in processed_chunk:
-        for (msg_id, msg) in messages:
+        for msg_id, msg in messages:
             items_to_retry.pop((stream_name, msg_id), None)
 
 
@@ -104,7 +111,12 @@ async def redis_listener():
             # response is an array of tuples of stream name and array of messages
             if response:
                 # we might also have items to retry, and we will do them one by one
-                to_retry = [([item], False) for item, retry_time, _ in items_to_retry.values() if retry_time < datetime.now()]
+                # as we know they are problematic
+                to_retry = [
+                    ([item], False)
+                    for item, retry_time, _ in items_to_retry.values()
+                    if retry_time < datetime.now()
+                ]
                 # retry will be done one by one to avoid problems appart
                 to_process = [(response, True)] + to_retry
                 while to_process:
@@ -124,10 +136,15 @@ async def redis_listener():
                             logger.exception(
                                 f"Error processing {len(chunk[0][1])} messages. Splitting and retrying."
                             )
-                            to_process[0:0] = [(split_chunk, is_original_response) for split_chunk in split_messages(chunk)]
+                            to_process[0:0] = [
+                                (split_chunk, is_original_response)
+                                for split_chunk in split_messages(chunk)
+                            ]
                         else:
                             # we got a problematic item, let's try again later
-                            stream_name, msg_id = add_failed_item_to_retry(items_to_retry, chunk[0])
+                            stream_name, msg_id = add_failed_item_to_retry(
+                                items_to_retry, chunk[0]
+                            )
                             _error_count = items_to_retry[(stream_name, msg_id)][2]
                             logger.exception(
                                 f"Error processing message {stream_name}, {msg_id} for the {_error_count} time."
