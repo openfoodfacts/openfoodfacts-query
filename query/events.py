@@ -40,7 +40,7 @@ def split_messages(redis_response):
     """Chunk a list of message stream in two equal parts"""
     result = []
     for stream_name, messages in redis_response:
-        middle = int(len(messages) / 2)
+        middle = len(messages) // 2
         result.append([[stream_name, messages[0:middle]]])
         result.append([[stream_name, messages[middle:]]])
     return result
@@ -58,7 +58,7 @@ def add_failed_item_to_retry(items_to_retry, item):
         error_count = 1
     else:
         error_count = items_to_retry[(stream_name, msg_id)][2] + 1
-    items_to_retry[(stream_name, msg_id)] = [item, datetime.now() + timedelta(seconds=get_retry_interval(error_count)), error_count]
+    items_to_retry[(stream_name, msg_id)] = [item, datetime.now(timezone.utc) + timedelta(seconds=get_retry_interval(error_count)), error_count]
     return (stream_name, msg_id)
 
 def clear_items_to_retry(items_to_retry, processed_chunk):
@@ -78,7 +78,7 @@ async def redis_listener():
         while True:
             try:
                 response = await redis.xread({STREAM_NAME: last_message_id}, 1000, 5000)
-                # success resecs redis_error_count
+                # success resets redis_error_count
                 redis_error_count = 0
             except Exception as e:
                 response = None
@@ -110,7 +110,7 @@ async def redis_listener():
                         # on error try to chunk problematic chunk down
                         if len(chunk[0][1]) > 1:
                             logger.exception(
-                                f"Error processing {len(chunk)} messages. Spliting and retrying."
+                                f"Error processing {len(chunk[0][1])} messages. Splitting and retrying."
                             )
                             to_process[0:0] = split_messages(chunk)
                         else:
