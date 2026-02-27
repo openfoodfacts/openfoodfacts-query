@@ -116,6 +116,42 @@ async def test_listener_calls_subscriber_function(
 @patch.object(events, "get_last_message_id")
 @patch.object(events, "set_last_message_id")
 @patch.object(events, "messages_received")
+async def test_listener_splits_batch_when_one_message_fails_insertion(
+    messages_received: Mock, set_id: Mock, get_id: Mock
+):
+    async with redis_client() as redis:
+        get_id.return_value = await get_last_message_id(redis, STREAM_NAME)
+
+        message_ids = []
+        for _ in range(5):
+            message_ids.append(await add_test_message(redis, random_code()))
+        failing_message_id = message_ids[2]
+
+        def fail_for_one_message(_transaction, streams):
+            messages = streams[0][1]
+            if any(message[0] == failing_message_id for message in messages):
+                raise Exception("insertion failed")
+
+        messages_received.side_effect = fail_for_one_message
+
+        redis_listener_task = asyncio.create_task(redis_listener())
+
+        await messages_processed(messages_received, 5)
+
+        assert set_id.called
+        stream_message_counts = [len(call.args[1][0][1]) for call in messages_received.call_args_list]
+        assert 5 in stream_message_counts
+        assert any(
+            len(call.args[1][0][1]) == 1 and call.args[1][0][1][0][0] == failing_message_id
+            for call in messages_received.call_args_list
+        )
+
+        await cancel_task(redis_listener_task)
+
+
+@patch.object(events, "get_last_message_id")
+@patch.object(events, "set_last_message_id")
+@patch.object(events, "messages_received")
 async def test_listener_keeps_track_of_last_message_id(
     messages_received: Mock, set_id: Mock, get_id: Mock
 ):
@@ -131,8 +167,8 @@ async def test_listener_keeps_track_of_last_message_id(
         redis_listener_task = asyncio.create_task(redis_listener())
 
         # Simulate some previous retries
-        get_retry_interval()
-        get_retry_interval()
+        get_retry_interval(0)
+        get_retry_interval(1)
 
         await messages_processed(messages_received)
         await cancel_task(redis_listener_task)
@@ -142,12 +178,12 @@ async def test_listener_keeps_track_of_last_message_id(
         # messages_received should only have been called once
         assert messages_received.call_count == 1
 
-        assert get_retry_interval() == 1
+        assert get_retry_interval(0) == 1
 
 
 def test_retry_interval():
-    interval1 = get_retry_interval()
-    interval2 = get_retry_interval()
+    interval1 = get_retry_interval(0)
+    interval2 = get_retry_interval(1)
     assert interval2 == interval1 * 2
 
 
@@ -171,8 +207,8 @@ async def test_retry_reset_on_success(
         await messages_processed(messages_received)
 
         # Simulate some previous retries
-        get_retry_interval()
-        get_retry_interval()
+        get_retry_interval(0)
+        get_retry_interval(1)
 
         # Add another message
         product_code = random_code()
@@ -182,7 +218,7 @@ async def test_retry_reset_on_success(
 
         await cancel_task(redis_listener_task)
 
-        assert get_retry_interval() == 1
+        assert get_retry_interval(0) == 1
 
 
 @patch.object(events, "get_last_message_id")
