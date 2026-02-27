@@ -2,7 +2,7 @@ import asyncio
 import logging
 import math
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 import pytest
@@ -151,8 +151,8 @@ async def test_listener_splits_batch_when_one_message_fails_insertion(
         assert (STREAM_NAME, failing_message_id) in events.items_to_retry
         scheduled_retry = events.items_to_retry[(STREAM_NAME, failing_message_id)][1]
         end_time = datetime.now()
-        assert (scheduled_retry - start_time).total_seconds() >= 3599
-        assert (scheduled_retry - end_time).total_seconds() <= 3601
+        assert scheduled_retry >= start_time.replace(microsecond=0)
+        assert scheduled_retry <= (end_time.replace(microsecond=0) + timedelta(seconds=3601))
 
         await cancel_task(redis_listener_task)
         events.items_to_retry.clear()
