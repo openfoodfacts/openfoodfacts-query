@@ -115,7 +115,7 @@ async def redis_listener():
                             await set_last_message_id(transaction, last_message_id)
                         # if sucessful remove msgs from items_to_retry
                         clear_items_to_retry(items_to_retry, chunk)
-                    except Exception as e:
+                    except Exception:
                         # on error try to chunk problematic chunk down
                         if len(chunk) > 1:
                             logger.exception(
