@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, AsyncGenerator, Dict, List
 
 import redis.asyncio as redis
@@ -31,10 +31,12 @@ async def redis_client() -> AsyncGenerator[redis.Redis, Any]:
     finally:
         await client.aclose()
 
+
 def get_retry_interval(error_count):
     """Use exponential backoff if we get an error"""
     error_count += 1
     return 2 ** (error_count - 1)
+
 
 def split_messages(redis_response):
     """Chunk a list of message stream in two equal parts"""
@@ -45,31 +47,40 @@ def split_messages(redis_response):
         result.append([[stream_name, messages[middle:]]])
     return result
 
+
 def add_failed_item_to_retry(items_to_retry, item):
     # there must be only one message
     if len(item[1]) > 1:
         logger.error("Expecting a single message in add_failed_item_to_retry, got %d", len(item[1]))
         # continue all the same
     stream_name = item[0]
-    msg = item[1][0]
-    msg_id = msg[0]
-    if (stream_name, msg_id) not in items_to_retry:
+    msg_id, msg = item[1][0]
+    if msg_id not in items_to_retry:
         # first time
         error_count = 1
     else:
         error_count = items_to_retry[(stream_name, msg_id)][2] + 1
-    items_to_retry[(stream_name, msg_id)] = [item, datetime.now(timezone.utc) + timedelta(seconds=get_retry_interval(error_count)), error_count]
+    items_to_retry[(stream_name, msg_id)] = [item, datetime.now() + timedelta(seconds=get_retry_interval(error_count)), error_count]
     return (stream_name, msg_id)
+
 
 def clear_items_to_retry(items_to_retry, processed_chunk):
     for stream_name, messages in processed_chunk:
-        for msg in messages:
-            items_to_retry.pop((stream_name, msg[0]), None)
+        for (msg_id, msg) in messages:
+            items_to_retry.pop((stream_name, msg_id), None)
+
+
+# use globals to be able to tweak them for tests
+redis_error_count = 0
+# dict associating msg_id to (mgs, next_try_time, error_count)
+items_to_retry = {}
+
 
 async def redis_listener():
     """Listen for Redis events on the specified stream and processes any messages received"""
-    # dict associating msg_id to (mgs, next_try_time, error_count) 
-    items_to_retry = {}
+    global items_to_retry
+    global redis_error_count
+
     async with get_transaction() as transaction:
         last_message_id = await get_last_message_id(transaction)
 
@@ -106,7 +117,7 @@ async def redis_listener():
                             await set_last_message_id(transaction, last_message_id)
                         # if sucessful remove msgs from items_to_retry
                         clear_items_to_retry(items_to_retry, chunk)
-                    except Exception as e:
+                    except Exception:
                         # on error try to chunk problematic chunk down
                         if len(chunk[0][1]) > 1:
                             logger.exception(
