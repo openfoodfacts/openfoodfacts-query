@@ -104,17 +104,18 @@ async def redis_listener():
             # response is an array of tuples of stream name and array of messages
             if response:
                 # we might also have items to retry, and we will do them one by one
-                to_retry = [[item] for item, retry_time, _ in items_to_retry.values() if retry_time < datetime.now()]
+                to_retry = [([item], False) for item, retry_time, _ in items_to_retry.values() if retry_time < datetime.now()]
                 # retry will be done one by one to avoid problems appart
-                to_process = [response] + to_retry
+                to_process = [(response, True)] + to_retry
                 while to_process:
-                    chunk = to_process.pop(0)
+                    chunk, is_original_response = to_process.pop(0)
                     try:
                         async with get_transaction() as transaction:
                             await messages_received(transaction, chunk)
-                            # Each message is a tuple of the message id followed by a dict that is the payload
-                            last_message_id = chunk[0][1][-1][0]
-                            await set_last_message_id(transaction, last_message_id)
+                            if is_original_response:
+                                # Each message is a tuple of the message id followed by a dict that is the payload
+                                last_message_id = chunk[0][1][-1][0]
+                                await set_last_message_id(transaction, last_message_id)
                         # if sucessful remove msgs from items_to_retry
                         clear_items_to_retry(items_to_retry, chunk)
                     except Exception:
@@ -123,7 +124,7 @@ async def redis_listener():
                             logger.exception(
                                 f"Error processing {len(chunk[0][1])} messages. Splitting and retrying."
                             )
-                            to_process[0:0] = split_messages(chunk)
+                            to_process[0:0] = [(split_chunk, is_original_response) for split_chunk in split_messages(chunk)]
                         else:
                             # we got a problematic item, let's try again later
                             stream_name, msg_id = add_failed_item_to_retry(items_to_retry, chunk[0])

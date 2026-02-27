@@ -116,16 +116,19 @@ async def test_listener_calls_subscriber_function(
 @patch.object(events, "get_last_message_id")
 @patch.object(events, "set_last_message_id")
 @patch.object(events, "messages_received")
+@patch.object(events, "get_retry_interval", return_value=3600)
 async def test_listener_splits_batch_when_one_message_fails_insertion(
-    messages_received: Mock, set_id: Mock, get_id: Mock
+    _get_retry_interval: Mock, messages_received: Mock, set_id: Mock, get_id: Mock
 ):
     async with redis_client() as redis:
+        events.items_to_retry.clear()
         get_id.return_value = await get_last_message_id(redis, STREAM_NAME)
 
         message_ids = []
         for _ in range(5):
             message_ids.append(await add_test_message(redis, random_code()))
         failing_message_id = message_ids[2]
+        start_time = datetime.now()
 
         def fail_for_one_message(_transaction, streams):
             messages = streams[0][1]
@@ -145,8 +148,14 @@ async def test_listener_splits_batch_when_one_message_fails_insertion(
             len(call.args[1][0][1]) == 1 and call.args[1][0][1][0][0] == failing_message_id
             for call in messages_received.call_args_list
         )
+        assert (STREAM_NAME, failing_message_id) in events.items_to_retry
+        scheduled_retry = events.items_to_retry[(STREAM_NAME, failing_message_id)][1]
+        end_time = datetime.now()
+        assert (scheduled_retry - start_time).total_seconds() >= 3599
+        assert (scheduled_retry - end_time).total_seconds() <= 3601
 
         await cancel_task(redis_listener_task)
+        events.items_to_retry.clear()
 
 
 @patch.object(events, "get_last_message_id")
