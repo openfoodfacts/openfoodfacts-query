@@ -24,6 +24,7 @@ from .events import (
 from .test_helper import random_code
 
 logger = logging.getLogger(__name__)
+RETRY_INTERVAL_SECONDS = 3600
 
 
 async def test_redis_connection():
@@ -116,7 +117,7 @@ async def test_listener_calls_subscriber_function(
 @patch.object(events, "get_last_message_id")
 @patch.object(events, "set_last_message_id")
 @patch.object(events, "messages_received")
-@patch.object(events, "get_retry_interval", return_value=3600)
+@patch.object(events, "get_retry_interval", return_value=RETRY_INTERVAL_SECONDS)
 async def test_listener_splits_batch_when_one_message_fails_insertion(
     _get_retry_interval: Mock, messages_received: Mock, set_id: Mock, get_id: Mock
 ):
@@ -152,7 +153,10 @@ async def test_listener_splits_batch_when_one_message_fails_insertion(
         scheduled_retry = events.items_to_retry[(STREAM_NAME, failing_message_id)][1]
         end_time = datetime.now()
         assert scheduled_retry >= start_time.replace(microsecond=0)
-        assert scheduled_retry <= (end_time.replace(microsecond=0) + timedelta(seconds=3601))
+        assert scheduled_retry <= (
+            end_time.replace(microsecond=0)
+            + timedelta(seconds=RETRY_INTERVAL_SECONDS + 1)
+        )
 
         await cancel_task(redis_listener_task)
         events.items_to_retry.clear()
