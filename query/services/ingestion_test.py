@@ -61,6 +61,9 @@ def get_test_products():
                         f"{random_code()}": {
                             "value": random.uniform(100, 0.000001),
                         },
+                        "invalid": {
+                            "value": "100g"
+                        }
                     }
                 }
             },
