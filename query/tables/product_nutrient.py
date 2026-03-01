@@ -63,6 +63,7 @@ async def create_product_nutrients_from_staging(transaction: Connection, log):
         join nutrient n on n.tag = left(source.key, -5)
         where right(source.key, 5) = '_100g'
         and right(source.key, 13) != 'prepared_100g'
+        and pg_input_is_valid(source.value::text, 'double precision')
         union select pt.id, n.id, (source.value->'value')::double precision
         from product_temp pt
         cross join jsonb_each(data->'nutrition'->'aggregated_set'->'nutrients') source
