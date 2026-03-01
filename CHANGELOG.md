@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.2.0...v0.2.1) (2026-03-01)
+
+
+### Bug Fixes
+
+* Deal with non-numeric nutrient values ([#264](https://github.com/openfoodfacts/openfoodfacts-query/issues/264)) ([bece157](https://github.com/openfoodfacts/openfoodfacts-query/commit/bece157191f2aacfb199a0844d44d35d16573f77))
+
 ## [0.2.0](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.1.10...v0.2.0) (2026-02-18)
 
 
