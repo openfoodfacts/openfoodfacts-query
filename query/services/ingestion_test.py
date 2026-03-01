@@ -41,6 +41,7 @@ def get_test_products():
             "nutriments": {
                 f"{random_code()}_100g": random.uniform(100, 0.000001),
                 "carbohydrates_100g": 20,
+                "invalid_100g": "20g",
                 "ignored": 10,
                 "carbohydrates_prepared_100g": 30,  # Should also be ignored
             },
@@ -61,6 +62,9 @@ def get_test_products():
                         f"{random_code()}": {
                             "value": random.uniform(100, 0.000001),
                         },
+                        "invalid": {
+                            "value": "100g"
+                        }
                     }
                 }
             },
