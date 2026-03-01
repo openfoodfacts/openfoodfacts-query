@@ -67,6 +67,7 @@ async def create_product_nutrients_from_staging(transaction: Connection, log):
         from product_temp pt
         cross join jsonb_each(data->'nutrition'->'aggregated_set'->'nutrients') source
         join nutrient n on n.tag = source.key
+        where pg_input_is_valid(source.value->>'value', 'double precision')
         """
         )
     )
