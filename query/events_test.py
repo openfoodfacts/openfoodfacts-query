@@ -145,16 +145,17 @@ async def test_listener_splits_batch_when_one_message_fails_insertion(
 
         redis_listener_task = asyncio.create_task(redis_listener())
         # because of split strategy,
-        # we expect messages_received to be called 5 time:
+        # we expect messages_received to be called 5 times:
         # once with msgs [0:], then [0,1], then [2:], then [2], then [3:5]
         await messages_processed(messages_received, 5)
+        assert messages_received.call_count >= 5
 
         assert set_id.called
         stream_message_counts = [
             len(call.args[1][0][1]) for call in messages_received.call_args_list
         ]
         assert 5 in stream_message_counts
-        # we have one call that isolate ou problematic message
+        # we have one call that isolate our problematic message
         assert any(
             len(call.args[1][0][1]) == 1
             and call.args[1][0][1][0][0] == failing_message_id

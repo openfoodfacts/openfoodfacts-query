@@ -34,7 +34,7 @@ async def redis_client() -> AsyncGenerator[redis.Redis, Any]:
 
 def get_retry_interval(error_count):
     """Use exponential backoff if we get an error"""
-    error_count += 1
+
     return 2 ** (error_count - 1)
 
 
@@ -58,12 +58,13 @@ def add_failed_item_to_retry(items_to_retry, item):
         # continue all the same
     stream_name = item[0]
     msg_id, msg = item[1][0]
-    if msg_id not in items_to_retry:
+    key = (stream_name, msg_id)
+    if key not in items_to_retry:
         # first time
         error_count = 1
     else:
-        error_count = items_to_retry[(stream_name, msg_id)][2] + 1
-    items_to_retry[(stream_name, msg_id)] = [
+        error_count = items_to_retry[key][2] + 1
+    items_to_retry[key] = [
         item,
         datetime.now() + timedelta(seconds=get_retry_interval(error_count)),
         error_count,
@@ -79,7 +80,7 @@ def clear_items_to_retry(items_to_retry, processed_chunk):
 
 # use globals to be able to tweak them for tests
 redis_error_count = 0
-# dict associating msg_id to (mgs, next_try_time, error_count)
+# dict associating (stream_name, msg_id) to (msg, next_try_time, error_count)
 items_to_retry = {}
 
 
@@ -117,7 +118,7 @@ async def redis_listener():
                     for item, retry_time, _ in items_to_retry.values()
                     if retry_time < datetime.now()
                 ]
-                # retry will be done one by one to avoid problems appart
+                # retry will be done one by one to avoid problems apart
                 to_process = [(response, True)] + to_retry
                 while to_process:
                     chunk, is_original_response = to_process.pop(0)
@@ -128,7 +129,7 @@ async def redis_listener():
                                 # Each message is a tuple of the message id followed by a dict that is the payload
                                 last_message_id = chunk[0][1][-1][0]
                                 await set_last_message_id(transaction, last_message_id)
-                        # if sucessful remove msgs from items_to_retry
+                        # if successful remove msgs from items_to_retry
                         clear_items_to_retry(items_to_retry, chunk)
                     except Exception:
                         # on error try to chunk problematic chunk down
