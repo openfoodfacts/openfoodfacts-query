@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.2.1...v0.2.2) (2026-03-03)
+
+
+### Bug Fixes
+
+* Rename container build job as was clashing with pages build ([#270](https://github.com/openfoodfacts/openfoodfacts-query/issues/270)) ([5c2d956](https://github.com/openfoodfacts/openfoodfacts-query/commit/5c2d9560a2bb3ac0ee8ea7d8d46339b7c11958bc))
+* Use original action-wait-for-check so does not fail if job not created yet ([#268](https://github.com/openfoodfacts/openfoodfacts-query/issues/268)) ([8ea65d5](https://github.com/openfoodfacts/openfoodfacts-query/commit/8ea65d50b718250ee740ea4512f9e5538f3d563a))
+
 ## [0.2.1](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.2.0...v0.2.1) (2026-03-01)
 
 
