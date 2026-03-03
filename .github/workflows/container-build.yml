@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  build-container:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository

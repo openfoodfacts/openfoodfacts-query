@@ -72,7 +72,7 @@ jobs:
         id: wait-build
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: build
+          checkName: build-container
           ref: ${{ github.sha }}
           intervalSeconds: 10
           timeoutSeconds: 600 # 10m
