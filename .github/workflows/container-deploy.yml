@@ -77,10 +77,6 @@ jobs:
           intervalSeconds: 10
           timeoutSeconds: 600 # 10m
 
-      - name: Do something if build isn't launched
-        if: steps.wait-build.outputs.conclusion == 'not found'
-        run: echo job does not exist && true
-
       - name: Do something if build fail
         if: steps.wait-build.outputs.conclusion == 'failure'
         run: echo fail && false # fail if build fail
