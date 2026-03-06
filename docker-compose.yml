@@ -24,6 +24,9 @@ services:
       - ${POSTGRES_HBA_FILE}:/etc/pg_hba.conf
     networks:
       - common_net
+    extra_hosts:
+      # enable resolution of host for certain scenarios
+      - host.docker.internal:host-gateway
 
   query:
     image: ghcr.io/openfoodfacts/openfoodfacts-query:${TAG}
@@ -33,6 +36,7 @@ services:
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD
+      - POSTGRES_SUPERSET_PASSWORD
       - MONGO_URI
       - REDIS_URL
       - LOG_LEVEL

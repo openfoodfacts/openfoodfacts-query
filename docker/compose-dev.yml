@@ -2,6 +2,8 @@ services:
   query:
     build: .
     image: openfoodfacts-query:dev
+    volumes:
+      - ./query:/code/query
 
 volumes:
   # in dev let, docker compose manage it
