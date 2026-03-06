@@ -102,18 +102,14 @@ jobs:
           echo "POSTGRES_REPLICATION_SOURCE_PORT=16002" >> $GITHUB_ENV
 
       - name: Wait for container build workflow
-        uses: tomchv/wait-my-workflow@v1.1.0
+        uses: fountainhead/action-wait-for-check@v1.2.0
         id: wait-build
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: build
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          checkName: build-container
+          ref: ${{ github.sha }}
           intervalSeconds: 10
           timeoutSeconds: 600 # 10m
-
-      - name: Do something if build isn't launched
-        if: steps.wait-build.outputs.conclusion == 'not found'
-        run: echo job does not exist && true
 
       - name: Do something if build fail
         if: steps.wait-build.outputs.conclusion == 'failure'

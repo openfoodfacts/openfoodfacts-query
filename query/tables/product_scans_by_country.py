@@ -2,7 +2,6 @@
 
 from ..database import create_record
 from ..models.scan import ProductScans
-from ..tables.product_country import fixup_product_countries_for_products
 
 
 async def create_table(transaction):
@@ -27,11 +26,10 @@ async def create_scan(transaction, product, country, year, unique_scans):
         year=year,
         unique_scans=unique_scans,
     )
-    await fixup_product_countries_for_products(transaction, [product["id"]])
     return scan
 
 
-async def create_scans(transaction, scans: ProductScans):
+async def insert_product_scans_by_country(transaction, scans: ProductScans):
     scans_by_country = []
     for code, years in scans.root.items():
         for year, scan_counts in years.root.items():

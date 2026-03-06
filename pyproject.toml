@@ -1,6 +1,6 @@
 [project]
 name = "query"
-version = "0.2.0"
+version = "0.2.1"
 description = "Open Food Facts: The Open Food Facts Data Warehouse"
 authors = [
     {name = "Open Food Facts Team"}

@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  build-container:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -20,7 +20,7 @@ jobs:
       - name: Set Up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          version: v0.10.0
+          version: v0.31.1
           buildkitd-flags: --debug
 
       - name: Install poetry
