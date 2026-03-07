@@ -6,6 +6,8 @@ SHELL := /bin/bash
 # load env variables to be able to use them in this file
 # also takes into account envrc (direnv file)
 include .env
+# EXTRA_ENV is used when setting up a replica database
+-include ${EXTRA_ENV_FILE}
 -include .envrc
 export
 

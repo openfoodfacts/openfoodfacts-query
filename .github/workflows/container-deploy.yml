@@ -205,9 +205,9 @@ jobs:
           script: |
             cd ${{ env.PROJECT_DIR }}
 
-            # start from the dev files
-            cp confs/postgresql/dev.conf confs/postgresql/prod.conf
-            cp confs/postgresql/dev_hba.conf confs/postgresql/prod_hba.conf
+            # start from the base files
+            cp confs/postgresql/base.conf confs/postgresql/prod.conf
+            cp confs/postgresql/base_hba.conf confs/postgresql/prod_hba.conf
 
             # Edit config to add replication settings
             echo "# Add replication settings for main postgres" >> confs/postgresql/prod.conf
@@ -236,9 +236,9 @@ jobs:
           script: |
             cd ${{ env.PROJECT_DIR }}
 
-            # start from the dev files
-            cp confs/postgresql/dev.conf confs/postgresql/prod.conf
-            cp confs/postgresql/dev_hba.conf confs/postgresql/prod_hba.conf
+            # start from the base files
+            cp confs/postgresql/base.conf confs/postgresql/prod.conf
+            cp confs/postgresql/base_hba.conf confs/postgresql/prod_hba.conf
 
             # add replication settings
             echo "# replication settings for replicate" >> confs/postgresql/prod.conf

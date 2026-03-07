@@ -4,7 +4,7 @@ Postgres has the capability to replicate a primary instance,
 into multiple secondary instances.
 Those secondary instances cannot be used for writing but can be use for requests.
 In normal condition, the replication is very fast,
-in degraded conditions, it will cope up as soon as it can without loosing data.
+in degraded conditions, it will catch up as soon as it can without loosing data.
 
 You can find a lot of documentation on internet, official doc includes:
 - the [official chapter on High Availability, Load Balancing, and Replication](https://www.postgresql.org/docs/current/high-availability.html)
@@ -17,7 +17,7 @@ to create dashboards and so on using superset.
 
 On the primary server, we have to add some configurations,
 in order for it to accept replication connections,
-and keep write ahead logs enough time so that in case of network loss,
+and keep write ahead logs for enough time that in case of network loss
 the replicas can catch up.
 This is possible by mounting a different configuration file for postgres.
 
@@ -34,18 +34,20 @@ see the `container-deploy.yml` workflow.
 ## Bootstraping replication
 
 The replication must be boostrapped.
-This is the step where the replica ask for all data to primary instance,
+This is the step where the replica asks for all data to primary instance,
 before starting to look at the stream of events.
 
 For this we need to avoid starting the replica container,
 because the docker image will immediately create a new database,
 according to environment (if that happens we must remove data from the postgres volume).
+Note that in development we set the POSTGRES_PASSWORD to empty on the replica
+which prevents a database from being created.
 
 Instead we run the container using `pg_basebackup`.
 
 Something like:
 ```bash
-docker compose run --entry-point bash query_postgres
+docker compose run --rm --entrypoint bash query_postgres
 
 /usr/local/bin/pg_basebackup --host <remote_host> --port <remote_port> --username replication --password --pgdata /var/lib/postgresql/data --progress --wal-method=stream --write-recovery-conf --create-slot --slot <slot_name> -v
 ...
@@ -55,7 +57,7 @@ The slot name must be a unique value to this replica.
 
 If it happens that we want to restart the process,
 we need first to remove the slot on the primary host,
-using `select pg_drop_replication_slot('<slot_name>');`.
+using `select pg_drop_replication_slot('<slot_name>');`. Or alternatively you can run the `pg_basebackup` command with the `--create-slot` option removed.
 
 
 ## Testing it on your own

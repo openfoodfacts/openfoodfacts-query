@@ -23,7 +23,9 @@ services:
       - ${POSTGRES_CONFIG_FILE}:/etc/postgresql.conf
       - ${POSTGRES_HBA_FILE}:/etc/pg_hba.conf
     networks:
-      - common_net
+      common_net:
+        aliases:
+          - ${DOCKER_POSTGRES_ALIAS}
     extra_hosts:
       # enable resolution of host for certain scenarios
       - host.docker.internal:host-gateway
@@ -32,7 +34,7 @@ services:
     image: ghcr.io/openfoodfacts/openfoodfacts-query:${TAG}
     restart: ${RESTART_POLICY:-always}
     environment:
-      - POSTGRES_HOST=${DOCKER_POSTGRES_HOST:-query_postgres:5432}
+      - POSTGRES_HOST=${DOCKER_POSTGRES_ALIAS:-query_postgres}:5432
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD
