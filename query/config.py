@@ -12,6 +12,7 @@ class ConfigSettings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
+    POSTGRES_SUPERSET_PASSWORD: str
     SCHEMA: str = "query"
     VIEW_USER: str = "viewer"
     VIEW_PASSWORD: str = "off"
