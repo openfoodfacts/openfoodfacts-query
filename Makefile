@@ -6,6 +6,8 @@ SHELL := /bin/bash
 # load env variables to be able to use them in this file
 # also takes into account envrc (direnv file)
 include .env
+# EXTRA_ENV is used when setting up a replica database
+-include ${EXTRA_ENV_FILE}
 -include .envrc
 export
 
@@ -24,6 +26,9 @@ build:
 up: run_deps build
 	docker compose up --wait
 
+_up: run_deps
+	docker compose up --wait
+
 # Called by other projects to start this project as a dependency
 run: run_deps
 	COMPOSE_FILE=${COMPOSE_FILE_RUN} docker compose up -d
@@ -39,6 +44,25 @@ migrate_database_local: start_postgres
 
 migrate_database_docker:
 	docker compose run --rm query python -m query.migrator
+
+# used for deployment
+create_external_networks:
+		@echo "🔍 Creating external networks (production only) …"
+		docker network create ${COMMON_NET_NAME} \
+		|| echo "network already exists"
+
+# in staging/prod, volumes might be on virtiofs,
+# so we prefer to create them manually
+create_external_volumes:
+		@echo  "🔍 Creating external volumes (production only) …"
+		docker volume create ${COMPOSE_PROJECT_NAME}_dbdata \
+		|| echo "volume already exists"
+
+create_replication_user:
+	@echo  "🔍 Creating replication user (production only) …"
+# user @ to avoid exposing password
+	@docker compose exec query_postgres \
+	  bash -c "PGPASSWORD=${POSTGRES_PASSWORD} psql -h 127.0.0.1 -U ${POSTGRES_USER} ${POSTGRES_DB} -c \"create role replication with replication login password '${POSTGRES_REPLICATION_PASSWORD}'\" || true "
 
 watch: migrate_database_local
 	poetry run python -m query.main watch
