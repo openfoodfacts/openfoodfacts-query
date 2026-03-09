@@ -5,6 +5,7 @@ async def up(transaction):
     # So that it can read data and access schema
     await transaction.execute(
         f"""
+        DROP OWNED BY superset; \
         DROP ROLE IF EXISTS superset; \
         CREATE ROLE superset LOGIN PASSWORD '{config_settings.POSTGRES_SUPERSET_PASSWORD}'; \
         GRANT pg_read_all_data TO superset; \
