@@ -72,8 +72,8 @@ jobs:
 
           # Postgres config. We use memory to gain performance on reads and writes
           echo "POSTGRES_SHM_SIZE=18g" >> $GITHUB_ENV
-         echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
-         echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
+          echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
+          echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
 
       - name: Set various variable for prod replica deployment
         if: matrix.env == 'off-query-replica-org'
