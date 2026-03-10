@@ -68,6 +68,9 @@ def get_test_products():
                     }
                 }
             },
+            "nutriments": {
+                "carbohydrates_100g": 20,
+            },
         },
     ]
 
@@ -210,7 +213,7 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         supplied_random_nutrient = [
             item
             for item in products[1]["nutrition"]["aggregated_set"]["nutrients"].items()
-            if item[0] not in ["carbohydrates"]
+            if item[0] not in ["carbohydrates", "invalid"]
         ][0]
         found_random_nutrient = await get_nutrient(
             transaction, supplied_random_nutrient[0]
@@ -231,6 +234,18 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
             found_random_product_nutrient[0]["value"]
             == supplied_random_nutrient[1]["value"]
         )
+
+        # Should ignore old schema if both are present
+        carbohydrate_nutrient = await get_nutrient(
+            transaction, "carbohydrates"
+        )
+        found_carbohydrate = [
+            item
+            for item in existing_product_nutrients
+            if item["nutrient_id"] == carbohydrate_nutrient["id"]
+        ]
+        assert found_carbohydrate
+        assert found_carbohydrate[0]["value"] == 21
 
 
 @patch.object(ingestion, "find_products")
