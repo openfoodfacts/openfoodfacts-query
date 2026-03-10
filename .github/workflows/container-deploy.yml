@@ -71,7 +71,7 @@ jobs:
           echo "REDIS_URL=redis://10.3.0.101:6379" >> $GITHUB_ENV
 
           # Postgres config. We use memory to gain performance on reads and writes
-          echo "POSTGRES_SHM_SIZE=2g" >> $GITHUB_ENV
+          echo "POSTGRES_SHM_SIZE=16g" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_SHARED_BUFFERS=16GB" >> $GITHUB_ENV
           echo "QUERY_POSTGRES_WORK_MEM=1GB" >> $GITHUB_ENV
 
@@ -208,6 +208,9 @@ jobs:
             # start from the base files
             cp confs/postgresql/base.conf confs/postgresql/prod.conf
             cp confs/postgresql/base_hba.conf confs/postgresql/prod_hba.conf
+
+            echo "# Avoiding consider increesing max_wal_size" >> confs/postgresql/prod.conf
+            echo "max_wal_size=10GB" >> confs/postgresql/prod.conf
 
             # Edit config to add replication settings
             echo "# Add replication settings for main postgres" >> confs/postgresql/prod.conf
