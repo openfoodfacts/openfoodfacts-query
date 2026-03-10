@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.2.1...v0.3.0) (2026-03-10)
+
+
+### Features
+
+* Add more information to the health check ([#276](https://github.com/openfoodfacts/openfoodfacts-query/issues/276)) ([a2a8a42](https://github.com/openfoodfacts/openfoodfacts-query/commit/a2a8a422984e55fd990a4bcb8e02219e49e1bd78))
+* replication of database so that it can be queried by superset ([#225](https://github.com/openfoodfacts/openfoodfacts-query/issues/225)) ([c2f1238](https://github.com/openfoodfacts/openfoodfacts-query/commit/c2f12383d6ef6acd263d29cbf2fd28a0dba07cbf))
+
+
+### Bug Fixes
+
+* Deploy YAML syntax error ([#278](https://github.com/openfoodfacts/openfoodfacts-query/issues/278)) ([a0c202c](https://github.com/openfoodfacts/openfoodfacts-query/commit/a0c202c4a7eb9b8fa85c96dfdb1f1a9b1aa25dd1))
+* Don't import nutriments if new nutrition schema is present ([#277](https://github.com/openfoodfacts/openfoodfacts-query/issues/277)) ([6a14645](https://github.com/openfoodfacts/openfoodfacts-query/commit/6a14645d6e0817a1d39af104362891ae1a220f40))
+* migration creating superset user ([#274](https://github.com/openfoodfacts/openfoodfacts-query/issues/274)) ([6da1cee](https://github.com/openfoodfacts/openfoodfacts-query/commit/6da1cee6ae061fd2acf1bb2b47d3b171ab066abc))
+* Rename container build job as was clashing with pages build ([#270](https://github.com/openfoodfacts/openfoodfacts-query/issues/270)) ([5c2d956](https://github.com/openfoodfacts/openfoodfacts-query/commit/5c2d9560a2bb3ac0ee8ea7d8d46339b7c11958bc))
+* Use original action-wait-for-check so does not fail if job not created yet ([#268](https://github.com/openfoodfacts/openfoodfacts-query/issues/268)) ([8ea65d5](https://github.com/openfoodfacts/openfoodfacts-query/commit/8ea65d50b718250ee740ea4512f9e5538f3d563a))
+
 ## [0.2.1](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.2.0...v0.2.1) (2026-03-01)
 
 
