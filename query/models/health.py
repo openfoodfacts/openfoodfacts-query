@@ -20,11 +20,13 @@ class HealthItem(BaseModel):
     status: HealthItemStatusEnum = HealthItemStatusEnum.up
     reason: str | None = None
     """Error information if the item is unhealthy"""
+    info: Dict | None = None
+    """Additional specific information"""
 
 
 class Health(BaseModel):
-    def add(self, name: str, status: HealthItemStatusEnum, reason: str = None):
-        self.info[name] = HealthItem(status=status, reason=reason)
+    def add(self, name: str, status: HealthItemStatusEnum, reason: str = None, info: Dict = None):
+        self.info[name] = HealthItem(status=status, reason=reason, info=info)
         if status != HealthItemStatusEnum.up:
             self.status = HealthStatusEnum.error
 
