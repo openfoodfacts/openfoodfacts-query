@@ -783,14 +783,16 @@ async def test_event_load_should_restore_deleted_products(
 @patch.object(ingestion, "find_products")
 @patch.object(ingestion, "create_product_nutrients_from_staging")
 @patch.object(ingestion, "logger")
-async def test_skips_products_where_sql_fails(
+async def assert_for_failing_product_indices(
+    product_count: int,
+    error_indices: list,
     logger_mock: Mock,
     update_nutrients_mock: Mock,
     find_products_mock: Mock,
 ):
     products = []
     owner = random_code()
-    for i in range(10):
+    for i in range(product_count):
         products.append(
             {
                 "code": random_code(),
@@ -800,17 +802,19 @@ async def test_skips_products_where_sql_fails(
         )
 
     patch_context_manager(find_products_mock, mock_cursor(products))
-
-    error_product = products[7]["code"]
+    
+    error_products = []
+    for i in error_indices:
+        error_products.append(products[i]["code"])
 
     async def error_on_nutrient(transaction, _):
         # The following SQL will fail if the temp table contains the rogue product
         await transaction.execute(
             """INSERT INTO product_nutrient (product_id)
             SELECT 0 FROM product_temp
-            WHERE data->>'code' = $1
+            WHERE data->>'code' = ANY($1)
             """,
-            error_product,
+            error_products,
         )
 
     update_nutrients_mock.side_effect = error_on_nutrient
@@ -818,56 +822,21 @@ async def test_skips_products_where_sql_fails(
     await ingestion.import_from_mongo("")
 
     response = await query.count(Filter(owners_tags=owner))
-    assert response == 9
+    assert response == product_count - len(error_indices)
 
     error_calls = logger_mock.error.call_args_list
-    assert len(error_calls) == 1
-    assert error_product in error_calls[0][0][0]
+    assert len(error_calls) == len(error_indices)
+    for i in range(len(error_indices)):
+        assert error_products[i] in error_calls[i][0][0]
 
 
-@patch.object(ingestion, "find_products")
-@patch.object(ingestion, "create_product_nutrients_from_staging")
-@patch.object(ingestion, "logger")
-async def test_skips_products_where_multiple_sql_fails(
-    logger_mock: Mock,
-    update_nutrients_mock: Mock,
-    find_products_mock: Mock,
-):
-    products = []
-    owner = random_code()
-    for i in range(10):
-        products.append(
-            {
-                "code": random_code(),
-                "last_updated_t": last_updated,
-                "owners_tags": owner,
-            }
-        )
+async def test_skips_products_where_sql_fails():
+    await assert_for_failing_product_indices(10, [7])
 
-    patch_context_manager(find_products_mock, mock_cursor(products))
 
-    error_product1 = products[0]["code"]
-    error_product2 = products[9]["code"]
+async def test_skips_products_where_multiple_sql_fails():
+    await assert_for_failing_product_indices(10, [0, 9])
+    
+async def test_skips_products_where_second_product_fails():
+    await assert_for_failing_product_indices(5, [1])
 
-    async def error_on_nutrient(transaction, _):
-        # The following SQL will fail if the temp table contains the rogue product
-        await transaction.execute(
-            """INSERT INTO product_nutrient (product_id)
-            SELECT 0 FROM product_temp
-            WHERE data->>'code' IN ($1,$2)
-            """,
-            error_product1,
-            error_product2,
-        )
-
-    update_nutrients_mock.side_effect = error_on_nutrient
-
-    await ingestion.import_from_mongo("")
-
-    response = await query.count(Filter(owners_tags=owner))
-    assert response == 8
-
-    error_calls = logger_mock.error.call_args_list
-    assert len(error_calls) == 2
-    assert error_product1 in error_calls[0][0][0]
-    assert error_product2 in error_calls[1][0][0]

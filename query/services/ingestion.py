@@ -97,7 +97,7 @@ async def import_with_filter(
         if config_settings.SKIP_DATA_MIGRATIONS:
             return
 
-        # Keep a not of the last message id at the start of the upgrade as we want to re-play any messages
+        # Keep a note of the last message id at the start of the upgrade as we want to re-play any messages
         # that were processed by the old version after this point
         await set_pre_migration_message_id()
     else:
@@ -185,7 +185,6 @@ async def import_with_filter(
                             transaction,
                             product_updates,
                             obsolete,
-                            update_count,
                             process_id,
                             source,
                             tags,
@@ -197,7 +196,6 @@ async def import_with_filter(
                     transaction,
                     product_updates,
                     obsolete,
-                    update_count,
                     process_id,
                     source,
                     tags,
@@ -233,7 +231,6 @@ async def apply_product_updates(
     transaction: Connection,
     product_updates,
     obsolete,
-    update_count,
     process_id,
     source,
     tags,
@@ -292,8 +289,9 @@ async def apply_product_updates(
             await transaction.execute("COMMIT")
             await transaction.execute("BEGIN TRANSACTION")
 
+            product_count = len(product_updates)
             logger.info(
-                f"Imported {update_count}{' obsolete' if obsolete else ''} products"
+                f"Imported {product_count}{' obsolete' if obsolete else ''} products"
             )
 
             del product_updates[:]
@@ -303,9 +301,20 @@ async def apply_product_updates(
                     logger.error(
                         f"Error updating product: {remaining_updates[0][2]['code']}, {repr(last_sqlerror)}"
                     )
+                elif product_count == 1:
+                    # We previously will have tried a batch of 2 which presumably failed, so we can assume the
+                    # Product with the error is the first one in the remaining updates
+                    logger.error(
+                        f"Error updating product: {remaining_updates[0][2]['code']}, {repr(last_sqlerror)}"
+                    )
+                    del product_updates[:]
+                    product_updates.extend(remaining_updates[1:])
+                    del remaining_updates[:]
                 else:
                     # Move the first half of remaining back in for retry
-                    next_retry_count = len(remaining_updates) // 2
+                    # As mentioned below, if there are, say, 3 left then we want
+                    # to retry the first two. Don't need -1 on the range as the upper is not inclusive
+                    next_retry_count = (len(remaining_updates) + 1) // 2
                     product_updates[0:0] = remaining_updates[:next_retry_count]
                     del remaining_updates[:next_retry_count]
 
@@ -322,8 +331,10 @@ async def apply_product_updates(
                 product_updates.extend(remaining_updates)
                 del remaining_updates[:]
             else:
-                # move the last half of the products into remaining
-                next_retry_count = len(product_updates) // 2
+                # move the last half of the products into remaining. We want our penultimate retry to be on
+                # a group of two so that if we then split again and succeed we know the problem was with the second one
+                # Hence if we have 3 updates to try we want to then split it into 2 and 1 for retries
+                next_retry_count = (len(product_updates) + 1) // 2
                 remaining_updates[0:0] = product_updates[next_retry_count:]
                 del product_updates[next_retry_count:]
 
