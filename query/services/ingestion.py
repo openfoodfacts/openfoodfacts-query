@@ -128,6 +128,7 @@ async def import_with_filter(
         for obsolete in [False, True]:
             update_count = 0
             skip_count = 0
+            product_updates = []
             async with find_products(filter, projection, obsolete) as cursor:
                 async for product_data in cursor:
                     product_code = product_data["code"]
@@ -169,15 +170,19 @@ async def import_with_filter(
                         tag_data = product_data.get(tag, None)
                         strip_nuls(tag_data, f"Product: {product_code}, tag: {tag}")
 
-                    await transaction.execute(
-                        "INSERT INTO product_temp (id, last_updated, data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-                        existing_product["id"],
+                    product_updates.append([existing_product["id"],
                         last_updated,
-                        product_data,
-                    )
+                        product_data])
 
                     update_count += 1
                     if not (update_count % batch_size):
+                        await transaction.executemany(
+                            """INSERT INTO product_temp (id, last_updated, data) 
+                            values ($1, $2, $3) ON CONFLICT DO NOTHING""",
+                            product_updates,
+                        )
+                        product_updates = []
+
                         await apply_staged_changes(
                             transaction,
                             obsolete,
@@ -189,6 +194,11 @@ async def import_with_filter(
 
             # Apply any remaining staged changes
             if update_count % batch_size:
+                await transaction.executemany(
+                    """INSERT INTO product_temp (id, last_updated, data) 
+                    values ($1, $2, $3) ON CONFLICT DO NOTHING""",
+                    product_updates,
+                )
                 await apply_staged_changes(
                     transaction, obsolete, update_count, process_id, source, tags
                 )
