@@ -240,9 +240,11 @@ async def apply_product_updates(
 ):
     """Inserts data from product_updates into the the product_temp temporary table
     and then copies from here to the relational tables.
-    Assumes that a basic product record has already been created"""
+    Assumes that a minimal product record has already been created"""
 
     remaining_updates = []
+    # We remember the last SQL error so that if we have a failure, retry successsfully but only have
+    # one remaining product to test then we know the error must relate to this one
     last_sqlerror = None
     retrying = False
     while len(product_updates):
@@ -258,6 +260,7 @@ async def apply_product_updates(
 
             if retrying:
                 # We have to re-create any minimal products as they will have been rolled back
+                # if we have had an error in this batch
                 await transaction.execute(
                     """INSERT INTO product (id, code)
                     SELECT id, data->>'code'
@@ -289,27 +292,31 @@ async def apply_product_updates(
             await transaction.execute("COMMIT")
             await transaction.execute("BEGIN TRANSACTION")
 
-            del product_updates[:]
-
             logger.info(
                 f"Imported {update_count}{' obsolete' if obsolete else ''} products"
             )
+
+            del product_updates[:]
             if len(remaining_updates):
                 if len(remaining_updates) == 1:
-                    # We have found our bad product. No need to keep going
-                    logger.error(f"Error updating product: {remaining_updates[0][2]['code']}, {repr(last_sqlerror)}")
+                    # We have saved everything except our bad product. No need to keep going
+                    logger.error(
+                        f"Error updating product: {remaining_updates[0][2]['code']}, {repr(last_sqlerror)}"
+                    )
                 else:
-                    # move the first half of remaining back in for retry
+                    # Move the first half of remaining back in for retry
                     next_retry_count = len(remaining_updates) // 2
                     product_updates[0:0] = remaining_updates[:next_retry_count]
                     del remaining_updates[:next_retry_count]
-                
+
         except asyncpg.PostgresError as sql_error:
             last_sqlerror = sql_error
             await transaction.execute("ROLLBACK")
             if len(product_updates) == 1:
                 # We have found our bad product
-                logger.error(f"Error updating product: {product_updates[0][2]['code']}, {repr(last_sqlerror)}")
+                logger.error(
+                    f"Error updating product: {product_updates[0][2]['code']}, {repr(last_sqlerror)}"
+                )
                 last_sqlerror = None
                 del product_updates[:]
                 product_updates.extend(remaining_updates)
