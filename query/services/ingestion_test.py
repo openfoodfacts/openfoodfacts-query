@@ -5,6 +5,8 @@ import time
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
+from query.models.query import Filter
+from query.services import query
 from query.tables.nutrient import get_nutrient
 from query.tables.product_nutrient import get_product_nutrients
 
@@ -62,9 +64,7 @@ def get_test_products():
                         f"{random_code()}": {
                             "value": random.uniform(100, 0.000001),
                         },
-                        "invalid": {
-                            "value": "100g"
-                        }
+                        "invalid": {"value": "100g"},
                     }
                 }
             },
@@ -236,9 +236,7 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         )
 
         # Should ignore old schema if both are present
-        carbohydrate_nutrient = await get_nutrient(
-            transaction, "carbohydrates"
-        )
+        carbohydrate_nutrient = await get_nutrient(transaction, "carbohydrates")
         found_carbohydrate = [
             item
             for item in existing_product_nutrients
@@ -780,3 +778,65 @@ async def test_event_load_should_restore_deleted_products(
         product_countries = await get_product_countries(transaction, deleted_product)
         assert len(product_countries) == 1
         assert product_countries[0]["obsolete"] == False
+
+
+@patch.object(ingestion, "find_products")
+@patch.object(ingestion, "create_product_nutrients_from_staging")
+@patch.object(ingestion, "logger")
+async def assert_for_failing_product_indices(
+    product_count: int,
+    error_indices: list,
+    logger_mock: Mock,
+    update_nutrients_mock: Mock,
+    find_products_mock: Mock,
+):
+    products = []
+    owner = random_code()
+    for i in range(product_count):
+        products.append(
+            {
+                "code": random_code(),
+                "last_updated_t": last_updated,
+                "owners_tags": owner,
+            }
+        )
+
+    patch_context_manager(find_products_mock, mock_cursor(products))
+    
+    error_products = []
+    for i in error_indices:
+        error_products.append(products[i]["code"])
+
+    async def error_on_nutrient(transaction, _):
+        # The following SQL will fail if the temp table contains the rogue product
+        await transaction.execute(
+            """INSERT INTO product_nutrient (product_id)
+            SELECT 0 FROM product_temp
+            WHERE data->>'code' = ANY($1)
+            """,
+            error_products,
+        )
+
+    update_nutrients_mock.side_effect = error_on_nutrient
+
+    await ingestion.import_from_mongo("")
+
+    response = await query.count(Filter(owners_tags=owner))
+    assert response == product_count - len(error_indices)
+
+    error_calls = logger_mock.error.call_args_list
+    assert len(error_calls) == len(error_indices)
+    for i in range(len(error_indices)):
+        assert error_products[i] in error_calls[i][0][0]
+
+
+async def test_skips_products_where_sql_fails():
+    await assert_for_failing_product_indices(10, [7])
+
+
+async def test_skips_products_where_multiple_sql_fails():
+    await assert_for_failing_product_indices(10, [0, 9])
+    
+async def test_skips_products_where_second_product_fails():
+    await assert_for_failing_product_indices(5, [1])
+
