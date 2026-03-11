@@ -5,6 +5,8 @@ import time
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
+from query.models.query import Filter
+from query.services import query
 from query.tables.nutrient import get_nutrient
 from query.tables.product_nutrient import get_product_nutrients
 
@@ -780,3 +782,41 @@ async def test_event_load_should_restore_deleted_products(
         product_countries = await get_product_countries(transaction, deleted_product)
         assert len(product_countries) == 1
         assert product_countries[0]["obsolete"] == False
+
+@patch.object(ingestion, "find_products")
+@patch.object(ingestion, "create_product_nutrients_from_staging")
+async def test_skips_products_where_sql_fails(
+    update_nutrients_mock: Mock,
+    find_products_mock: Mock,
+):
+    products = []
+    owner = random_code()
+    for i in range(10):
+        products.append({
+            "code": random_code(),
+            "last_updated_t": last_updated,
+            "owners_tags": owner,
+        })
+
+    patch_context_manager(
+        find_products_mock, mock_cursor(products)
+    )
+    
+    error_product = products[7]['code']
+    async def error_on_nutrient(transaction, _):
+        # The following SQL will fail if the temp table contains the rogue product
+        await transaction.execute(
+            """INSERT INTO product_nutrient (product_id)
+            SELECT 0 FROM product_temp
+            WHERE data->>'code' = $1
+            """,
+            error_product)
+
+    update_nutrients_mock.side_effect = error_on_nutrient
+
+    await ingestion.import_from_mongo("")
+
+    response = await query.count(
+        Filter(owners_tags=owner)
+    )
+    assert response == 9

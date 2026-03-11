@@ -170,21 +170,15 @@ async def import_with_filter(
                         tag_data = product_data.get(tag, None)
                         strip_nuls(tag_data, f"Product: {product_code}, tag: {tag}")
 
-                    product_updates.append([existing_product["id"],
-                        last_updated,
-                        product_data])
+                    product_updates.append(
+                        [existing_product["id"], last_updated, product_data]
+                    )
 
                     update_count += 1
                     if not (update_count % batch_size):
-                        await transaction.executemany(
-                            """INSERT INTO product_temp (id, last_updated, data) 
-                            values ($1, $2, $3) ON CONFLICT DO NOTHING""",
-                            product_updates,
-                        )
-                        product_updates = []
-
-                        await apply_staged_changes(
+                        await apply_product_updates(
                             transaction,
+                            product_updates,
                             obsolete,
                             update_count,
                             process_id,
@@ -194,13 +188,14 @@ async def import_with_filter(
 
             # Apply any remaining staged changes
             if update_count % batch_size:
-                await transaction.executemany(
-                    """INSERT INTO product_temp (id, last_updated, data) 
-                    values ($1, $2, $3) ON CONFLICT DO NOTHING""",
+                await apply_product_updates(
+                    transaction,
                     product_updates,
-                )
-                await apply_staged_changes(
-                    transaction, obsolete, update_count, process_id, source, tags
+                    obsolete,
+                    update_count,
+                    process_id,
+                    source,
+                    tags,
                 )
             if skip_count % batch_size:
                 logger.info(
@@ -229,39 +224,93 @@ async def import_with_filter(
     return max_last_updated
 
 
-async def apply_staged_changes(
-    transaction: Connection, obsolete, update_count, process_id, source, tags
+async def apply_product_updates(
+    transaction: Connection,
+    product_updates,
+    obsolete,
+    update_count,
+    process_id,
+    source,
+    tags,
 ):
-    """ "Copies data from the product_temp temporary table to the relational tables.
+    """Inserts data from product_updates into the the product_temp temporary table
+    and then copies from here to the relational tables.
     Assumes that a basic product record has already been created"""
-    # Analyze the temp table first as this improves the generated query plans
-    await transaction.execute("ANALYZE product_temp")
 
-    log = logger.debug
-    if PRODUCT_TAG in tags:
-        await update_products_from_staging(
-            transaction, log, obsolete, process_id, source
-        )
+    remaining_updates = []
+    retrying = False
+    while len(product_updates):
+        try:
+            await transaction.executemany(
+                """INSERT INTO product_temp (id, last_updated, data) 
+                values ($1, $2, $3) ON CONFLICT DO NOTHING""",
+                product_updates,
+            )
 
-    if INGREDIENTS_TAG in tags:
-        await create_ingredients_from_staging(transaction, log, obsolete)
+            # Analyze the temp table first as this improves the generated query plans
+            await transaction.execute("ANALYZE product_temp")
 
-    await create_tags_from_staging(transaction, log, obsolete, tags)
+            if retrying:
+                # We have to re-create any minimal products as they will have been rolled back
+                await transaction.execute(
+                    """INSERT INTO product (id, code)
+                    SELECT id, data->>'code'
+                    FROM product_temp pt
+                    WHERE NOT EXISTS (SELECT * FROM product p WHERE p.id = pt.id)"""
+                )
 
-    if COUNTRIES_TAG in tags:
-        await fixup_product_countries(transaction, obsolete)
+            log = logger.debug
+            if PRODUCT_TAG in tags:
+                await update_products_from_staging(
+                    transaction, log, obsolete, process_id, source
+                )
 
-    if NUTRIENT_TAG in tags:
-        await create_product_nutrients_from_staging(transaction, log)
+            if INGREDIENTS_TAG in tags:
+                await create_ingredients_from_staging(transaction, log, obsolete)
 
-    await transaction.execute("TRUNCATE TABLE product_temp")
+            await create_tags_from_staging(transaction, log, obsolete, tags)
 
-    # Start a new transaction for the next batch
-    # The calling process will commit the final transaction
-    await transaction.execute("COMMIT")
-    await transaction.execute("BEGIN TRANSACTION")
+            if COUNTRIES_TAG in tags:
+                await fixup_product_countries(transaction, obsolete)
 
-    logger.info(f"Imported {update_count}{' obsolete' if obsolete else ''} products")
+            if NUTRIENT_TAG in tags:
+                await create_product_nutrients_from_staging(transaction, log)
+
+            await transaction.execute("TRUNCATE TABLE product_temp")
+
+            # Start a new transaction for the next batch
+            # The calling process will commit the final transaction
+            await transaction.execute("COMMIT")
+            await transaction.execute("BEGIN TRANSACTION")
+
+            del product_updates[:]
+
+            logger.info(
+                f"Imported {update_count}{' obsolete' if obsolete else ''} products"
+            )
+            if len(remaining_updates):
+                # First one in remaining updates must be the rogue product
+                product_updates.extend(remaining_updates[1:])
+                del remaining_updates[:]
+                
+        except Exception as e:
+            await transaction.execute("ROLLBACK")
+            if len(product_updates) == 1:
+                # We have found our bad product
+                del product_updates[:]
+                product_updates.extend(remaining_updates)
+                del remaining_updates[:]
+            else:
+                # move the last product into remaining
+                remaining_updates.insert(0, product_updates[-1])
+                del product_updates[-1]
+
+            # Start a new transaction
+            await transaction.execute("BEGIN TRANSACTION")
+            await transaction.execute(
+                "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
+            )
+            retrying = True
 
 
 import_running = False
