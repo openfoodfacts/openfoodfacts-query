@@ -785,7 +785,9 @@ async def test_event_load_should_restore_deleted_products(
 
 @patch.object(ingestion, "find_products")
 @patch.object(ingestion, "create_product_nutrients_from_staging")
+@patch.object(ingestion, "logger")
 async def test_skips_products_where_sql_fails(
+    logger_mock: Mock,
     update_nutrients_mock: Mock,
     find_products_mock: Mock,
 ):
@@ -820,3 +822,8 @@ async def test_skips_products_where_sql_fails(
         Filter(owners_tags=owner)
     )
     assert response == 9
+    
+    error_calls = logger_mock.error.call_args_list
+    assert len(error_calls) == 1
+    assert error_product in error_calls[0][0][0]
+    

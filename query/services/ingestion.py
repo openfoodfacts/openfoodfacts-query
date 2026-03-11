@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Dict
 
 from asyncpg import Connection
+import asyncpg
 
 from query.tables.product_nutrient import (
     NUTRIENT_TAG,
@@ -108,6 +109,10 @@ async def import_with_filter(
     await transaction.execute(
         "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
     )
+    # Commit the temporary table so it isn't rolled back on failure. Stays active for the session
+    await transaction.execute("COMMIT")
+    await transaction.execute("BEGIN TRANSACTION")
+
     try:
         process_id = await get_process_id(transaction)
         projection = {key: True for key in tags if key != PRODUCT_TAG}
@@ -238,6 +243,7 @@ async def apply_product_updates(
     Assumes that a basic product record has already been created"""
 
     remaining_updates = []
+    last_sqlerror = None
     retrying = False
     while len(product_updates):
         try:
@@ -289,27 +295,33 @@ async def apply_product_updates(
                 f"Imported {update_count}{' obsolete' if obsolete else ''} products"
             )
             if len(remaining_updates):
-                # First one in remaining updates must be the rogue product
-                product_updates.extend(remaining_updates[1:])
-                del remaining_updates[:]
+                if len(remaining_updates) == 1:
+                    # We have found our bad product. No need to keep going
+                    logger.error(f"Error updating product: {remaining_updates[0][2]['code']}, {repr(last_sqlerror)}")
+                else:
+                    # move the first half of remaining back in for retry
+                    next_retry_count = len(remaining_updates) // 2
+                    product_updates[0:0] = remaining_updates[:next_retry_count]
+                    del remaining_updates[:next_retry_count]
                 
-        except Exception as e:
+        except asyncpg.PostgresError as sql_error:
+            last_sqlerror = sql_error
             await transaction.execute("ROLLBACK")
             if len(product_updates) == 1:
                 # We have found our bad product
+                logger.error(f"Error updating product: {product_updates[0][2]['code']}, {repr(last_sqlerror)}")
+                last_sqlerror = None
                 del product_updates[:]
                 product_updates.extend(remaining_updates)
                 del remaining_updates[:]
             else:
-                # move the last product into remaining
-                remaining_updates.insert(0, product_updates[-1])
-                del product_updates[-1]
+                # move the last half of the products into remaining
+                next_retry_count = len(product_updates) // 2
+                remaining_updates[0:0] = product_updates[next_retry_count:]
+                del product_updates[next_retry_count:]
 
             # Start a new transaction
             await transaction.execute("BEGIN TRANSACTION")
-            await transaction.execute(
-                "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
-            )
             retrying = True
 
 
