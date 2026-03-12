@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Dict
 
 from asyncpg import Connection
+from uvicorn.logging import TRACE_LOG_LEVEL
 
 from query.tables.product_nutrient import (
     NUTRIENT_TAG,
@@ -227,7 +228,8 @@ async def apply_staged_changes(
     # Analyze the temp table first as this improves the generated query plans
     await transaction.execute("ANALYZE product_temp")
 
-    log = logger.debug
+    # Use the uvicorn TRACE log level for detailed ingestion logs
+    log = lambda msg: logger.log(TRACE_LOG_LEVEL, msg)
     if PRODUCT_TAG in tags:
         await update_products_from_staging(
             transaction, log, obsolete, process_id, source
