@@ -833,6 +833,11 @@ async def assert_for_failing_product_indices(
 async def test_skips_products_where_sql_fails():
     await assert_for_failing_product_indices(10, [7])
 
+async def test_skips_products_where_all_sql_fails():
+    await assert_for_failing_product_indices(3, [0,1,2])
+
+async def test_skips_products_where_following_sql_fails():
+    await assert_for_failing_product_indices(3, [1,2])
 
 async def test_skips_products_where_multiple_sql_fails():
     await assert_for_failing_product_indices(10, [0, 9])
