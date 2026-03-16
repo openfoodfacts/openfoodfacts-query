@@ -84,7 +84,6 @@ async def import_with_filter(
     """Core import routine. Fetches data from MongoDB using the supplied filter and updates the copy stored in PostgreSQL
     If the filter is a list of codes then any code not found in MongoDB will be deleted from PostgreSQL
     """
-
     max_last_updated = MIN_DATETIME
     found_product_codes = []
     codes_specified = "code" in filter and "$in" in filter["code"]
@@ -107,6 +106,9 @@ async def import_with_filter(
     # to do a full import
     await transaction.execute(
         "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
+    )
+    await transaction.execute(
+        "CREATE TEMP TABLE product_temp_failed (id int PRIMARY KEY, last_updated timestamptz, data jsonb, batch_num int)"
     )
     try:
         process_id = await get_process_id(transaction)
@@ -178,7 +180,7 @@ async def import_with_filter(
 
                     update_count += 1
                     if not (update_count % batch_size):
-                        await apply_staged_changes(
+                        await apply_stages_changes_with_retry(
                             transaction,
                             obsolete,
                             update_count,
@@ -189,7 +191,7 @@ async def import_with_filter(
 
             # Apply any remaining staged changes
             if update_count % batch_size:
-                await apply_staged_changes(
+                await apply_stages_changes_with_retry(
                     transaction, obsolete, update_count, process_id, source, tags
                 )
             if skip_count % batch_size:
@@ -215,8 +217,61 @@ async def import_with_filter(
             await delete_products(transaction, process_id, source)
     finally:
         await transaction.execute("DROP TABLE product_temp")
+        await transaction.execute("DROP TABLE product_temp_failed")
 
     return max_last_updated
+
+
+async def apply_stages_changes_with_retry(
+    transaction: Connection, obsolete, update_count, process_id, source, tags
+):
+    """This will call apply_stages_charges to integrate changes from product_temp
+    but it will handle errors and tries to repeat chunk by chunk
+    """
+    import pdb;pdb.set_trace();
+    # commit what we have done so far
+    # as the first products updates might fail and we don't want to loose product_temp
+    await transaction.execute("COMMIT")
+    await transaction.execute("BEGIN TRANSACTION")
+    # this will track a batch number
+    # so that we know in which order to process failed items, if any
+    batch_num = 0
+    while update_count:
+        try:
+            # Analyze the temp table first as this improves the generated query plans
+            await transaction.execute("ANALYZE product_temp")
+            # sub transaction does not work ! async with transaction.transaction() as sub_transaction:
+            apply_staged_changes(transaction, obsolete, update_count, process_id, source, tags)
+        except Exception as e:
+            await transaction.execute("ROLLBACK")
+            await transaction.execute("BEGIN TRANSACTION")
+            if update_count == 1:
+                # we have a single element failing, log and continue
+                logger.exception("UPDATE of product %s failed with %s", product_id, e)
+                # TODO: might be great to have a table of failed products
+                # Add item here, and remove them as soon as they are imported correctly
+                # The product_update table could also have a column to set if update was successful
+            else:
+                # this is a consistent batch we will try again, bit by bit
+                # put failed products in failed, adding batch num
+                await transaction.execute("INSERT INTO product_temp_failed(id, last_updated, data, batch_num) (SELECT id, last_updated, data, $1 FROM product_temp)", batch_num)
+                await transaction.execute("TRUNCATE TABLE product_temp")
+        batch_num += 1
+        # Start a new transaction for the next batch
+        # The calling process will commit the final transaction
+        await transaction.execute("COMMIT")
+        await transaction.execute("BEGIN TRANSACTION")
+        # seek eventual failed items to process
+        # we take the one with lowest batch num
+        ids_to_process = await transaction.fetch("SELECT id FROM product_temp_failed WHERE batch_num = (SELECT min(batch_num) FROM product_temp_failed)")
+        # split in two
+        if len(ids_to_process) > 1:
+            ids_to_process = ids_to_process[:len(ids_to_process) // 2]
+        if ids_to_process:
+            # move those items from failed to product_temp
+            await transaction.execute("INSERT INTO product_temp(id, last_updated, data) (SELECT id, last_updated, data FROM product_temp_failed WHERE id = any($1::mytype[]))", ids_to_process)
+            await transaction.execute("DELETE FROM product_temp_failed WHERE id = any($1::mytype[])", ids_to_process)
+        update_count = len(ids_to_process)
 
 
 async def apply_staged_changes(
@@ -224,9 +279,6 @@ async def apply_staged_changes(
 ):
     """ "Copies data from the product_temp temporary table to the relational tables.
     Assumes that a basic product record has already been created"""
-    # Analyze the temp table first as this improves the generated query plans
-    await transaction.execute("ANALYZE product_temp")
-
     log = logger.debug
     if PRODUCT_TAG in tags:
         await update_products_from_staging(
@@ -245,12 +297,6 @@ async def apply_staged_changes(
         await create_product_nutrients_from_staging(transaction, log)
 
     await transaction.execute("TRUNCATE TABLE product_temp")
-
-    # Start a new transaction for the next batch
-    # The calling process will commit the final transaction
-    await transaction.execute("COMMIT")
-    await transaction.execute("BEGIN TRANSACTION")
-
     logger.info(f"Imported {update_count}{' obsolete' if obsolete else ''} products")
 
 
