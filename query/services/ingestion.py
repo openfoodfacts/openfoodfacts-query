@@ -317,12 +317,11 @@ async def apply_product_updates(
                 del remaining_updates[:retry_point]
 
         except asyncpg.PostgresError as sql_error:
-            last_sqlerror = sql_error
             await transaction.execute("ROLLBACK")
             if len(product_updates) == 1:
                 # We have found our bad product
                 logger.error(
-                    f"Error updating product: {product_updates[0][2]['code']}, {repr(last_sqlerror)}"
+                    f"Error updating product: {product_updates[0][2]['code']}, {repr(sql_error)}"
                 )
                 del product_updates[:]
                 product_updates.extend(remaining_updates)
