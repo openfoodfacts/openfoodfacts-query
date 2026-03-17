@@ -239,10 +239,20 @@ async def apply_product_updates(
     and then copies from here to the relational tables.
     Assumes that a minimal product record has already been created"""
 
+    # It is possible that some products will have bad data that we have not anticipated in our SQL which may
+    # cause one of the batch SQL statements to fail. In this case we want to isolate the problem product(s)
+    # but still process the updates for the other products in the batch.
+    # We use an optimistic model where we assume most products will pass, and also assume that errors will be
+    # repeated, i.e. are not transient. The essence of the retry logic is as follows:
+    # 1. If a batch fails then split the batch in two and try the first half again
+    # 2. If the first half fails, repeat the process for the first half until we have isolated the problem product.
+    #    If the first half succeeds, assume we have an error in the remaining half so split this again and repeat
+    # 3. Once the problem product is isolated then assume all remaining products are OK and retry all of these together
+
     remaining_updates = []
-    # We remember the last SQL error so that if we have a failure, retry successsfully but only have
-    # one remaining product to test then we know the error must relate to this one
-    last_sqlerror = None
+    # max_fail_index as a pointer to the last possible item that could have an error
+    # The index includes both product_updates (batch currently being tried) and remaining_updates
+    max_fail_index = len(product_updates)
     retrying = False
     while len(product_updates):
         try:
@@ -293,30 +303,18 @@ async def apply_product_updates(
             logger.info(
                 f"Imported {product_count}{' obsolete' if obsolete else ''} products"
             )
-
             del product_updates[:]
+
             if len(remaining_updates):
-                if len(remaining_updates) == 1:
-                    # We have saved everything except our bad product. No need to keep going
-                    logger.error(
-                        f"Error updating product: {remaining_updates[0][2]['code']}, {repr(last_sqlerror)}"
-                    )
-                elif product_count == 1:
-                    # We previously will have tried a batch of 2 which presumably failed, so we can assume the
-                    # Product with the error is the first one in the remaining updates
-                    logger.error(
-                        f"Error updating product: {remaining_updates[0][2]['code']}, {repr(last_sqlerror)}"
-                    )
-                    del product_updates[:]
-                    product_updates.extend(remaining_updates[1:])
-                    del remaining_updates[:]
-                else:
-                    # Move the first half of remaining back in for retry
-                    # As mentioned below, if there are, say, 3 left then we want
-                    # to retry the first two. Don't need -1 on the range as the upper is not inclusive
-                    next_retry_count = (len(remaining_updates) + 1) // 2
-                    product_updates[0:0] = remaining_updates[:next_retry_count]
-                    del remaining_updates[:next_retry_count]
+                # Reduce the max fail index by the number of products we've just succeeded with
+                max_fail_index -= product_count
+                # Split the remaining products in half. Where there is an odd number we want to retry
+                # the larger part so that we always retry the last one
+                # We still retry the last one even if we know all others have succeeded 
+                # just in case the problem was transient
+                retry_point = (max_fail_index + 1) // 2
+                product_updates = remaining_updates[:retry_point]
+                del remaining_updates[:retry_point]
 
         except asyncpg.PostgresError as sql_error:
             last_sqlerror = sql_error
@@ -326,17 +324,21 @@ async def apply_product_updates(
                 logger.error(
                     f"Error updating product: {product_updates[0][2]['code']}, {repr(last_sqlerror)}"
                 )
-                last_sqlerror = None
                 del product_updates[:]
                 product_updates.extend(remaining_updates)
                 del remaining_updates[:]
+                # Assume all the remaining products are OK (unless we get another failure)
+                max_fail_index = len(product_updates)
             else:
-                # move the last half of the products into remaining. We want our penultimate retry to be on
-                # a group of two so that if we then split again and succeed we know the problem was with the second one
-                # Hence if we have 3 updates to try we want to then split it into 2 and 1 for retries
-                next_retry_count = (len(product_updates) + 1) // 2
-                remaining_updates[0:0] = product_updates[next_retry_count:]
-                del product_updates[next_retry_count:]
+                # We know that the failing product is in this batch
+                max_fail_index = len(product_updates)
+                
+                # Split the products in half. Where there is an odd number we want to retry
+                # the larger part so that we always retry the last one
+                retry_point = (max_fail_index + 1) // 2
+                # Move the second half to the beginning of the remaining_updates list
+                remaining_updates[0:0] = product_updates[retry_point:]
+                del product_updates[retry_point:]
 
             # Start a new transaction
             await transaction.execute("BEGIN TRANSACTION")
