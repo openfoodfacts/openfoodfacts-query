@@ -6,13 +6,11 @@ from asyncpg import Connection
 
 
 async def create_table(transaction):
-    await transaction.execute(
-        """CREATE TABLE IF NOT EXISTS contributor (
+    await transaction.execute("""CREATE TABLE IF NOT EXISTS contributor (
       id serial,
       code text,
       constraint contributor_pkey primary key (id),
-      constraint contributor_code unique (code))"""
-    )
+      constraint contributor_code unique (code))""")
 
 
 async def create_contributors_from_events(

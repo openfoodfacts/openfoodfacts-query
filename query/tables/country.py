@@ -23,13 +23,11 @@ async def create_table(transaction):
         """insert into country (code, tag) values ('world','en:world')"""
     )
     # create countries from existing data
-    await transaction.execute(
-        """insert into country (tag)
+    await transaction.execute("""insert into country (tag)
         select distinct pct.value
         from product_countries_tag pct
         where not exists (select * from country where tag = pct.value)
-        on conflict (tag) do nothing"""
-    )
+        on conflict (tag) do nothing""")
 
 
 async def create_country(transaction, **params):

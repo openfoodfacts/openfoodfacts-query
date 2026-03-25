@@ -63,13 +63,11 @@ async def get_product_countries(transaction, product):
 
 async def fixup_product_countries(transaction, obsolete):
     # Create missing countries
-    await transaction.execute(
-        """INSERT INTO country (tag) SELECT DISTINCT pct.value 
+    await transaction.execute("""INSERT INTO country (tag) SELECT DISTINCT pct.value 
             FROM product_temp pt
             JOIN product_countries_tag pct ON pct.product_id = pt.id
             WHERE NOT EXISTS (SELECT * FROM country WHERE tag = pct.value)
-            ON CONFLICT (tag) DO NOTHING"""
-    )
+            ON CONFLICT (tag) DO NOTHING""")
     await transaction.execute(
         """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
             SELECT pct.product_id, $1, c.id, 0, 0
@@ -80,16 +78,14 @@ async def fixup_product_countries(transaction, obsolete):
         obsolete,
     )
     # Delete any product countries where there is no tag
-    await transaction.execute(
-        """DELETE FROM product_country pc
+    await transaction.execute("""DELETE FROM product_country pc
             USING product_temp pt,
                 country c
             WHERE pc.product_id = pt.id
             AND c.id = pc.country_id
             AND c.code <> 'world'
             AND NOT EXISTS (SELECT * FROM product_countries_tag pct WHERE pct.product_id = pc.product_id AND pct.value = c.tag)
-        """
-    )
+        """)
 
 
 async def fixup_product_country_scans(transaction, current_year, oldest_year):

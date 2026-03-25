@@ -46,13 +46,10 @@ async def get_ingredients(transaction, product_id):
 
 
 async def create_ingredients_from_staging(transaction: Connection, log, obsolete):
-    deleted = await transaction.execute(
-        """delete from product_ingredient 
-        where product_id in (select id from product_temp)"""
-    )
+    deleted = await transaction.execute("""delete from product_ingredient 
+        where product_id in (select id from product_temp)""")
     log_text = f"Updated ingredients deleted {get_rows_affected(deleted)},"
-    results = await transaction.execute(
-        f"""insert into product_ingredient (
+    results = await transaction.execute(f"""insert into product_ingredient (
           product_id,
           sequence,
           id,
@@ -78,8 +75,7 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
           tag.value->'ingredients',
           {obsolete}
         from product_temp product
-        cross join jsonb_array_elements(data->'ingredients') with ordinality tag"""
-    )
+        cross join jsonb_array_elements(data->'ingredients') with ordinality tag""")
     affected_rows = get_rows_affected(results)
     log_text += f" inserted {affected_rows}"
     while affected_rows > 0:

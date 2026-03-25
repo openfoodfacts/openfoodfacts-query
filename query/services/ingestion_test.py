@@ -802,7 +802,7 @@ async def assert_for_failing_product_indices(
         )
 
     patch_context_manager(find_products_mock, mock_cursor(products))
-    
+
     error_products = []
     for i in error_indices:
         error_products.append(products[i]["code"])
@@ -833,17 +833,22 @@ async def assert_for_failing_product_indices(
 async def test_skips_products_where_sql_fails():
     await assert_for_failing_product_indices(10, [7])
 
+
 async def test_skips_products_where_all_sql_fails():
-    await assert_for_failing_product_indices(3, [0,1,2])
+    await assert_for_failing_product_indices(3, [0, 1, 2])
+
 
 async def test_skips_products_where_following_sql_fails():
-    await assert_for_failing_product_indices(3, [1,2])
+    await assert_for_failing_product_indices(3, [1, 2])
+
 
 async def test_skips_products_where_multiple_sql_fails():
     await assert_for_failing_product_indices(10, [0, 9])
-    
+
+
 async def test_skips_products_where_second_product_fails():
     await assert_for_failing_product_indices(5, [1])
+
 
 @patch.object(ingestion, "find_products")
 @patch.object(ingestion, "create_product_nutrients_from_staging")
@@ -865,7 +870,7 @@ async def test_transient_issue_is_retried(
         )
 
     patch_context_manager(find_products_mock, mock_cursor(products))
-    
+
     error_products = [products[3]["code"]]
 
     async def error_on_nutrient(transaction, _):
@@ -880,7 +885,7 @@ async def test_transient_issue_is_retried(
             """,
             error_products,
         )
-        
+
     update_nutrients_mock.side_effect = error_on_nutrient
 
     await ingestion.import_from_mongo("")

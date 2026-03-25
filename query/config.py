@@ -42,3 +42,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
     level=log_name_to_level[config_settings.LOG_LEVEL],
 )
+
+# Access logs can be quite verbose, so only enable at verbose level
+if config_settings.LOG_LEVEL != "verbose":
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)

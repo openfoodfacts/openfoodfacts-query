@@ -25,7 +25,13 @@ class HealthItem(BaseModel):
 
 
 class Health(BaseModel):
-    def add(self, name: str, status: HealthItemStatusEnum, reason: str = None, info: Dict = None):
+    def add(
+        self,
+        name: str,
+        status: HealthItemStatusEnum,
+        reason: str = None,
+        info: Dict = None,
+    ):
         self.info[name] = HealthItem(status=status, reason=reason, info=info)
         if status != HealthItemStatusEnum.up:
             self.status = HealthStatusEnum.error

@@ -5,8 +5,9 @@ import math
 from datetime import datetime, timezone
 from typing import Dict
 
-from asyncpg import Connection
 import asyncpg
+from asyncpg import Connection
+from uvicorn.logging import TRACE_LOG_LEVEL
 
 from query.tables.product_nutrient import (
     NUTRIENT_TAG,
@@ -268,14 +269,13 @@ async def apply_product_updates(
             if retrying:
                 # We have to re-create any minimal products as they will have been rolled back
                 # if we have had an error in this batch
-                await transaction.execute(
-                    """INSERT INTO product (id, code)
+                await transaction.execute("""INSERT INTO product (id, code)
                     SELECT id, data->>'code'
                     FROM product_temp pt
-                    WHERE NOT EXISTS (SELECT * FROM product p WHERE p.id = pt.id)"""
-                )
+                    WHERE NOT EXISTS (SELECT * FROM product p WHERE p.id = pt.id)""")
 
-            log = logger.debug
+            # Use the uvicorn TRACE log level for detailed ingestion logs
+            log = lambda msg: logger.log(TRACE_LOG_LEVEL, msg)
             if PRODUCT_TAG in tags:
                 await update_products_from_staging(
                     transaction, log, obsolete, process_id, source
@@ -310,7 +310,7 @@ async def apply_product_updates(
                 max_fail_index -= product_count
                 # Split the remaining products in half. Where there is an odd number we want to retry
                 # the larger part so that we always retry the last one
-                # We still retry the last one even if we know all others have succeeded 
+                # We still retry the last one even if we know all others have succeeded
                 # just in case the problem was transient
                 retry_point = (max_fail_index + 1) // 2
                 product_updates = remaining_updates[:retry_point]
@@ -331,7 +331,7 @@ async def apply_product_updates(
             else:
                 # We know that the failing product is in this batch
                 max_fail_index = len(product_updates)
-                
+
                 # Split the products in half. Where there is an odd number we want to retry
                 # the larger part so that we always retry the last one
                 retry_point = (max_fail_index + 1) // 2

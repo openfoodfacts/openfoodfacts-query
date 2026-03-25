@@ -115,10 +115,8 @@ async def create_tags_from_staging(transaction, log, obsolete, tags):
             log_text = f"Updated {tag}"
 
             # Delete existing tags for products that were imported on this run
-            deleted = await transaction.execute(
-                f"""delete from {tag_table}
-                where product_id in (select id from product_temp)"""
-            )
+            deleted = await transaction.execute(f"""delete from {tag_table}
+                where product_id in (select id from product_temp)""")
             log_text += f" deleted {get_rows_affected(deleted)},"
 
             # Add tags back in with the updated information
