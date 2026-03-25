@@ -7,6 +7,7 @@ from typing import Dict
 
 from asyncpg import Connection
 from uvicorn.logging import TRACE_LOG_LEVEL
+import asyncpg
 
 from query.tables.product_nutrient import (
     NUTRIENT_TAG,
@@ -97,7 +98,7 @@ async def import_with_filter(
         if config_settings.SKIP_DATA_MIGRATIONS:
             return
 
-        # Keep a not of the last message id at the start of the upgrade as we want to re-play any messages
+        # Keep a note of the last message id at the start of the upgrade as we want to re-play any messages
         # that were processed by the old version after this point
         await set_pre_migration_message_id()
     else:
@@ -109,6 +110,10 @@ async def import_with_filter(
     await transaction.execute(
         "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
     )
+    # Commit the temporary table so it isn't rolled back on failure. Stays active for the session
+    await transaction.execute("COMMIT")
+    await transaction.execute("BEGIN TRANSACTION")
+
     try:
         process_id = await get_process_id(transaction)
         projection = {key: True for key in tags if key != PRODUCT_TAG}
@@ -129,6 +134,7 @@ async def import_with_filter(
         for obsolete in [False, True]:
             update_count = 0
             skip_count = 0
+            product_updates = []
             async with find_products(filter, projection, obsolete) as cursor:
                 async for product_data in cursor:
                     product_code = product_data["code"]
@@ -170,19 +176,16 @@ async def import_with_filter(
                         tag_data = product_data.get(tag, None)
                         strip_nuls(tag_data, f"Product: {product_code}, tag: {tag}")
 
-                    await transaction.execute(
-                        "INSERT INTO product_temp (id, last_updated, data) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-                        existing_product["id"],
-                        last_updated,
-                        product_data,
+                    product_updates.append(
+                        [existing_product["id"], last_updated, product_data]
                     )
 
                     update_count += 1
                     if not (update_count % batch_size):
-                        await apply_staged_changes(
+                        await apply_product_updates(
                             transaction,
+                            product_updates,
                             obsolete,
-                            update_count,
                             process_id,
                             source,
                             tags,
@@ -190,8 +193,13 @@ async def import_with_filter(
 
             # Apply any remaining staged changes
             if update_count % batch_size:
-                await apply_staged_changes(
-                    transaction, obsolete, update_count, process_id, source, tags
+                await apply_product_updates(
+                    transaction,
+                    product_updates,
+                    obsolete,
+                    process_id,
+                    source,
+                    tags,
                 )
             if skip_count % batch_size:
                 logger.info(
@@ -220,40 +228,122 @@ async def import_with_filter(
     return max_last_updated
 
 
-async def apply_staged_changes(
-    transaction: Connection, obsolete, update_count, process_id, source, tags
+async def apply_product_updates(
+    transaction: Connection,
+    product_updates,
+    obsolete,
+    process_id,
+    source,
+    tags,
 ):
-    """ "Copies data from the product_temp temporary table to the relational tables.
-    Assumes that a basic product record has already been created"""
-    # Analyze the temp table first as this improves the generated query plans
-    await transaction.execute("ANALYZE product_temp")
+    """Inserts data from product_updates into the the product_temp temporary table
+    and then copies from here to the relational tables.
+    Assumes that a minimal product record has already been created"""
 
-    # Use the uvicorn TRACE log level for detailed ingestion logs
-    log = lambda msg: logger.log(TRACE_LOG_LEVEL, msg)
-    if PRODUCT_TAG in tags:
-        await update_products_from_staging(
-            transaction, log, obsolete, process_id, source
-        )
+    # It is possible that some products will have bad data that we have not anticipated in our SQL which may
+    # cause one of the batch SQL statements to fail. In this case we want to isolate the problem product(s)
+    # but still process the updates for the other products in the batch.
+    # We use an optimistic model where we assume most products will pass, and also assume that errors will be
+    # repeated, i.e. are not transient. The essence of the retry logic is as follows:
+    # 1. If a batch fails then split the batch in two and try the first half again
+    # 2. If the first half fails, repeat the process for the first half until we have isolated the problem product.
+    #    If the first half succeeds, assume we have an error in the remaining half so split this again and repeat
+    # 3. Once the problem product is isolated then assume all remaining products are OK and retry all of these together
 
-    if INGREDIENTS_TAG in tags:
-        await create_ingredients_from_staging(transaction, log, obsolete)
+    remaining_updates = []
+    # max_fail_index as a pointer to the last possible item that could have an error
+    # The index includes both product_updates (batch currently being tried) and remaining_updates
+    max_fail_index = len(product_updates)
+    retrying = False
+    while len(product_updates):
+        try:
+            await transaction.executemany(
+                """INSERT INTO product_temp (id, last_updated, data) 
+                values ($1, $2, $3) ON CONFLICT DO NOTHING""",
+                product_updates,
+            )
 
-    await create_tags_from_staging(transaction, log, obsolete, tags)
+            # Analyze the temp table first as this improves the generated query plans
+            await transaction.execute("ANALYZE product_temp")
 
-    if COUNTRIES_TAG in tags:
-        await fixup_product_countries(transaction, obsolete)
+            if retrying:
+                # We have to re-create any minimal products as they will have been rolled back
+                # if we have had an error in this batch
+                await transaction.execute(
+                    """INSERT INTO product (id, code)
+                    SELECT id, data->>'code'
+                    FROM product_temp pt
+                    WHERE NOT EXISTS (SELECT * FROM product p WHERE p.id = pt.id)"""
+                )
 
-    if NUTRIENT_TAG in tags:
-        await create_product_nutrients_from_staging(transaction, log)
+            # Use the uvicorn TRACE log level for detailed ingestion logs
+            log = lambda msg: logger.log(TRACE_LOG_LEVEL, msg)
+            if PRODUCT_TAG in tags:
+                await update_products_from_staging(
+                    transaction, log, obsolete, process_id, source
+                )
 
-    await transaction.execute("TRUNCATE TABLE product_temp")
+            if INGREDIENTS_TAG in tags:
+                await create_ingredients_from_staging(transaction, log, obsolete)
 
-    # Start a new transaction for the next batch
-    # The calling process will commit the final transaction
-    await transaction.execute("COMMIT")
-    await transaction.execute("BEGIN TRANSACTION")
+            await create_tags_from_staging(transaction, log, obsolete, tags)
 
-    logger.info(f"Imported {update_count}{' obsolete' if obsolete else ''} products")
+            if COUNTRIES_TAG in tags:
+                await fixup_product_countries(transaction, obsolete)
+
+            if NUTRIENT_TAG in tags:
+                await create_product_nutrients_from_staging(transaction, log)
+
+            await transaction.execute("TRUNCATE TABLE product_temp")
+
+            # Start a new transaction for the next batch
+            # The calling process will commit the final transaction
+            await transaction.execute("COMMIT")
+            await transaction.execute("BEGIN TRANSACTION")
+
+            product_count = len(product_updates)
+            logger.info(
+                f"Imported {product_count}{' obsolete' if obsolete else ''} products"
+            )
+            del product_updates[:]
+
+            if len(remaining_updates):
+                # Reduce the max fail index by the number of products we've just succeeded with
+                max_fail_index -= product_count
+                # Split the remaining products in half. Where there is an odd number we want to retry
+                # the larger part so that we always retry the last one
+                # We still retry the last one even if we know all others have succeeded 
+                # just in case the problem was transient
+                retry_point = (max_fail_index + 1) // 2
+                product_updates = remaining_updates[:retry_point]
+                del remaining_updates[:retry_point]
+
+        except asyncpg.PostgresError as sql_error:
+            await transaction.execute("ROLLBACK")
+            if len(product_updates) == 1:
+                # We have found our bad product
+                logger.error(
+                    f"Error updating product: {product_updates[0][2]['code']}, {repr(sql_error)}"
+                )
+                del product_updates[:]
+                product_updates.extend(remaining_updates)
+                del remaining_updates[:]
+                # Assume all the remaining products are OK (unless we get another failure)
+                max_fail_index = len(product_updates)
+            else:
+                # We know that the failing product is in this batch
+                max_fail_index = len(product_updates)
+                
+                # Split the products in half. Where there is an odd number we want to retry
+                # the larger part so that we always retry the last one
+                retry_point = (max_fail_index + 1) // 2
+                # Move the second half to the beginning of the remaining_updates list
+                remaining_updates[0:0] = product_updates[retry_point:]
+                del product_updates[retry_point:]
+
+            # Start a new transaction
+            await transaction.execute("BEGIN TRANSACTION")
+            retrying = True
 
 
 import_running = False
