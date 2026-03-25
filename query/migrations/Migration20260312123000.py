@@ -10,17 +10,13 @@ async def up(transaction):
         """SELECT 1 FROM pg_roles WHERE rolname = 'superset'"""
     )
     if existing_user:
-        await transaction.execute(
-            f"""
+        await transaction.execute(f"""
             DROP OWNED BY superset; \
             DROP ROLE IF EXISTS superset; \
-            """
-        )
-    await transaction.execute(
-        f"""
+            """)
+    await transaction.execute(f"""
         CREATE ROLE superset LOGIN PASSWORD '{config_settings.POSTGRES_SUPERSET_PASSWORD}'; \
         GRANT pg_read_all_data TO superset; \
         GRANT USAGE ON  schema public, query TO superset; \
         ALTER ROLE superset SET search_path = public, query; \
-        """
-    )
+        """)

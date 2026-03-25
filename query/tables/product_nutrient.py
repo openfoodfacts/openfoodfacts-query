@@ -43,10 +43,8 @@ async def get_product_nutrients(transaction, product):
 
 
 async def create_product_nutrients_from_staging(transaction: Connection, log):
-    deleted = await transaction.execute(
-        """delete from product_nutrient 
-        where product_id in (select id from product_temp)"""
-    )
+    deleted = await transaction.execute("""delete from product_nutrient 
+        where product_id in (select id from product_temp)""")
     log_text = f"Updated nutrients deleted {get_rows_affected(deleted)},"
 
     # Create any missing nutrient types

@@ -10,14 +10,12 @@ from ..tables.product_update import create_updates_from_events
 
 
 async def create_table(transaction):
-    await transaction.execute(
-        """CREATE TABLE IF NOT EXISTS product_update_event (
+    await transaction.execute("""CREATE TABLE IF NOT EXISTS product_update_event (
       id bigserial NOT NULL PRIMARY KEY,
       message_id text NOT NULL,
       received_at timestamptz NOT NULL,
       updated_at timestamptz NOT NULL,
-      message jsonb NOT NULL)"""
-    )
+      message jsonb NOT NULL)""")
 
 
 async def add_message_id_constraint(transaction):
@@ -27,11 +25,9 @@ async def add_message_id_constraint(transaction):
     )
 
     # Make sure product_updates are pointing to the earliest version of an event
-    await transaction.execute(
-        """UPDATE product_update SET event_id = 
+    await transaction.execute("""UPDATE product_update SET event_id = 
         (SELECT min(id) FROM product_update_event WHERE message_id = 
-        (SELECT message_id FROM product_update_event WHERE id = event_id))"""
-    )
+        (SELECT message_id FROM product_update_event WHERE id = event_id))""")
 
     # Remove any later duplicates
     await transaction.execute(

@@ -25,13 +25,11 @@ async def ensure_migration_table(transaction: Connection):
     )
 
     # Use the Mikro-ORM table to keep database compatibility
-    await transaction.execute(
-        f"""CREATE TABLE IF NOT EXISTS {MIGRATIONS_TABLE} (
+    await transaction.execute(f"""CREATE TABLE IF NOT EXISTS {MIGRATIONS_TABLE} (
         id serial4 PRIMARY KEY, 
         name varchar(255) NULL, 
         executed_at timestamptz DEFAULT CURRENT_TIMESTAMP NULL
-    )"""
-    )
+    )""")
 
 
 async def migrate_database(apply=False):

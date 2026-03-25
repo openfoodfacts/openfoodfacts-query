@@ -10,16 +10,14 @@ from ..tables.update_type import create_update_types_from_events
 
 
 async def create_table(transaction: Connection):
-    await transaction.execute(
-        """CREATE TABLE IF NOT EXISTS product_update (
+    await transaction.execute("""CREATE TABLE IF NOT EXISTS product_update (
 	    product_id int,
 	    revision int,
       updated_date date,
       update_type_id int,
       contributor_id int,
       event_id bigint,
-     constraint product_update_pkey primary key (product_id, revision))"""
-    )
+     constraint product_update_pkey primary key (product_id, revision))""")
     await transaction.execute(
         "create index product_update_updated_date_index on product_update (updated_date);"
     )

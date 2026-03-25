@@ -13,9 +13,7 @@ async def create_table(transaction):
 
 
 async def create_nutrients_from_staging(transaction):
-    return get_rows_affected(
-        await transaction.execute(
-            f"""insert into nutrient (tag)
+    return get_rows_affected(await transaction.execute(f"""insert into nutrient (tag)
         select left(new_tag, -5)
         from product_temp pt
         cross join jsonb_object_keys(data->'nutriments') new_tag
@@ -28,9 +26,7 @@ async def create_nutrients_from_staging(transaction):
         where not exists (select * from nutrient where tag = new_tag)
         on conflict (tag) 
         do nothing
-        """
-        )
-    )
+        """))
 
 
 async def create_nutrient(transaction, **params):

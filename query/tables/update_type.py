@@ -6,13 +6,11 @@ from asyncpg import Connection
 
 
 async def create_table(transaction):
-    await transaction.execute(
-        """CREATE TABLE IF NOT EXISTS update_type (
+    await transaction.execute("""CREATE TABLE IF NOT EXISTS update_type (
       id serial,
       code text,
       constraint action_pkey primary key (id),
-      constraint action_code unique (code))"""
-    )
+      constraint action_code unique (code))""")
 
     await transaction.execute(
         """INSERT INTO update_type (code) VALUES ('created'), ('updated'), ('archived'), ('unarchived'), ('deleted'), ('reprocessed'), ('unknown')"""
