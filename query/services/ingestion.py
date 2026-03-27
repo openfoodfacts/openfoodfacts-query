@@ -203,9 +203,7 @@ async def import_with_filter(
                     tags,
                 )
             if skip_count % batch_size:
-                logger.info(
-                    f"Skipped {skip_count} {collection_id} products"
-                )
+                logger.info(f"Skipped {skip_count} {collection_id} products")
 
         # Mark all products specifically requested but not found as deleted
         if codes_specified:
@@ -301,9 +299,7 @@ async def apply_product_updates(
             await transaction.execute("BEGIN TRANSACTION")
 
             product_count = len(product_updates)
-            logger.info(
-                f"Imported {product_count} {collection_id} products"
-            )
+            logger.info(f"Imported {product_count} {collection_id} products")
             del product_updates[:]
 
             if len(remaining_updates):

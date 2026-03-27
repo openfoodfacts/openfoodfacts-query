@@ -128,7 +128,9 @@ async def create_test_tags(transaction):
     product3 = await create_random_product(
         transaction, "b", 3, 300, 20, creator=creator_value
     )
-    product4 = await create_random_product(transaction, "c", 4, 400, 40, collection_id=FOOD_OBSOLETE)
+    product4 = await create_random_product(
+        transaction, "c", 4, 400, 40, collection_id=FOOD_OBSOLETE
+    )
 
     # Matrix for testing
     # Product  | Origin | AminoAcid | AminoAcid2 | Neucleotide | Obsolete | Creator
