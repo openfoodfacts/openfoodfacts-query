@@ -6,6 +6,7 @@ from typing import Dict, List
 from asyncpg import Connection
 from fastapi import HTTPException, status
 
+from query.tables.collection_type import FOOD, FOOD_OBSOLETE
 from query.tables.product_nutrient import NUTRIENT_TAG, NUTRITION_TAG
 
 from ..database import get_transaction
@@ -39,15 +40,16 @@ async def fetch_and_log(transaction: Connection, sql, *params):
 
 async def count(filter: Filter = None, obsolete=False):
     """Count the number of products that match the specified filter"""
+    collection_id = FOOD_OBSOLETE if obsolete else FOOD
     async with get_transaction() as transaction:
         sql_fragments = []
-        params = []
+        params = [collection_id]
         loaded_tags = await get_loaded_tags(transaction)
         if filter:
             append_sql_fragments(filter, loaded_tags, "id", params, sql_fragments)
 
         sql = f"""SELECT count(*) count FROM product p
-            WHERE {'' if obsolete else 'NOT '}obsolete
+            WHERE collection_id = $1
             {''.join(sql_fragments)}"""
         return ((await fetch_and_log(transaction, sql, *params)) or [{}])[0].get(
             "count", 0
@@ -56,9 +58,10 @@ async def count(filter: Filter = None, obsolete=False):
 
 async def aggregate(stages: List[Stage], obsolete=False):
     """Get aggregate counts based on the stages specified"""
+    collection_id = FOOD_OBSOLETE if obsolete else FOOD
     async with get_transaction() as transaction:
         sql_fragments = []
-        params = []
+        params = [collection_id]
         loaded_tags = await get_loaded_tags(transaction)
         filter = [stage.match for stage in stages if stage.match][0]
         group = [stage.group for stage in stages if stage.group][0]
@@ -93,11 +96,11 @@ async def aggregate(stages: List[Stage], obsolete=False):
         if is_count:
             sql = f"""SELECT count(*) count FROM 
                 (SELECT DISTINCT {column_name} FROM {table_name} p 
-                WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete
+                WHERE {column_name} IS NOT NULL AND collection_id = $1
                 {''.join(sql_fragments)})"""
         else:
             sql = f"""SELECT {column_name} id, count(*) count FROM {table_name} p
-                WHERE {column_name} IS NOT NULL AND {'' if obsolete else 'NOT '}obsolete
+                WHERE {column_name} IS NOT NULL AND collection_id = $1
                 {''.join(sql_fragments)}
                 GROUP BY {column_name} ORDER BY 2 DESC, 1{limit_clause}"""
         results = await fetch_and_log(transaction, sql, *params)
@@ -114,6 +117,7 @@ async def aggregate(stages: List[Stage], obsolete=False):
 async def find(query: FindQuery, obsolete=False):
     """Fetch the product records matching the specified filter, in the requested order,
     returning the fields mentioned in the projection"""
+    collection_id = FOOD_OBSOLETE if obsolete else FOOD
     async with get_transaction() as transaction:
         sort_key = query.sort[0][0] if query.sort and len(query.sort) > 0 else None
         if sort_key and len(query.sort) > 1:
@@ -130,6 +134,7 @@ async def find(query: FindQuery, obsolete=False):
         elif sort_key in PRODUCT_FIELD_SCANS_COLUMNS.keys():
             check_tag_is_loaded(PRODUCT_SCANS_TAG, loaded_tags)
 
+        params = [collection_id]
         if sort_key == SortColumn.popularity:
             # The country we are filtering by determines which scans we use to sort the results
             country_tag = getattr(query.filter, "countries-tags")
@@ -141,10 +146,9 @@ async def find(query: FindQuery, obsolete=False):
             if country_tag:
                 delattr(query.filter, "countries-tags")
 
-            params = [country["id"]]
+            params.append(country["id"])
             product_id = "product_id"
         else:
-            params = []
             product_id = "id"
 
         sql_fragments = []
@@ -170,11 +174,11 @@ async def find(query: FindQuery, obsolete=False):
             # operate on just the small product_country table
             # Note we only support descending sort
             sql = f"""SELECT p.code FROM product p 
-                JOIN product_country pc ON pc.product_id = p.id AND pc.country_id = $1
+                JOIN product_country pc ON pc.product_id = p.id AND pc.country_id = $2
                 WHERE p.id IN (SELECT p.product_id
                     FROM product_country p
-                    WHERE p.country_id = $1 
-                    AND {'' if obsolete else 'NOT '}p.obsolete
+                    WHERE p.country_id = $2 
+                    AND p.collection_id = $1
                     {''.join(sql_fragments)}
                     ORDER BY p.recent_scans DESC, p.total_scans DESC, p.product_id
                     {limit_clause})
@@ -194,7 +198,7 @@ async def find(query: FindQuery, obsolete=False):
                 sort_clause = f"p.{PRODUCT_FIELD_COLUMNS[sort_key]} {'ASC' if sort_direction == 1 else 'DESC NULLS LAST'},"
 
             sql = f"""SELECT p.code FROM product p 
-                WHERE {'' if obsolete else 'NOT '}p.obsolete
+                WHERE p.collection_id = $1
                     {''.join(sql_fragments)}
                     ORDER BY {sort_clause} p.id
                     {limit_clause}"""
@@ -214,7 +218,7 @@ async def find(query: FindQuery, obsolete=False):
             mongodb_filter = {"_id": {"$in": product_codes}}
             mongodb_results = [None] * len(product_codes)
             async with find_products(
-                mongodb_filter, query.projection, obsolete
+                mongodb_filter, query.projection, collection_id
             ) as cursor:
                 async for result in cursor:
                     code_index = product_codes.index(result["code"])

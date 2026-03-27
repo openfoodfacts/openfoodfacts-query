@@ -148,12 +148,12 @@ async def migration_add_collection(transaction):
 
 
 async def update_products_from_staging(
-    transaction: Connection, log, obsolete, process_id, source
+    transaction: Connection, log, collection_id, process_id, source
 ):
     """Apply updates to products from the product_temp table. Assumes that a minimal product record has already been created"""
 
     # Don't update the source and last_updated date for partial updates
-    params = [obsolete, process_id, datetime.now(timezone.utc)]
+    params = [collection_id, process_id, datetime.now(timezone.utc)]
 
     last_updated_sql = ""
     if source != Source.partial:
@@ -168,7 +168,7 @@ async def update_products_from_staging(
         creator = tp.data->>'creator',
         owners_tags = tp.data->>'owners_tags',
         {last_updated_sql}
-        obsolete = $1,
+        collection_id = $1,
         ingredients_count = (tp.data->>'ingredients_n')::numeric,
         ingredients_without_ciqual_codes_count = (tp.data->>'ingredients_without_ciqual_codes_n')::numeric,
         created = to_timestamp((tp.data->>'created_t')::numeric),
@@ -238,11 +238,11 @@ async def delete_products(transaction, process_id, source, codes=None):
         args.append(codes)
     results = await transaction.fetch(
         f"""UPDATE product SET 
-                obsolete = NULL,
+                collection_id = {FOOD_DELETED},
                 process_id = $1,
                 last_processed = $2,
                 source = $3 
-            WHERE obsolete IS NOT NULL
+            WHERE collection_id != {FOOD_DELETED}
                 {"AND process_id < $1" if source == Source.full_load else ""}
                 {"AND code = ANY($4)" if codes else ""}
             RETURNING id""",

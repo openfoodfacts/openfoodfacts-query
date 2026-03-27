@@ -59,7 +59,7 @@ async def get_ingredients(transaction, product_id):
     )
 
 
-async def create_ingredients_from_staging(transaction: Connection, log, obsolete):
+async def create_ingredients_from_staging(transaction: Connection, log, collection_id):
     deleted = await transaction.execute("""delete from product_ingredient 
         where product_id in (select id from product_temp)""")
     log_text = f"Updated ingredients deleted {get_rows_affected(deleted)},"
@@ -74,7 +74,7 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
           percent_max,
           percent_estimate,
           data,
-          obsolete
+          collection_id
         )
         select 
           product.id,
@@ -87,7 +87,7 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
           (tag.value->>'percent_max')::numeric,
           (tag.value->>'percent_estimate')::numeric,
           tag.value->'ingredients',
-          {obsolete}
+          {collection_id}
         from product_temp product
         cross join jsonb_array_elements(data->'ingredients') with ordinality tag""")
     affected_rows = get_rows_affected(results)
@@ -107,7 +107,7 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
             percent_max,
             percent_estimate,
             data,
-            obsolete
+            collection_id
           )
           select 
             pi.product_id,
@@ -122,7 +122,7 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
             (tag.value->>'percent_max')::numeric,
             (tag.value->>'percent_estimate')::numeric,
             tag.value->'ingredients',
-            {obsolete}
+            {collection_id}
           from product_ingredient pi 
           join product_temp product on product.id = pi.product_id
           cross join json_array_elements(pi.data) with ordinality tag
@@ -136,6 +136,6 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
 
 async def delete_ingredients(transaction, product_ids):
     await transaction.execute(
-        f"UPDATE product_ingredient SET obsolete = NULL WHERE product_id = ANY($1::numeric[])",
+        f"UPDATE product_ingredient SET collection_id = {FOOD_DELETED} WHERE product_id = ANY($1::numeric[])",
         product_ids,
     )

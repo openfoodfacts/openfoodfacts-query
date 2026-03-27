@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 from query.models.query import Filter
 from query.services import query
+from query.tables.collection_type import FOOD, FOOD_DELETED, FOOD_OBSOLETE
 from query.tables.nutrient import get_nutrient
 from query.tables.product_nutrient import get_product_nutrients
 
@@ -147,7 +148,7 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         countries = await get_product_countries(transaction, product_new)
         assert len(countries) == 1
         assert countries[0]["country_id"] == world["id"]
-        assert countries[0]["obsolete"] == False
+        assert countries[0]["collection_id"] == FOOD
 
         ingredients_existing = await get_tags(
             transaction, "ingredients_tags", product_existing
@@ -177,14 +178,14 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         found_old_product = await get_product_by_id(
             transaction, product_unchanged["id"]
         )
-        assert found_old_product["obsolete"] == None
+        assert found_old_product["collection_id"] == FOOD_DELETED
         ingredients_unchanged = await get_tags(
             transaction, "ingredients_tags", product_unchanged
         )
-        assert ingredients_unchanged[0]["obsolete"] == None
+        assert ingredients_unchanged[0]["collection_id"] == FOOD_DELETED
 
         found_later_product = await get_product_by_id(transaction, product_later["id"])
-        assert found_later_product["obsolete"] == False
+        assert found_later_product["collection_id"] == FOOD
 
         # Check nutrients and product nutrients are created
         added_nutrient = [
@@ -496,17 +497,17 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
             Source.event,
         )
 
-        # then: obsolete flag should get set to null
+        # then: collection_id should get set to FOOD
         deleted_product = await get_product(transaction, product_code_to_delete)
         updated_product = await get_product(transaction, products[1]["code"])
         assert deleted_product["process_id"] == updated_product["process_id"]
         assert deleted_product["last_processed"] >= before_import
         assert deleted_product["source"] == Source.event
-        assert updated_product["obsolete"] == False
+        assert updated_product["collection_id"] == FOOD
 
         deleted_tags = await get_tags(transaction, "ingredients_tags", deleted_product)
         assert len(deleted_tags) == 1
-        assert deleted_tags[0]["obsolete"] == None
+        assert deleted_tags[0]["collection_id"] == FOOD_DELETED
 
 
 @patch.object(ingestion, "find_products")
@@ -533,19 +534,19 @@ async def test_import_from_obsolete_collection(find_products_mock: Mock):
         # MongoDB is called twice. Second time for the obsolete collection
         call_args_list = find_products_mock.call_args_list
         assert len(call_args_list) == 2
-        assert call_args_list[0][0][2] == False
-        assert call_args_list[1][0][2] == True
+        assert call_args_list[0][0][2] == FOOD
+        assert call_args_list[1][0][2] == FOOD_OBSOLETE
 
         found_product = await get_product_by_id(transaction, product_existing["id"])
-        assert found_product["obsolete"] == True
+        assert found_product["collection_id"] == FOOD_OBSOLETE
         found_tags = await get_tags(transaction, "ingredients_tags", found_product)
-        assert all(tag for tag in found_tags if tag["obsolete"] == True)
+        assert all(tag for tag in found_tags if tag["collection_id"] == FOOD_OBSOLETE)
         assert (
             any(tag for tag in found_tags if tag["value"] == "to_be_deleted") == False
         )
 
         new_product = await get_product(transaction, products[0]["code"])
-        assert new_product["obsolete"] == False
+        assert new_product["collection_id"] == FOOD
         assert found_product["process_id"] == new_product["process_id"]
 
 
@@ -750,13 +751,13 @@ async def test_event_load_should_restore_deleted_products(
             Source.event,
         )
 
-        # then: obsolete flag should get set to null
+        # then: collection_id flag should get set to FOOD_DELETED
         deleted_product = await get_product(transaction, products[0]["code"])
-        assert deleted_product["obsolete"] == None
+        assert deleted_product["collection_id"] == FOOD_DELETED
 
         product_countries = await get_product_countries(transaction, deleted_product)
         assert len(product_countries) == 1
-        assert product_countries[0]["obsolete"] == None
+        assert product_countries[0]["collection_id"] == FOOD_DELETED
 
         # Reinstate product
         patch_context_manager(find_products_mock, mock_cursor(products))
@@ -773,11 +774,11 @@ async def test_event_load_should_restore_deleted_products(
         )
 
         deleted_product = await get_product(transaction, products[0]["code"])
-        assert deleted_product["obsolete"] == False
+        assert deleted_product["collection_id"] == FOOD
 
         product_countries = await get_product_countries(transaction, deleted_product)
         assert len(product_countries) == 1
-        assert product_countries[0]["obsolete"] == False
+        assert product_countries[0]["collection_id"] == FOOD
 
 
 @patch.object(ingestion, "find_products")

@@ -74,7 +74,7 @@ async def get_product_countries(transaction, product):
     )
 
 
-async def fixup_product_countries(transaction, obsolete):
+async def fixup_product_countries(transaction, collection_id):
     # Create missing countries
     await transaction.execute("""INSERT INTO country (tag) SELECT DISTINCT pct.value 
             FROM product_temp pt
@@ -82,13 +82,13 @@ async def fixup_product_countries(transaction, obsolete):
             WHERE NOT EXISTS (SELECT * FROM country WHERE tag = pct.value)
             ON CONFLICT (tag) DO NOTHING""")
     await transaction.execute(
-        """INSERT INTO product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+        """INSERT INTO product_country (product_id, collection_id, country_id, recent_scans, total_scans)
             SELECT pct.product_id, $1, c.id, 0, 0
             FROM (SELECT product_id, value FROM product_temp JOIN product_countries_tag ON product_id = id
                 UNION SELECT id, 'en:world' FROM product_temp) pct
             JOIN country c ON c.tag = pct.value
-            ON CONFLICT (product_id, country_id) DO UPDATE set obsolete = $1""",
-        obsolete,
+            ON CONFLICT (product_id, country_id) DO UPDATE set collection_id = $1""",
+        collection_id,
     )
     # Delete any product countries where there is no tag
     await transaction.execute("""DELETE FROM product_country pc
@@ -105,9 +105,9 @@ async def fixup_product_country_scans(transaction, current_year, oldest_year):
     """Set the current and recent scans by country to use the scans from the supplied years"""
     # Note we only create a product_country entry if there is a corresponding product_countries_tag
     await transaction.execute(
-        """insert into product_country (product_id, obsolete, country_id, recent_scans, total_scans)
+        """insert into product_country (product_id, collection_id, country_id, recent_scans, total_scans)
             select s.product_id,
-                p.obsolete,
+                p.collection_id,
                 s.country_id,
                 sum(CASE WHEN s.year = $2 THEN s.unique_scans ELSE 0 END),
                 sum(CASE WHEN s.year >= $1 THEN unique_scans ELSE 0 END)
@@ -116,17 +116,17 @@ async def fixup_product_country_scans(transaction, current_year, oldest_year):
             join country c on c.id = s.country_id
             where (c.code = 'world' or
                 exists (select * from product_countries_tag t where t.product_id = s.product_id and t.value = c.tag))
-            group by product_id, p.obsolete, country_id
+            group by product_id, p.collection_id, country_id
             on conflict (product_id, country_id)
-            do update set recent_scans = excluded.recent_scans, total_scans = excluded.total_scans, obsolete = excluded.obsolete""",
+            do update set recent_scans = excluded.recent_scans, total_scans = excluded.total_scans, collection_id = excluded.collection_id""",
         oldest_year,
         current_year,
     )
 
 
 async def delete_product_countries(transaction, product_ids):
-    """Soft delete by setting the obsolete flag to null"""
+    """Soft delete by setting the collection_id to FOOD_DELETED"""
     await transaction.execute(
-        f"UPDATE product_country SET obsolete = NULL WHERE product_id = ANY($1::numeric[])",
+        f"UPDATE product_country SET collection_id = {FOOD_DELETED} WHERE product_id = ANY($1::numeric[])",
         product_ids,
     )

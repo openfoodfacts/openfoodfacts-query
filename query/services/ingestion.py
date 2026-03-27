@@ -9,6 +9,7 @@ import asyncpg
 from asyncpg import Connection
 from uvicorn.logging import TRACE_LOG_LEVEL
 
+from query.tables.collection_type import FOOD, FOOD_OBSOLETE
 from query.tables.product_nutrient import (
     NUTRIENT_TAG,
     NUTRITION_TAG,
@@ -131,11 +132,11 @@ async def import_with_filter(
         if NUTRIENT_TAG in tags:
             projection |= {NUTRITION_TAG: True}
 
-        for obsolete in [False, True]:
+        for collection_id in [FOOD, FOOD_OBSOLETE]:
             update_count = 0
             skip_count = 0
             product_updates = []
-            async with find_products(filter, projection, obsolete) as cursor:
+            async with find_products(filter, projection, collection_id) as cursor:
                 async for product_data in cursor:
                     product_code = product_data["code"]
                     existing_product = await get_minimal_product(
@@ -162,7 +163,7 @@ async def import_with_filter(
                         skip_count += 1
                         if not (skip_count % batch_size):
                             logger.info(
-                                f"Skipped {skip_count}{' obsolete' if obsolete else ''} products"
+                                f"Skipped {skip_count} {collection_id} products"
                             )
                         continue
 
@@ -185,7 +186,7 @@ async def import_with_filter(
                         await apply_product_updates(
                             transaction,
                             product_updates,
-                            obsolete,
+                            collection_id,
                             process_id,
                             source,
                             tags,
@@ -196,14 +197,14 @@ async def import_with_filter(
                 await apply_product_updates(
                     transaction,
                     product_updates,
-                    obsolete,
+                    collection_id,
                     process_id,
                     source,
                     tags,
                 )
             if skip_count % batch_size:
                 logger.info(
-                    f"Skipped {skip_count}{' obsolete' if obsolete else ''} products"
+                    f"Skipped {skip_count} {collection_id} products"
                 )
 
         # Mark all products specifically requested but not found as deleted
@@ -231,7 +232,7 @@ async def import_with_filter(
 async def apply_product_updates(
     transaction: Connection,
     product_updates,
-    obsolete,
+    collection_id,
     process_id,
     source,
     tags,
@@ -278,16 +279,16 @@ async def apply_product_updates(
             log = lambda msg: logger.log(TRACE_LOG_LEVEL, msg)
             if PRODUCT_TAG in tags:
                 await update_products_from_staging(
-                    transaction, log, obsolete, process_id, source
+                    transaction, log, collection_id, process_id, source
                 )
 
             if INGREDIENTS_TAG in tags:
-                await create_ingredients_from_staging(transaction, log, obsolete)
+                await create_ingredients_from_staging(transaction, log, collection_id)
 
-            await create_tags_from_staging(transaction, log, obsolete, tags)
+            await create_tags_from_staging(transaction, log, collection_id, tags)
 
             if COUNTRIES_TAG in tags:
-                await fixup_product_countries(transaction, obsolete)
+                await fixup_product_countries(transaction, collection_id)
 
             if NUTRIENT_TAG in tags:
                 await create_product_nutrients_from_staging(transaction, log)
@@ -301,7 +302,7 @@ async def apply_product_updates(
 
             product_count = len(product_updates)
             logger.info(
-                f"Imported {product_count}{' obsolete' if obsolete else ''} products"
+                f"Imported {product_count} {collection_id} products"
             )
             del product_updates[:]
 

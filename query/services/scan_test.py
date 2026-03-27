@@ -1,6 +1,7 @@
 from unittest.mock import ANY, Mock, patch
 
 from query.services.query_find_test import TEST_YEAR
+from query.tables.collection_type import FOOD
 
 from ..database import get_transaction
 from ..models.scan import ProductScans
@@ -87,7 +88,7 @@ async def test_create_product_scans(normalize_code_wrapper: Mock, _):
         assert len(product_countries) == 1
         assert product_countries[0]["recent_scans"] == 2
         assert product_countries[0]["total_scans"] == 5
-        assert product_countries[0]["obsolete"] == False
+        assert product_countries[0]["collection_id"] == FOOD
         assert normalize_code_wrapper.called
 
         # Should not create product_country records for ru
