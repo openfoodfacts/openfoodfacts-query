@@ -6,4 +6,4 @@ We do this because migrations are run before the previous instance of the servic
 
 # Pending migrations
 
-- None
+- Drop obsolete column from products, product_tags, product_country and product_ingredients

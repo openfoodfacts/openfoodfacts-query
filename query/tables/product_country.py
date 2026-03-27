@@ -42,6 +42,12 @@ async def create_table(transaction):
     )
 
 
+async def migration_add_collection(transaction):
+    await transaction.execute("""ALTER TABLE product_country ADD COLUMN collection_id smallint NOT NULL DEFAULT 10""")
+    await transaction.execute("""UPDATE product_country SET collection_id = 11 WHERE obsolete""")
+    await transaction.execute("""UPDATE product_country SET collection_id = 12 WHERE obsolete IS NULL""")
+
+
 async def create_product_country(
     transaction, product, country, recent_scans, total_scans
 ):

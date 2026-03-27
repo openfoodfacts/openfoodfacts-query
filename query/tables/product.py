@@ -134,6 +134,12 @@ async def create_table(transaction: Connection):
     )
 
 
+async def migration_add_collection(transaction):
+    await transaction.execute("""ALTER TABLE product ADD COLUMN collection_id smallint NOT NULL DEFAULT 10""")
+    await transaction.execute("""UPDATE product SET collection_id = 11 WHERE obsolete""")
+    await transaction.execute("""UPDATE product SET collection_id = 12 WHERE obsolete IS NULL""")
+
+
 async def update_products_from_staging(
     transaction: Connection, log, obsolete, process_id, source
 ):

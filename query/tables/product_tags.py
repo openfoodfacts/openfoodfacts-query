@@ -97,6 +97,13 @@ async def create_tables_v1(transaction):
     await create_tables(transaction, tag_tables_v1)
 
 
+async def migration_add_collection(transaction):
+    for table_name in tag_tables_v1.values():
+        await transaction.execute(f"""ALTER TABLE {table_name} ADD COLUMN collection_id smallint NOT NULL DEFAULT 10""")
+        await transaction.execute(f"""UPDATE {table_name} SET collection_id = 11 WHERE obsolete""")
+        await transaction.execute(f"""UPDATE {table_name} SET collection_id = 12 WHERE obsolete IS NULL""")
+
+
 async def create_tag(transaction, tag, product, value):
     return await create_record(
         transaction,

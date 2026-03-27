@@ -39,6 +39,12 @@ async def create_table(transaction):
     )
 
 
+async def migration_add_collection(transaction):
+    await transaction.execute("""ALTER TABLE product_ingredient ADD COLUMN collection_id smallint NOT NULL DEFAULT 10""")
+    await transaction.execute("""UPDATE product_ingredient SET collection_id = 11 WHERE obsolete""")
+    await transaction.execute("""UPDATE product_ingredient SET collection_id = 12 WHERE obsolete IS NULL""")
+
+
 async def get_ingredients(transaction, product_id):
     return await transaction.fetch(
         f"SELECT * FROM product_ingredient WHERE product_id = $1", product_id
