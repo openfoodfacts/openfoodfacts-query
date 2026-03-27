@@ -22,6 +22,7 @@ from .models.query import (
     AggregateResult,
     Filter,
     FindQuery,
+    ProductType,
     Stage,
 )
 from .models.scan import ProductScans
@@ -67,29 +68,39 @@ async def get_health() -> Health:
 
 
 obsolete_param = Query(False, description="Whether to just search obsolete products")
+product_type_param = Query(
+    ProductType.food, description="The product collection to query"
+)
 
 
 @app.post("/count")
-async def count(filter: Filter, obsolete: bool = obsolete_param) -> int:
+async def count(
+    filter: Filter,
+    obsolete: bool = obsolete_param,
+    product_type: ProductType = product_type_param,
+) -> int:
     """Count the total number of products meeting the specified filter criteria"""
-    return await query.count(filter, obsolete)
+    return await query.count(filter, obsolete, product_type)
 
 
 @app.post("/aggregate")
 async def aggregate(
-    stages: List[Stage], obsolete: bool = obsolete_param
+    stages: List[Stage],
+    obsolete: bool = obsolete_param,
+    product_type: ProductType = product_type_param,
 ) -> List[AggregateResult] | AggregateCountResult:
     """Get the aggregate count of products by the specified grouping field. If a $count stage is supplied then the count of distinct group values will be returned"""
-    return await query.aggregate(stages, obsolete)
+    return await query.aggregate(stages, obsolete, product_type)
 
 
 @app.post("/find")
 async def find(
     find_query: FindQuery,
     obsolete: bool = obsolete_param,
+    product_type: ProductType = product_type_param,
 ) -> List[Dict]:
     """Fetch the specified product documents"""
-    return await query.find(find_query, obsolete)
+    return await query.find(find_query, obsolete, product_type)
 
 
 @app.get("/importfrommongo")

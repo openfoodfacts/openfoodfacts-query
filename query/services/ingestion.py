@@ -9,7 +9,8 @@ import asyncpg
 from asyncpg import Connection
 from uvicorn.logging import TRACE_LOG_LEVEL
 
-from query.tables.collection_type import FOOD, FOOD_OBSOLETE
+from query.models.query import ProductType
+from query.tables.collection_type import COLLECTION_MAP, FOOD, FOOD_OBSOLETE
 from query.tables.product_nutrient import (
     NUTRIENT_TAG,
     NUTRITION_TAG,
@@ -83,6 +84,7 @@ async def import_with_filter(
     source: Source,
     batch_size=DEFAULT_BATCH_SIZE,
     tags=[],
+    product_type=ProductType.food
 ) -> datetime:
     """Core import routine. Fetches data from MongoDB using the supplied filter and updates the copy stored in PostgreSQL
     If the filter is a list of codes then any code not found in MongoDB will be deleted from PostgreSQL
@@ -132,7 +134,7 @@ async def import_with_filter(
         if NUTRIENT_TAG in tags:
             projection |= {NUTRITION_TAG: True}
 
-        for collection_id in [FOOD, FOOD_OBSOLETE]:
+        for collection_id in COLLECTION_MAP[product_type].values():
             update_count = 0
             skip_count = 0
             product_updates = []

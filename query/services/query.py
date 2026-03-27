@@ -6,7 +6,7 @@ from typing import Dict, List
 from asyncpg import Connection
 from fastapi import HTTPException, status
 
-from query.tables.collection_type import FOOD, FOOD_OBSOLETE
+from query.tables.collection_type import COLLECTION_MAP
 from query.tables.product_nutrient import NUTRIENT_TAG, NUTRITION_TAG
 
 from ..database import get_transaction
@@ -15,6 +15,7 @@ from ..models.query import (
     AggregateResult,
     Filter,
     FindQuery,
+    ProductType,
     SortColumn,
     Stage,
 )
@@ -38,9 +39,11 @@ async def fetch_and_log(transaction: Connection, sql, *params):
     return await transaction.fetch(sql, *params)
 
 
-async def count(filter: Filter = None, obsolete=False):
+async def count(
+    filter: Filter = None, obsolete=False, product_type: ProductType = ProductType.food
+):
     """Count the number of products that match the specified filter"""
-    collection_id = FOOD_OBSOLETE if obsolete else FOOD
+    collection_id = COLLECTION_MAP[product_type][obsolete]
     async with get_transaction() as transaction:
         sql_fragments = []
         params = [collection_id]
@@ -56,9 +59,11 @@ async def count(filter: Filter = None, obsolete=False):
         )
 
 
-async def aggregate(stages: List[Stage], obsolete=False):
+async def aggregate(
+    stages: List[Stage], obsolete=False, product_type: ProductType = ProductType.food
+):
     """Get aggregate counts based on the stages specified"""
-    collection_id = FOOD_OBSOLETE if obsolete else FOOD
+    collection_id = COLLECTION_MAP[product_type][obsolete]
     async with get_transaction() as transaction:
         sql_fragments = []
         params = [collection_id]
@@ -114,10 +119,12 @@ async def aggregate(stages: List[Stage], obsolete=False):
             ]
 
 
-async def find(query: FindQuery, obsolete=False):
+async def find(
+    query: FindQuery, obsolete=False, product_type: ProductType = ProductType.food
+):
     """Fetch the product records matching the specified filter, in the requested order,
     returning the fields mentioned in the projection"""
-    collection_id = FOOD_OBSOLETE if obsolete else FOOD
+    collection_id = COLLECTION_MAP[product_type][obsolete]
     async with get_transaction() as transaction:
         sort_key = query.sort[0][0] if query.sort and len(query.sort) > 0 else None
         if sort_key and len(query.sort) > 1:

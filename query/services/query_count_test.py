@@ -11,7 +11,7 @@ from query.tables.nutrient import create_nutrient
 from query.tables.product_nutrient import NUTRIENT_TAG, create_product_nutrient
 
 from ..database import get_transaction
-from ..models.query import Filter, Fragment, Qualify
+from ..models.query import Filter, Fragment, ProductType, Qualify
 from ..services import query
 from ..tables.country import create_country
 from ..tables.product import PRODUCT_SCANS_TAG, create_product
@@ -267,6 +267,16 @@ async def test_be_able_to_count_not_obsolete_products():
 
     response = await query.count(Filter(origins_tags=tags.origin_value), False)
     assert response == 3
+
+
+async def test_excludes_food_if_not_requested():
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
+
+    response = await query.count(
+        Filter(origins_tags=tags.origin_value), False, ProductType.beauty
+    )
+    assert response == 0
 
 
 async def test_cope_with_an_all_filter():
