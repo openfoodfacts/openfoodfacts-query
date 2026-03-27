@@ -6,6 +6,7 @@ from typing import List
 
 from asyncpg import Connection
 
+from query.tables.collection_type import FOOD, FOOD_DELETED, FOOD_OBSOLETE
 from query.tables.loaded_tag import PARTIAL_TAGS, check_tag_is_loaded
 from query.tables.product_country import delete_product_countries
 
@@ -135,9 +136,15 @@ async def create_table(transaction: Connection):
 
 
 async def migration_add_collection(transaction):
-    await transaction.execute("""ALTER TABLE product ADD COLUMN collection_id smallint NOT NULL DEFAULT 10""")
-    await transaction.execute("""UPDATE product SET collection_id = 11 WHERE obsolete""")
-    await transaction.execute("""UPDATE product SET collection_id = 12 WHERE obsolete IS NULL""")
+    await transaction.execute(
+        f"""ALTER TABLE product ADD COLUMN collection_id smallint NOT NULL DEFAULT {FOOD}"""
+    )
+    await transaction.execute(
+        f"""UPDATE product SET collection_id = {FOOD_OBSOLETE} WHERE obsolete"""
+    )
+    await transaction.execute(
+        f"""UPDATE product SET collection_id = {FOOD_DELETED} WHERE obsolete IS NULL"""
+    )
 
 
 async def update_products_from_staging(

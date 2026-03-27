@@ -1,6 +1,8 @@
 """The set of tables that store product tags. Each tag is simply an array of values on the product.
 The order of tags is not preserved"""
 
+from query.tables.collection_type import FOOD, FOOD_DELETED, FOOD_OBSOLETE
+
 from ..database import create_record, get_rows_affected
 
 COUNTRIES_TAG = "countries_tags"
@@ -99,9 +101,15 @@ async def create_tables_v1(transaction):
 
 async def migration_add_collection(transaction):
     for table_name in tag_tables_v1.values():
-        await transaction.execute(f"""ALTER TABLE {table_name} ADD COLUMN collection_id smallint NOT NULL DEFAULT 10""")
-        await transaction.execute(f"""UPDATE {table_name} SET collection_id = 11 WHERE obsolete""")
-        await transaction.execute(f"""UPDATE {table_name} SET collection_id = 12 WHERE obsolete IS NULL""")
+        await transaction.execute(
+            f"""ALTER TABLE {table_name} ADD COLUMN collection_id smallint NOT NULL DEFAULT {FOOD}"""
+        )
+        await transaction.execute(
+            f"""UPDATE {table_name} SET collection_id = {FOOD_OBSOLETE} WHERE obsolete"""
+        )
+        await transaction.execute(
+            f"""UPDATE {table_name} SET collection_id = {FOOD_DELETED} WHERE obsolete IS NULL"""
+        )
 
 
 async def create_tag(transaction, tag, product, value):

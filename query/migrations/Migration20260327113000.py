@@ -1,4 +1,10 @@
-from query.tables import collection_type, product, product_country, product_ingredient, product_tags
+from query.tables import (
+    collection_type,
+    product,
+    product_country,
+    product_ingredient,
+    product_tags,
+)
 
 
 async def up(transaction):

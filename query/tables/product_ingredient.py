@@ -4,6 +4,8 @@ There is currently no API to query this data, it is just being used internally t
 
 from asyncpg import Connection
 
+from query.tables.collection_type import FOOD, FOOD_DELETED, FOOD_OBSOLETE
+
 from ..database import get_rows_affected
 
 # Note we can't list explicit fields here because of the potentially unlimited nesting of sub-ingredients
@@ -40,9 +42,15 @@ async def create_table(transaction):
 
 
 async def migration_add_collection(transaction):
-    await transaction.execute("""ALTER TABLE product_ingredient ADD COLUMN collection_id smallint NOT NULL DEFAULT 10""")
-    await transaction.execute("""UPDATE product_ingredient SET collection_id = 11 WHERE obsolete""")
-    await transaction.execute("""UPDATE product_ingredient SET collection_id = 12 WHERE obsolete IS NULL""")
+    await transaction.execute(
+        f"""ALTER TABLE product_ingredient ADD COLUMN collection_id smallint NOT NULL DEFAULT {FOOD}"""
+    )
+    await transaction.execute(
+        f"""UPDATE product_ingredient SET collection_id = {FOOD_OBSOLETE} WHERE obsolete"""
+    )
+    await transaction.execute(
+        f"""UPDATE product_ingredient SET collection_id = {FOOD_DELETED} WHERE obsolete IS NULL"""
+    )
 
 
 async def get_ingredients(transaction, product_id):
