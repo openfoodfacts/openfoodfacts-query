@@ -4,7 +4,7 @@ There is currently no API to query this data, it is just being used internally t
 
 from asyncpg import Connection
 
-from query.tables.collection_type import FOOD, FOOD_DELETED, FOOD_OBSOLETE
+from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
 
 from ..database import get_rows_affected
 
@@ -49,7 +49,7 @@ async def migration_add_collection(transaction):
         f"""UPDATE product_ingredient SET collection_id = {FOOD_OBSOLETE} WHERE obsolete"""
     )
     await transaction.execute(
-        f"""UPDATE product_ingredient SET collection_id = {FOOD_DELETED} WHERE obsolete IS NULL"""
+        f"""UPDATE product_ingredient SET collection_id = {DELETED} WHERE obsolete IS NULL"""
     )
 
 
@@ -136,6 +136,6 @@ async def create_ingredients_from_staging(transaction: Connection, log, collecti
 
 async def delete_ingredients(transaction, product_ids):
     await transaction.execute(
-        f"UPDATE product_ingredient SET collection_id = {FOOD_DELETED} WHERE product_id = ANY($1::numeric[])",
+        f"UPDATE product_ingredient SET collection_id = {DELETED} WHERE product_id = ANY($1::numeric[])",
         product_ids,
     )

@@ -142,15 +142,6 @@ class SortColumn(str, Enum):
     environmental_score_score = "environmental_score_score"
 
 
-class ProductType(str, Enum):
-    """The product type to search for"""
-
-    food = "food"
-    petfood = "petfood"
-    beauty = "beauty"
-    product = "product"
-
-
 class FindQuery(BaseModel):
     filter: Filter
     projection: Annotated[

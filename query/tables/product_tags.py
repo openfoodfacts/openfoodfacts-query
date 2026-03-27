@@ -1,7 +1,7 @@
 """The set of tables that store product tags. Each tag is simply an array of values on the product.
 The order of tags is not preserved"""
 
-from query.tables.collection_type import FOOD, FOOD_DELETED, FOOD_OBSOLETE
+from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
 
 from ..database import create_record, get_rows_affected
 
@@ -108,7 +108,7 @@ async def migration_add_collection(transaction):
             f"""UPDATE {table_name} SET collection_id = {FOOD_OBSOLETE} WHERE obsolete"""
         )
         await transaction.execute(
-            f"""UPDATE {table_name} SET collection_id = {FOOD_DELETED} WHERE obsolete IS NULL"""
+            f"""UPDATE {table_name} SET collection_id = {DELETED} WHERE obsolete IS NULL"""
         )
 
 
@@ -148,7 +148,7 @@ async def delete_tags(transaction, product_ids):
     """Soft deletes tags for the specified products"""
     for tag_table in TAG_TABLES.values():
         await transaction.execute(
-            f"UPDATE {tag_table} SET collection_id = {FOOD_DELETED} WHERE product_id = ANY($1::numeric[])",
+            f"UPDATE {tag_table} SET collection_id = {DELETED} WHERE product_id = ANY($1::numeric[])",
             product_ids,
         )
 

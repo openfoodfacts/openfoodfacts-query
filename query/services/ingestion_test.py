@@ -7,7 +7,13 @@ from unittest.mock import Mock, patch
 
 from query.models.query import Filter
 from query.services import query
-from query.tables.collection_type import FOOD, FOOD_DELETED, FOOD_OBSOLETE
+from query.tables.collection_type import (
+    DELETED,
+    FOOD,
+    FOOD_OBSOLETE,
+    get_last_updated,
+    set_last_updated,
+)
 from query.tables.nutrient import get_nutrient
 from query.tables.product_nutrient import get_product_nutrients
 
@@ -19,7 +25,6 @@ from ..tables.product import create_product, get_product, get_product_by_id
 from ..tables.product_country import create_product_country, get_product_countries
 from ..tables.product_ingredient import get_ingredients
 from ..tables.product_tags import create_tag, get_tags
-from ..tables.settings import get_last_updated, set_last_updated
 from ..test_helper import mock_cursor, patch_context_manager, random_code
 from . import ingestion
 
@@ -178,11 +183,11 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         found_old_product = await get_product_by_id(
             transaction, product_unchanged["id"]
         )
-        assert found_old_product["collection_id"] == FOOD_DELETED
+        assert found_old_product["collection_id"] == DELETED
         ingredients_unchanged = await get_tags(
             transaction, "ingredients_tags", product_unchanged
         )
-        assert ingredients_unchanged[0]["collection_id"] == FOOD_DELETED
+        assert ingredients_unchanged[0]["collection_id"] == DELETED
 
         found_later_product = await get_product_by_id(transaction, product_later["id"])
         assert found_later_product["collection_id"] == FOOD
@@ -283,7 +288,7 @@ async def test_start_importing_from_the_last_import(
     async with get_transaction() as transaction:
         # given: last_updated setting already set
         start_from = datetime(2023, 1, 1, tzinfo=timezone.utc)
-        await set_last_updated(transaction, start_from)
+        await set_last_updated(transaction, FOOD, start_from)
 
         # when: doing an incremental import from mongo_db
         products = get_test_products()
@@ -293,12 +298,12 @@ async def test_start_importing_from_the_last_import(
 
     async with get_transaction() as transaction:
         # MongoDB called with the correct filter
-        call_args = find_products_mock.call_args[0][0]
+        call_args = find_products_mock.call_args_list[0][0][0]
         assert call_args == {
             "last_updated_t": {"$gt": math.floor(start_from.timestamp())}
         }
 
-        assert (await get_last_updated(transaction)) == datetime.fromtimestamp(
+        assert (await get_last_updated(transaction, FOOD)) == datetime.fromtimestamp(
             last_updated, timezone.utc
         )
 
@@ -342,7 +347,7 @@ async def test_set_last_updated_correctly_if_one_product_has_an_invalid_date(
     async with get_transaction() as transaction:
         # given: products with invalid date
         start_from = datetime(2023, 1, 1, tzinfo=timezone.utc)
-        await set_last_updated(transaction, start_from)
+        await set_last_updated(transaction, FOOD, start_from)
         products = get_test_products()
         invalid_product = dict(products[1])
         invalid_product["last_updated_t"] = "invalid"
@@ -356,7 +361,7 @@ async def test_set_last_updated_correctly_if_one_product_has_an_invalid_date(
 
     async with get_transaction() as transaction:
         # then: the last modified date is set correctly
-        assert (await get_last_updated(transaction)) == datetime.fromtimestamp(
+        assert (await get_last_updated(transaction, FOOD)) == datetime.fromtimestamp(
             last_updated, timezone.utc
         )
 
@@ -507,7 +512,7 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
 
         deleted_tags = await get_tags(transaction, "ingredients_tags", deleted_product)
         assert len(deleted_tags) == 1
-        assert deleted_tags[0]["collection_id"] == FOOD_DELETED
+        assert deleted_tags[0]["collection_id"] == DELETED
 
 
 @patch.object(ingestion, "find_products")
@@ -751,13 +756,13 @@ async def test_event_load_should_restore_deleted_products(
             Source.event,
         )
 
-        # then: collection_id flag should get set to FOOD_DELETED
+        # then: collection_id flag should get set to DELETED
         deleted_product = await get_product(transaction, products[0]["code"])
-        assert deleted_product["collection_id"] == FOOD_DELETED
+        assert deleted_product["collection_id"] == DELETED
 
         product_countries = await get_product_countries(transaction, deleted_product)
         assert len(product_countries) == 1
-        assert product_countries[0]["collection_id"] == FOOD_DELETED
+        assert product_countries[0]["collection_id"] == DELETED
 
         # Reinstate product
         patch_context_manager(find_products_mock, mock_cursor(products))

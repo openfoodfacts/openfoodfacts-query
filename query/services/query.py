@@ -6,7 +6,7 @@ from typing import Dict, List
 from asyncpg import Connection
 from fastapi import HTTPException, status
 
-from query.tables.collection_type import COLLECTION_MAP
+from query.tables.collection_type import COLLECTION_MAP, ProductType
 from query.tables.product_nutrient import NUTRIENT_TAG, NUTRITION_TAG
 
 from ..database import get_transaction
@@ -15,7 +15,6 @@ from ..models.query import (
     AggregateResult,
     Filter,
     FindQuery,
-    ProductType,
     SortColumn,
     Stage,
 )

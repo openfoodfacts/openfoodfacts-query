@@ -2,7 +2,7 @@
 The recent and total scans columns are used for popularity sorting and need to be refreshed each year
 from the product_scans_by_country"""
 
-from query.tables.collection_type import FOOD, FOOD_DELETED, FOOD_OBSOLETE
+from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
 from query.tables.loaded_tag import PARTIAL_TAGS
 
 from ..database import create_record
@@ -51,7 +51,7 @@ async def migration_add_collection(transaction):
         f"""UPDATE product_country SET collection_id = {FOOD_OBSOLETE} WHERE obsolete"""
     )
     await transaction.execute(
-        f"""UPDATE product_country SET collection_id = {FOOD_DELETED} WHERE obsolete IS NULL"""
+        f"""UPDATE product_country SET collection_id = {DELETED} WHERE obsolete IS NULL"""
     )
 
 
@@ -125,8 +125,8 @@ async def fixup_product_country_scans(transaction, current_year, oldest_year):
 
 
 async def delete_product_countries(transaction, product_ids):
-    """Soft delete by setting the collection_id to FOOD_DELETED"""
+    """Soft delete by setting the collection_id to DELETED"""
     await transaction.execute(
-        f"UPDATE product_country SET collection_id = {FOOD_DELETED} WHERE product_id = ANY($1::numeric[])",
+        f"UPDATE product_country SET collection_id = {DELETED} WHERE product_id = ANY($1::numeric[])",
         product_ids,
     )

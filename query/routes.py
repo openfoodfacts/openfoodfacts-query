@@ -22,7 +22,6 @@ from .models.query import (
     AggregateResult,
     Filter,
     FindQuery,
-    ProductType,
     Stage,
 )
 from .models.scan import ProductScans
@@ -30,6 +29,7 @@ from .scheduler import scheduler_lifespan
 from .services import ingestion, query
 from .services.health import check_health
 from .services.scan import import_scans
+from .tables.collection_type import ProductType
 
 logger = logging.getLogger(__name__)
 

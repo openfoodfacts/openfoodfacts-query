@@ -6,12 +6,12 @@ from asyncpg import Record
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
-from query.tables.collection_type import FOOD, FOOD_OBSOLETE
+from query.tables.collection_type import FOOD, FOOD_OBSOLETE, ProductType
 from query.tables.nutrient import create_nutrient
 from query.tables.product_nutrient import NUTRIENT_TAG, create_product_nutrient
 
 from ..database import get_transaction
-from ..models.query import Filter, Fragment, ProductType, Qualify
+from ..models.query import Filter, Fragment, Qualify
 from ..services import query
 from ..tables.country import create_country
 from ..tables.product import PRODUCT_SCANS_TAG, create_product

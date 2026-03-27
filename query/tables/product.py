@@ -6,7 +6,7 @@ from typing import List
 
 from asyncpg import Connection
 
-from query.tables.collection_type import FOOD, FOOD_DELETED, FOOD_OBSOLETE
+from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
 from query.tables.loaded_tag import PARTIAL_TAGS, check_tag_is_loaded
 from query.tables.product_country import delete_product_countries
 
@@ -143,7 +143,7 @@ async def migration_add_collection(transaction):
         f"""UPDATE product SET collection_id = {FOOD_OBSOLETE} WHERE obsolete"""
     )
     await transaction.execute(
-        f"""UPDATE product SET collection_id = {FOOD_DELETED} WHERE obsolete IS NULL"""
+        f"""UPDATE product SET collection_id = {DELETED} WHERE obsolete IS NULL"""
     )
 
 
@@ -230,21 +230,21 @@ async def get_product_by_id(transaction, id):
     return await transaction.fetchrow("SELECT * FROM product WHERE id = $1", id)
 
 
-async def delete_products(transaction, process_id, source, codes=None):
+async def delete_products(transaction, process_id, source, collections, codes=None):
     """Soft delete all products and related data that were either not in the process (for a full load)
     or is one of the codes listed (for an event load)"""
-    args = [process_id, datetime.now(timezone.utc), source]
+    args = [process_id, datetime.now(timezone.utc), source, collections]
     if codes:
         args.append(codes)
     results = await transaction.fetch(
         f"""UPDATE product SET 
-                collection_id = {FOOD_DELETED},
+                collection_id = {DELETED},
                 process_id = $1,
                 last_processed = $2,
                 source = $3 
-            WHERE collection_id != {FOOD_DELETED}
+            WHERE collection_id = ANY($4)
                 {"AND process_id < $1" if source == Source.full_load else ""}
-                {"AND code = ANY($4)" if codes else ""}
+                {"AND code = ANY($5)" if codes else ""}
             RETURNING id""",
         *args,
     )

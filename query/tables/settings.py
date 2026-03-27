@@ -1,7 +1,6 @@
 """Global settings that are stored in the database"""
 
 import logging
-from datetime import datetime
 
 from query.database import get_transaction
 
@@ -21,15 +20,6 @@ async def add_pre_migration_message_id(transaction):
     await transaction.execute(
         "alter table settings add column pre_migration_message_id text null;",
     )
-
-
-async def get_last_updated(transaction) -> datetime:
-    """The most recent last_updated date for a product in the PostgreSQL database"""
-    return await transaction.fetchval("SELECT last_updated FROM settings")
-
-
-async def set_last_updated(transaction, last_updated):
-    await transaction.execute("UPDATE settings SET last_updated = $1", last_updated)
 
 
 async def get_last_message_id(transaction) -> str:
