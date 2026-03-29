@@ -22,12 +22,17 @@ async def process_events(transaction, events: List[DomainEvent]):
     for event in events:
         product_type = event.payload.get("product_type")
         if product_type in SUPPORTED_PRODUCT_TYPES:
-            product_codes = product_types.setdefault(event.payload.get("product_type"), [])
+            product_codes = product_types.setdefault(
+                event.payload.get("product_type"), []
+            )
             product_codes.append(event.payload["code"])
-    
+
     for product_type, product_codes in product_types.items():
         await import_with_filter(
-            transaction, {"code": {"$in": product_codes}}, Source.event, product_type=product_type
+            transaction,
+            {"code": {"$in": product_codes}},
+            Source.event,
+            product_type=product_type,
         )
 
 

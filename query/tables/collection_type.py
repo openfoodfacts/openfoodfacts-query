@@ -25,6 +25,7 @@ class ProductType(str, Enum):
     beauty = "beauty"
     product = "product"
 
+
 SUPPORTED_PRODUCT_TYPES = [item.value for item in ProductType]
 
 COLLECTION_MAP = {

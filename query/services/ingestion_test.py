@@ -8,9 +8,11 @@ from unittest.mock import Mock, patch
 from query.models.query import Filter
 from query.services import query
 from query.tables.collection_type import (
+    BEAUTY,
     DELETED,
     FOOD,
     FOOD_OBSOLETE,
+    ProductType,
     get_last_updated,
     set_last_updated,
 )
@@ -304,6 +306,40 @@ async def test_start_importing_from_the_last_import(
         }
 
         assert (await get_last_updated(transaction, FOOD)) == datetime.fromtimestamp(
+            last_updated, timezone.utc
+        )
+
+
+@patch.object(ingestion, "find_products")
+async def test_start_importing_beauty_product_from_the_last_import(
+    find_products_mock: Mock,
+):
+    async with get_transaction() as transaction:
+        # given: last_updated setting already set
+        start_from = datetime(2023, 2, 2, tzinfo=timezone.utc)
+        await set_last_updated(transaction, BEAUTY, start_from)
+
+        # when: doing an incremental import from mongo_db
+        products = [
+        {
+            # this one will be new
+            "code": random_code(),
+            "last_updated_t": last_updated,
+            "rev": 1,
+        }]
+        patch_context_manager(find_products_mock, mock_cursor(products))
+
+    await ingestion.import_from_mongo("", product_type=ProductType.beauty)
+
+    async with get_transaction() as transaction:
+        # MongoDB called with the correct filter
+        call_args = find_products_mock.call_args_list[0][0]
+        assert call_args[0] == {
+            "last_updated_t": {"$gt": math.floor(start_from.timestamp())}
+        }
+        assert call_args[2] == BEAUTY
+
+        assert (await get_last_updated(transaction, BEAUTY)) == datetime.fromtimestamp(
             last_updated, timezone.utc
         )
 

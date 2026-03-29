@@ -109,10 +109,14 @@ async def importfrommongo(
         None,
         alias="from",
         description="The last updated date from which to import products. A full import will be performed if this is not supplied. Supply but leave blank to import products updated since the last import",
+    ),
+    product_type: ProductType = Query(
+        ProductType.food,
+        description="The product type to import"
     )
 ):
     """Runs a full or incremental import from MongoDB"""
-    return await ingestion.import_from_mongo(start_from)
+    return await ingestion.import_from_mongo(start_from, product_type)
 
 
 # Currently you have to know the PostgreSQL database username and password to import scans

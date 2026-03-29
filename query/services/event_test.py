@@ -73,9 +73,17 @@ async def test_process_events_includes_non_food_products_in_call_to_import_with_
 
         # Import called for the food and beauty product
         assert import_with_filter.call_count == 2
-        food_args = next(arg for arg in import_with_filter.call_args_list if arg.kwargs['product_type'] == 'food')
+        food_args = next(
+            arg
+            for arg in import_with_filter.call_args_list
+            if arg.kwargs["product_type"] == "food"
+        )
         assert food_args[0][1] == {"code": {"$in": [food_code]}}
-        beauty_args = next(arg for arg in import_with_filter.call_args_list if arg.kwargs['product_type'] == 'beauty')
+        beauty_args = next(
+            arg
+            for arg in import_with_filter.call_args_list
+            if arg.kwargs["product_type"] == "beauty"
+        )
         assert beauty_args[0][1] == {"code": {"$in": [beauty_code]}}
 
 
