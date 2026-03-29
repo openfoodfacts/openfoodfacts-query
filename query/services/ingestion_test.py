@@ -321,12 +321,13 @@ async def test_start_importing_beauty_product_from_the_last_import(
 
         # when: doing an incremental import from mongo_db
         products = [
-        {
-            # this one will be new
-            "code": random_code(),
-            "last_updated_t": last_updated,
-            "rev": 1,
-        }]
+            {
+                # this one will be new
+                "code": random_code(),
+                "last_updated_t": last_updated,
+                "rev": 1,
+            }
+        ]
         patch_context_manager(find_products_mock, mock_cursor(products))
 
     await ingestion.import_from_mongo("", product_type=ProductType.beauty)

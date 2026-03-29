@@ -378,7 +378,7 @@ async def apply_product_updates(
 import_running = {}
 
 
-async def import_from_mongo(from_date: str = None, product_type = ProductType.food):
+async def import_from_mongo(from_date: str = None, product_type=ProductType.food):
     """Imports data from MongoDB that has been updated since the date specified.
     If the date specified is None then full import is performed.
     If the date is empty then products updated since the last incremental import will be loaded
@@ -395,7 +395,11 @@ async def import_from_mongo(from_date: str = None, product_type = ProductType.fo
         async with get_transaction() as transaction:
             from_datetime = datetime.fromisoformat(from_date) if from_date else None
             await import_with_filter(
-                transaction, {}, source, from_datetime=from_datetime, product_type=product_type
+                transaction,
+                {},
+                source,
+                from_datetime=from_datetime,
+                product_type=product_type,
             )
     finally:
         import_running[product_type] = False
