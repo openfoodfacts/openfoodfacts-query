@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from query.services import scan
 from query.services.scan import scans_fully_loaded
+from query.tables.collection_type import FOOD_OBSOLETE
 from query.tables.product_nutrient import NUTRIENT_TAG, NUTRITION_TAG
 from query.tables.product_scans import create_product_scan
 
@@ -134,7 +135,7 @@ async def test_obsolete(mocked_mongo):
     assert mocked_mongo.called
     call_args = mocked_mongo.call_args
     assert len(call_args[0][0]["_id"]["$in"]) == 1
-    assert call_args[0][2] == True
+    assert call_args[0][2] == FOOD_OBSOLETE
     assert len(results) == 1
     assert results[0]["code"] == tags.product4["code"]
 

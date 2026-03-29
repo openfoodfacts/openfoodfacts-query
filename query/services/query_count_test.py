@@ -6,6 +6,7 @@ from asyncpg import Record
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
+from query.tables.collection_type import FOOD, FOOD_OBSOLETE, ProductType
 from query.tables.nutrient import create_nutrient
 from query.tables.product_nutrient import NUTRIENT_TAG, create_product_nutrient
 
@@ -26,7 +27,7 @@ async def create_random_product(
     scan_count=None,
     unique_scan_count=None,
     creator=None,
-    obsolete=False,
+    collection_id=FOOD,
 ):
     return await create_product(
         transaction,
@@ -36,7 +37,7 @@ async def create_random_product(
         scan_count=scan_count,
         unique_scan_count=unique_scan_count,
         creator=creator,
-        obsolete=obsolete,
+        collection_id=collection_id,
     )
 
 
@@ -127,7 +128,9 @@ async def create_test_tags(transaction):
     product3 = await create_random_product(
         transaction, "b", 3, 300, 20, creator=creator_value
     )
-    product4 = await create_random_product(transaction, "c", 4, 400, 40, obsolete=True)
+    product4 = await create_random_product(
+        transaction, "c", 4, 400, 40, collection_id=FOOD_OBSOLETE
+    )
 
     # Matrix for testing
     # Product  | Origin | AminoAcid | AminoAcid2 | Neucleotide | Obsolete | Creator
@@ -264,6 +267,16 @@ async def test_be_able_to_count_not_obsolete_products():
 
     response = await query.count(Filter(origins_tags=tags.origin_value), False)
     assert response == 3
+
+
+async def test_excludes_food_if_not_requested():
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
+
+    response = await query.count(
+        Filter(origins_tags=tags.origin_value), False, ProductType.beauty
+    )
+    assert response == 0
 
 
 async def test_cope_with_an_all_filter():

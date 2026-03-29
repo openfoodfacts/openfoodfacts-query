@@ -9,6 +9,13 @@ import asyncpg
 from asyncpg import Connection
 from uvicorn.logging import TRACE_LOG_LEVEL
 
+from query.tables.collection_type import (
+    COLLECTION_MAP,
+    COLLECTION_NAMES,
+    ProductType,
+    get_last_updated,
+    set_last_updated,
+)
 from query.tables.product_nutrient import (
     NUTRIENT_TAG,
     NUTRITION_TAG,
@@ -34,8 +41,6 @@ from ..tables.product_ingredient import (
 )
 from ..tables.product_tags import COUNTRIES_TAG, TAG_TABLES, create_tags_from_staging
 from ..tables.settings import (
-    get_last_updated,
-    set_last_updated,
     set_pre_migration_message_id,
 )
 
@@ -82,12 +87,13 @@ async def import_with_filter(
     source: Source,
     batch_size=DEFAULT_BATCH_SIZE,
     tags=[],
-) -> datetime:
+    product_type=ProductType.food,
+    from_datetime: datetime = None,
+):
     """Core import routine. Fetches data from MongoDB using the supplied filter and updates the copy stored in PostgreSQL
     If the filter is a list of codes then any code not found in MongoDB will be deleted from PostgreSQL
     """
 
-    max_last_updated = MIN_DATETIME
     found_product_codes = []
     codes_specified = "code" in filter and "$in" in filter["code"]
     if tags:
@@ -97,10 +103,6 @@ async def import_with_filter(
         # Partial loads are done during migrations but we don't want to do these during tests
         if config_settings.SKIP_DATA_MIGRATIONS:
             return
-
-        # Keep a note of the last message id at the start of the upgrade as we want to re-play any messages
-        # that were processed by the old version after this point
-        await set_pre_migration_message_id()
     else:
         tags = list(TAG_TABLES.keys()) + [INGREDIENTS_TAG, PRODUCT_TAG, NUTRIENT_TAG]
 
@@ -131,11 +133,39 @@ async def import_with_filter(
         if NUTRIENT_TAG in tags:
             projection |= {NUTRITION_TAG: True}
 
-        for obsolete in [False, True]:
+        collection_ids = COLLECTION_MAP[product_type].values()
+        effective_full_load = source in [Source.full_load, Source.incremental_load]
+
+        for collection_id in collection_ids:
+            max_last_updated = MIN_DATETIME
             update_count = 0
             skip_count = 0
             product_updates = []
-            async with find_products(filter, projection, obsolete) as cursor:
+            filter_date = None
+            # Clone the filter so that adding date criteria doesn't pollute the caller
+            collection_filter = dict(filter)
+
+            if source == Source.incremental_load:
+                # If we are doing an incremental load, use the supplied date or the last one for the collection
+                filter_date = from_datetime or await get_last_updated(
+                    transaction, collection_id
+                )
+                if filter_date:
+                    # Note in python the timestamp is in whole seconds (matches Perl)
+                    from_time = math.floor(filter_date.timestamp())
+                    collection_filter["last_updated_t"] = {"$gt": from_time}
+                    logger.info(
+                        f"Starting import of {COLLECTION_NAMES[collection_id]} from {filter_date}"
+                    )
+                    effective_full_load = False
+            if source != Source.event and not filter_date:
+                logger.info(
+                    f"Starting full import of {COLLECTION_NAMES[collection_id]}"
+                )
+
+            async with find_products(
+                collection_filter, projection, collection_id
+            ) as cursor:
                 async for product_data in cursor:
                     product_code = product_data["code"]
                     existing_product = await get_minimal_product(
@@ -158,11 +188,12 @@ async def import_with_filter(
                         existing_product
                         and source == Source.incremental_load
                         and existing_product["last_updated"] == last_updated
+                        and existing_product["collection_id"] == collection_id
                     ):
                         skip_count += 1
                         if not (skip_count % batch_size):
                             logger.info(
-                                f"Skipped {skip_count}{' obsolete' if obsolete else ''} products"
+                                f"Skipped {skip_count} {COLLECTION_NAMES[collection_id]} products"
                             )
                         continue
 
@@ -185,7 +216,7 @@ async def import_with_filter(
                         await apply_product_updates(
                             transaction,
                             product_updates,
-                            obsolete,
+                            collection_id,
                             process_id,
                             source,
                             tags,
@@ -196,15 +227,18 @@ async def import_with_filter(
                 await apply_product_updates(
                     transaction,
                     product_updates,
-                    obsolete,
+                    collection_id,
                     process_id,
                     source,
                     tags,
                 )
             if skip_count % batch_size:
                 logger.info(
-                    f"Skipped {skip_count}{' obsolete' if obsolete else ''} products"
+                    f"Skipped {skip_count} {COLLECTION_NAMES[collection_id]} products"
                 )
+
+            if source != Source.event and max_last_updated != MIN_DATETIME:
+                await set_last_updated(transaction, collection_id, max_last_updated)
 
         # Mark all products specifically requested but not found as deleted
         if codes_specified:
@@ -216,22 +250,26 @@ async def import_with_filter(
             ]
             if missing_product_codes:
                 await delete_products(
-                    transaction, process_id, source, missing_product_codes
+                    transaction,
+                    process_id,
+                    source,
+                    collection_ids,
+                    missing_product_codes,
                 )
 
         # If this is a full load then delete all products that were not fetched from MongoDB on this run
-        if source == Source.full_load:
-            await delete_products(transaction, process_id, source)
+        if effective_full_load:
+            await delete_products(
+                transaction, process_id, Source.full_load, collection_ids
+            )
     finally:
         await transaction.execute("DROP TABLE product_temp")
-
-    return max_last_updated
 
 
 async def apply_product_updates(
     transaction: Connection,
     product_updates,
-    obsolete,
+    collection_id,
     process_id,
     source,
     tags,
@@ -278,16 +316,16 @@ async def apply_product_updates(
             log = lambda msg: logger.log(TRACE_LOG_LEVEL, msg)
             if PRODUCT_TAG in tags:
                 await update_products_from_staging(
-                    transaction, log, obsolete, process_id, source
+                    transaction, log, collection_id, process_id, source
                 )
 
             if INGREDIENTS_TAG in tags:
-                await create_ingredients_from_staging(transaction, log, obsolete)
+                await create_ingredients_from_staging(transaction, log, collection_id)
 
-            await create_tags_from_staging(transaction, log, obsolete, tags)
+            await create_tags_from_staging(transaction, log, collection_id, tags)
 
             if COUNTRIES_TAG in tags:
-                await fixup_product_countries(transaction, obsolete)
+                await fixup_product_countries(transaction, collection_id)
 
             if NUTRIENT_TAG in tags:
                 await create_product_nutrients_from_staging(transaction, log)
@@ -301,7 +339,7 @@ async def apply_product_updates(
 
             product_count = len(product_updates)
             logger.info(
-                f"Imported {product_count}{' obsolete' if obsolete else ''} products"
+                f"Imported {product_count} {COLLECTION_NAMES[collection_id]} products"
             )
             del product_updates[:]
 
@@ -344,43 +382,31 @@ async def apply_product_updates(
             retrying = True
 
 
-import_running = False
+import_running = {}
 
 
-async def import_from_mongo(from_date: str = None):
+async def import_from_mongo(from_date: str = None, product_type=ProductType.food):
     """Imports data from MongoDB that has been updated since the date specified.
     If the date specified is None then full import is performed.
     If the date is empty then products updated since the last incremental import will be loaded
     """
     global import_running
-    if import_running:
+    if import_running.get(product_type):
         logger.warning("Skipping as import already running")
         return
 
-    import_running = True
+    import_running[product_type] = True
     try:
+        # If from_date is supplied or empty (as opposed to not supplied) then do an incremental import
         source = Source.full_load if from_date == None else Source.incremental_load
         async with get_transaction() as transaction:
-            # If the from parameter is supplied but it is empty then obtain the most
-            # recent modified time from the database and query MongoDB for products
-            # modified since then
-            if not from_date and source == Source.incremental_load:
-                last_updated = await get_last_updated(transaction)
-                if last_updated:
-                    from_date = last_updated.isoformat()
-                else:
-                    # If we don't have a last_updated in the database then we are doing a full load
-                    source = Source.full_load
-
-            filter = {}
-            if from_date:
-                # Note in python the timestamp is in whole seconds (matches Perl)
-                from_time = math.floor(datetime.fromisoformat(from_date).timestamp())
-                filter["last_updated_t"] = {"$gt": from_time}
-                logger.info(f"Starting import from {from_date}")
-
-            max_last_updated = await import_with_filter(transaction, filter, source)
-            if max_last_updated != MIN_DATETIME:
-                await set_last_updated(transaction, max_last_updated)
+            from_datetime = datetime.fromisoformat(from_date) if from_date else None
+            await import_with_filter(
+                transaction,
+                {},
+                source,
+                from_datetime=from_datetime,
+                product_type=product_type,
+            )
     finally:
-        import_running = False
+        import_running[product_type] = False

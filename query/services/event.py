@@ -4,6 +4,8 @@ import math
 from datetime import datetime, timezone
 from typing import Dict, List
 
+from query.tables.collection_type import SUPPORTED_PRODUCT_TYPES
+
 from ..database import get_transaction, strip_nuls
 from ..models.domain_event import DomainEvent
 from ..models.product import Source
@@ -16,16 +18,21 @@ STREAM_NAME = "product_updates"
 async def process_events(transaction, events: List[DomainEvent]):
     """Process events received from Redis"""
     await create_events(transaction, events)
-    product_codes = [
-        event.payload["code"]
-        for event in events
-        # We only currently support events for food products.
-        # TODO: This logic should be inside the import so we can delete non-food products
-        if event.payload.get("product_type") == "food"
-    ]
-    if product_codes:
+    product_types = {}
+    for event in events:
+        product_type = event.payload.get("product_type")
+        if product_type in SUPPORTED_PRODUCT_TYPES:
+            product_codes = product_types.setdefault(
+                event.payload.get("product_type"), []
+            )
+            product_codes.append(event.payload["code"])
+
+    for product_type, product_codes in product_types.items():
         await import_with_filter(
-            transaction, {"code": {"$in": product_codes}}, Source.event
+            transaction,
+            {"code": {"$in": product_codes}},
+            Source.event,
+            product_type=product_type,
         )
 
 

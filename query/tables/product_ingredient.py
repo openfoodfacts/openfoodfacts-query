@@ -4,6 +4,8 @@ There is currently no API to query this data, it is just being used internally t
 
 from asyncpg import Connection
 
+from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
+
 from ..database import get_rows_affected
 
 # Note we can't list explicit fields here because of the potentially unlimited nesting of sub-ingredients
@@ -39,13 +41,25 @@ async def create_table(transaction):
     )
 
 
+async def migration_add_collection(transaction):
+    await transaction.execute(
+        f"""ALTER TABLE product_ingredient ADD COLUMN collection_id smallint NOT NULL DEFAULT {FOOD}"""
+    )
+    await transaction.execute(
+        f"""UPDATE product_ingredient SET collection_id = {FOOD_OBSOLETE} WHERE obsolete"""
+    )
+    await transaction.execute(
+        f"""UPDATE product_ingredient SET collection_id = {DELETED} WHERE obsolete IS NULL"""
+    )
+
+
 async def get_ingredients(transaction, product_id):
     return await transaction.fetch(
         f"SELECT * FROM product_ingredient WHERE product_id = $1", product_id
     )
 
 
-async def create_ingredients_from_staging(transaction: Connection, log, obsolete):
+async def create_ingredients_from_staging(transaction: Connection, log, collection_id):
     deleted = await transaction.execute("""delete from product_ingredient 
         where product_id in (select id from product_temp)""")
     log_text = f"Updated ingredients deleted {get_rows_affected(deleted)},"
@@ -60,7 +74,7 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
           percent_max,
           percent_estimate,
           data,
-          obsolete
+          collection_id
         )
         select 
           product.id,
@@ -73,7 +87,7 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
           (tag.value->>'percent_max')::numeric,
           (tag.value->>'percent_estimate')::numeric,
           tag.value->'ingredients',
-          {obsolete}
+          {collection_id}
         from product_temp product
         cross join jsonb_array_elements(data->'ingredients') with ordinality tag""")
     affected_rows = get_rows_affected(results)
@@ -93,7 +107,7 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
             percent_max,
             percent_estimate,
             data,
-            obsolete
+            collection_id
           )
           select 
             pi.product_id,
@@ -108,7 +122,7 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
             (tag.value->>'percent_max')::numeric,
             (tag.value->>'percent_estimate')::numeric,
             tag.value->'ingredients',
-            {obsolete}
+            {collection_id}
           from product_ingredient pi 
           join product_temp product on product.id = pi.product_id
           cross join json_array_elements(pi.data) with ordinality tag
@@ -122,6 +136,6 @@ async def create_ingredients_from_staging(transaction: Connection, log, obsolete
 
 async def delete_ingredients(transaction, product_ids):
     await transaction.execute(
-        f"UPDATE product_ingredient SET obsolete = NULL WHERE product_id = ANY($1::numeric[])",
+        f"UPDATE product_ingredient SET collection_id = {DELETED} WHERE product_id = ANY($1::numeric[])",
         product_ids,
     )

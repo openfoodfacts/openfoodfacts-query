@@ -9,6 +9,8 @@ from contextlib import contextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from query.tables.collection_type import SUPPORTED_PRODUCT_TYPES
+
 from .database import get_transaction
 from .events import start_redis_listener, stop_redis_listener
 from .services.ingestion import import_from_mongo
@@ -22,8 +24,9 @@ async def scheduled_import_from_mongo():
         try:
             # Pause redis while we are importing
             await stop_redis_listener()
-            logger.info("Scheduled incremental import started")
-            await import_from_mongo("")
+            for product_type in SUPPORTED_PRODUCT_TYPES:
+                logger.info(f"Scheduled incremental import started for {product_type}")
+                await import_from_mongo("", product_type=product_type)
         finally:
             start_redis_listener()
 

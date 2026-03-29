@@ -23,11 +23,11 @@ async def error_cursor(message):
 
 def patch_context_manager(mock: Mock, *cursors):
     """Patching a context manager isn't very intuitive so use this simple helper function to do it"""
-    # We pop from the end so need to reverse the list
-    cursor_list = list(reversed(cursors))
+    # Clone the list so we don't modify what is passed in
+    cursor_list = list(cursors)
 
     def next_cursor():
         nonlocal cursor_list
-        return cursor_list.pop() if cursor_list else mock_cursor([])
+        return cursor_list.pop(0) if cursor_list else mock_cursor([])
 
     mock.return_value.__aenter__.side_effect = next_cursor
