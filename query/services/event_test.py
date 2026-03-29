@@ -53,7 +53,7 @@ async def test_process_events_calls_import_with_filter(import_with_filter: Mock)
 
 
 @patch.object(event, "import_with_filter")
-async def test_process_events_not_include_non_food_products_in_call_to_import_with_filter(
+async def test_process_events_includes_non_food_products_in_call_to_import_with_filter(
     import_with_filter: Mock,
 ):
     async with get_transaction() as transaction:
@@ -71,18 +71,20 @@ async def test_process_events_not_include_non_food_products_in_call_to_import_wi
         )
         assert len(events) == 2
 
-        # Import only called for the food product
-        assert import_with_filter.called
-        import_args = import_with_filter.call_args[0]
-        assert import_args[1] == {"code": {"$in": [food_code]}}
+        # Import called for the food and beauty product
+        assert import_with_filter.call_count == 2
+        food_args = next(arg for arg in import_with_filter.call_args_list if arg.kwargs['product_type'] == 'food')
+        assert food_args[0][1] == {"code": {"$in": [food_code]}}
+        beauty_args = next(arg for arg in import_with_filter.call_args_list if arg.kwargs['product_type'] == 'beauty')
+        assert beauty_args[0][1] == {"code": {"$in": [beauty_code]}}
 
 
 @patch.object(event, "import_with_filter")
-async def test_process_events_does_not_import_with_filter_at_all_if_no_food_products(
+async def test_process_events_does_not_import_with_filter_at_all_if_no_known_product_type(
     import_with_filter: Mock,
 ):
     async with get_transaction() as transaction:
-        beauty_event = sample_event({"product_type": "beauty", "rev": "1"})
+        beauty_event = sample_event({"product_type": "unknown", "rev": "1"})
         await process_events(transaction, [beauty_event])
 
         # Import is not called
