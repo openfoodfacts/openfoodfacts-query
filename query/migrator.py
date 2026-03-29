@@ -7,6 +7,8 @@ from importlib import import_module
 
 from asyncpg import Connection
 
+from query.tables.settings import set_pre_migration_message_id
+
 from .config import config_settings
 from .database import get_transaction
 
@@ -51,6 +53,10 @@ async def migrate_database(apply=False):
                 migrations_to_run.append(migration_name)
 
     if apply:
+        # Keep a note of the last message id at the start of the upgrade as we want to re-play any messages
+        # that were processed by the old version after this point
+        await set_pre_migration_message_id()
+
         for migration_name in migrations_to_run:
             logger.info(f"Applying {migration_name}")
             module = import_module(

@@ -35,6 +35,11 @@ COLLECTION_MAP = {
     ProductType.product: {False: PRODUCT, True: PRODUCT_OBSOLETE},
 }
 
+COLLECTION_NAMES = {}
+for product_type, collection_ids in COLLECTION_MAP.items():
+    COLLECTION_NAMES[collection_ids[False]] = product_type.value
+    COLLECTION_NAMES[collection_ids[True]] = f"obsolete {product_type.value}"
+
 
 async def create_table(transaction):
     await transaction.execute("""CREATE TABLE IF NOT EXISTS collection (

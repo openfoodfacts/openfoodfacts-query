@@ -11,6 +11,7 @@ from uvicorn.logging import TRACE_LOG_LEVEL
 
 from query.tables.collection_type import (
     COLLECTION_MAP,
+    COLLECTION_NAMES,
     ProductType,
     get_last_updated,
     set_last_updated,
@@ -102,10 +103,6 @@ async def import_with_filter(
         # Partial loads are done during migrations but we don't want to do these during tests
         if config_settings.SKIP_DATA_MIGRATIONS:
             return
-
-        # Keep a note of the last message id at the start of the upgrade as we want to re-play any messages
-        # that were processed by the old version after this point
-        await set_pre_migration_message_id()
     else:
         tags = list(TAG_TABLES.keys()) + [INGREDIENTS_TAG, PRODUCT_TAG, NUTRIENT_TAG]
 
@@ -157,11 +154,14 @@ async def import_with_filter(
                     # Note in python the timestamp is in whole seconds (matches Perl)
                     from_time = math.floor(filter_date.timestamp())
                     collection_filter["last_updated_t"] = {"$gt": from_time}
-                    # TODO: Want a friendly string here
                     logger.info(
-                        f"Starting import of {collection_id} from {filter_date}"
+                        f"Starting import of {COLLECTION_NAMES[collection_id]} from {filter_date}"
                     )
                     effective_full_load = False
+            if source != Source.event and not filter_date:
+                logger.info(
+                    f"Starting full import of {COLLECTION_NAMES[collection_id]}"
+                )
 
             async with find_products(
                 collection_filter, projection, collection_id
@@ -193,7 +193,7 @@ async def import_with_filter(
                         skip_count += 1
                         if not (skip_count % batch_size):
                             logger.info(
-                                f"Skipped {skip_count} {collection_id} products"
+                                f"Skipped {skip_count} {COLLECTION_NAMES[collection_id]} products"
                             )
                         continue
 
@@ -233,7 +233,9 @@ async def import_with_filter(
                     tags,
                 )
             if skip_count % batch_size:
-                logger.info(f"Skipped {skip_count} {collection_id} products")
+                logger.info(
+                    f"Skipped {skip_count} {COLLECTION_NAMES[collection_id]} products"
+                )
 
             if source != Source.event and max_last_updated != MIN_DATETIME:
                 await set_last_updated(transaction, collection_id, max_last_updated)
@@ -257,7 +259,9 @@ async def import_with_filter(
 
         # If this is a full load then delete all products that were not fetched from MongoDB on this run
         if effective_full_load:
-            await delete_products(transaction, process_id, Source.full_load, collection_ids)
+            await delete_products(
+                transaction, process_id, Source.full_load, collection_ids
+            )
     finally:
         await transaction.execute("DROP TABLE product_temp")
 
@@ -334,7 +338,9 @@ async def apply_product_updates(
             await transaction.execute("BEGIN TRANSACTION")
 
             product_count = len(product_updates)
-            logger.info(f"Imported {product_count} {collection_id} products")
+            logger.info(
+                f"Imported {product_count} {COLLECTION_NAMES[collection_id]} products"
+            )
             del product_updates[:]
 
             if len(remaining_updates):
