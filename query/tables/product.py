@@ -192,7 +192,7 @@ async def update_products_from_staging(
 
 async def get_minimal_product(transaction, code):
     return await transaction.fetchrow(
-        "SELECT id, last_updated FROM product WHERE code = $1", code
+        "SELECT id, last_updated, collection_id FROM product WHERE code = $1", code
     )
 
 

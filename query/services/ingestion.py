@@ -188,6 +188,7 @@ async def import_with_filter(
                         existing_product
                         and source == Source.incremental_load
                         and existing_product["last_updated"] == last_updated
+                        and existing_product["collection_id"] == collection_id
                     ):
                         skip_count += 1
                         if not (skip_count % batch_size):
@@ -256,7 +257,7 @@ async def import_with_filter(
 
         # If this is a full load then delete all products that were not fetched from MongoDB on this run
         if effective_full_load:
-            await delete_products(transaction, process_id, source, collection_ids)
+            await delete_products(transaction, process_id, Source.full_load, collection_ids)
     finally:
         await transaction.execute("DROP TABLE product_temp")
 
