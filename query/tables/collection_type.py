@@ -40,11 +40,13 @@ async def create_table(transaction):
       product_type text NOT NULL,
       obsolete boolean NOT NULL,
       deleted boolean NOT NULL,
+      last_updated timestamptz NULL,
       constraint collection_pkey primary key (id))""")
 
     # Add standard values
     await transaction.execute(
         f"""INSERT INTO collection (id, product_type, obsolete, deleted) VALUES
+        ({DELETED}, 'deleted', FALSE, TRUE),
         ({FOOD}, '{ProductType.food}', FALSE, FALSE),
         ({FOOD_OBSOLETE}, '{ProductType.food}', TRUE, FALSE),
         ({PETFOOD}, '{ProductType.petfood}', FALSE, FALSE),
@@ -54,20 +56,9 @@ async def create_table(transaction):
         ({PRODUCT}, '{ProductType.product}', FALSE, FALSE),
         ({PRODUCT_OBSOLETE}, '{ProductType.product}', TRUE, FALSE)"""
     )
-
-
-async def migration_add_last_updated(transaction):
-    await transaction.execute(
-        """ALTER TABLE collection ADD COLUMN last_updated timestamptz"""
-    )
     await transaction.execute(
         f"""UPDATE collection SET last_updated = (SELECT last_updated FROM settings) WHERE id IN ({FOOD},{FOOD_OBSOLETE})"""
     )
-    await transaction.execute(
-        f"""INSERT INTO collection (id, product_type, obsolete, deleted) VALUES
-        ({DELETED}, 'deleted', FALSE, TRUE)"""
-    )
-    await transaction.execute("""DELETE FROM collection WHERE id in (12,22,32,42)""")
 
 
 async def get_last_updated(transaction, collection_id) -> datetime:
