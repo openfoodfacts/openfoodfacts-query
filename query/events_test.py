@@ -285,6 +285,39 @@ async def test_messages_received_strips_nulls(import_with_filter: Mock):
         )
 
 
+@patch.object(event, "import_with_filter")
+async def test_messages_copes_with_invalid_revision(import_with_filter: Mock):
+    async with get_transaction() as transaction:
+        timestamp = math.floor(time.time())
+        code = random_code()
+        test_message = {
+            "timestamp": timestamp,
+            "code": code,
+            "rev": "",
+            "flavor": "off",
+            "product_type": "food",
+            "user_id": "test_user",
+            "action": "updated",
+        }
+
+        message_id = f"{timestamp}-{code}"
+        await messages_received(
+            transaction, [["test-stream", [[message_id, test_message]]]]
+        )
+
+        assert import_with_filter.called
+        event = await transaction.fetchrow(
+            "select * from product_update_event where message_id = $1",
+            message_id,
+        )
+        assert event
+        product_update = await transaction.fetchrow(
+            "select * from product_update where event_id = $1",
+            event["id"],
+        )
+        assert product_update
+
+
 @patch.object(events, "process_events")
 async def test_copes_with_missing_fields(process_events: Mock):
     async with get_transaction() as transaction:
