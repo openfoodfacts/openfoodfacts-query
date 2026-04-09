@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.1](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.3.0...v0.3.1) (2026-04-09)
+
+
+### Bug Fixes
+
+* Cater for invalid rev values ([#293](https://github.com/openfoodfacts/openfoodfacts-query/issues/293)) ([000d47a](https://github.com/openfoodfacts/openfoodfacts-query/commit/000d47aac1fc2b883da85df743492fd9d7fc14a4))
+* Cater for scenarios where some products in a batch fail ([#279](https://github.com/openfoodfacts/openfoodfacts-query/issues/279)) ([ebd285d](https://github.com/openfoodfacts/openfoodfacts-query/commit/ebd285d9b1528a3f127d58ad449d578b60d6fb78))
+* Move some of the more chatty logging to only happen at the verbose level ([#285](https://github.com/openfoodfacts/openfoodfacts-query/issues/285)) ([b3e27fc](https://github.com/openfoodfacts/openfoodfacts-query/commit/b3e27fc2940b13d595eaaceb23e13429d053524b))
+
 ## [0.3.0](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.2.1...v0.3.0) (2026-03-10)
 
 
