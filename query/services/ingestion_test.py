@@ -65,6 +65,7 @@ def get_test_products():
                             "value": random.uniform(100, 0.000001),
                         },
                         "invalid": {"value": "100g"},
+                        "fat": {"value": "30"},
                     }
                 }
             },
@@ -223,7 +224,7 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         existing_product_nutrients = await get_product_nutrients(
             transaction, product_existing
         )
-        assert len(existing_product_nutrients) == 2
+        assert len(existing_product_nutrients) == 3
         found_random_product_nutrient = [
             item
             for item in existing_product_nutrients
@@ -244,6 +245,17 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         ]
         assert found_carbohydrate
         assert found_carbohydrate[0]["value"] == 21
+        
+        # Should cater for nutrients supplied in quotes
+        fat_nutrient = await get_nutrient(transaction, "fat")
+        found_fat = [
+            item
+            for item in existing_product_nutrients
+            if item["nutrient_id"] == fat_nutrient["id"]
+        ]
+        assert found_fat
+        assert found_fat[0]["value"] == 30
+        
 
 
 @patch.object(ingestion, "find_products")
