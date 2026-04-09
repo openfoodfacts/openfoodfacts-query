@@ -1,6 +1,8 @@
 """The set of tables that store product tags. Each tag is simply an array of values on the product.
 The order of tags is not preserved"""
 
+from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
+
 from ..database import create_record, get_rows_affected
 
 COUNTRIES_TAG = "countries_tags"
@@ -97,17 +99,30 @@ async def create_tables_v1(transaction):
     await create_tables(transaction, tag_tables_v1)
 
 
+async def migration_add_collection(transaction):
+    for table_name in tag_tables_v1.values():
+        await transaction.execute(
+            f"""ALTER TABLE {table_name} ADD COLUMN collection_id smallint NOT NULL DEFAULT {FOOD}"""
+        )
+        await transaction.execute(
+            f"""UPDATE {table_name} SET collection_id = {FOOD_OBSOLETE} WHERE obsolete"""
+        )
+        await transaction.execute(
+            f"""UPDATE {table_name} SET collection_id = {DELETED} WHERE obsolete IS NULL"""
+        )
+
+
 async def create_tag(transaction, tag, product, value):
     return await create_record(
         transaction,
         TAG_TABLES[tag],
         product_id=product["id"],
         value=value,
-        obsolete=product["obsolete"],
+        collection_id=product["collection_id"],
     )
 
 
-async def create_tags_from_staging(transaction, log, obsolete, tags):
+async def create_tags_from_staging(transaction, log, collection_id, tags):
     """Populates all of the tag tables from the product_temp data"""
     for tag in tags:
         tag_table = TAG_TABLES.get(tag, None)
@@ -121,8 +136,8 @@ async def create_tags_from_staging(transaction, log, obsolete, tags):
 
             # Add tags back in with the updated information
             results = await transaction.execute(
-                f"""insert into {tag_table} (product_id, value, obsolete)
-            select DISTINCT id, tag.value, {obsolete} from product_temp 
+                f"""insert into {tag_table} (product_id, value, collection_id)
+            select DISTINCT id, tag.value, {collection_id} from product_temp 
             cross join jsonb_array_elements_text(data->'{tag}') tag"""
             )
             log_text += f" inserted {get_rows_affected(results)} rows"
@@ -133,7 +148,7 @@ async def delete_tags(transaction, product_ids):
     """Soft deletes tags for the specified products"""
     for tag_table in TAG_TABLES.values():
         await transaction.execute(
-            f"UPDATE {tag_table} SET obsolete = NULL WHERE product_id = ANY($1::numeric[])",
+            f"UPDATE {tag_table} SET collection_id = {DELETED} WHERE product_id = ANY($1::numeric[])",
             product_ids,
         )
 

@@ -6,4 +6,6 @@ We do this because migrations are run before the previous instance of the servic
 
 # Pending migrations
 
-- None
+- Drop obsolete column from products, product_tags, product_country and product_ingredients
+  as it is now condensed in collection_id column
+- Drop last_updated from settings as it is now in collection_type table

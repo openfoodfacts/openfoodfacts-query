@@ -29,6 +29,7 @@ from .scheduler import scheduler_lifespan
 from .services import ingestion, query
 from .services.health import check_health
 from .services.scan import import_scans
+from .tables.collection_type import ProductType
 
 logger = logging.getLogger(__name__)
 
@@ -67,29 +68,39 @@ async def get_health() -> Health:
 
 
 obsolete_param = Query(False, description="Whether to just search obsolete products")
+product_type_param = Query(
+    ProductType.food, description="The product collection to query"
+)
 
 
 @app.post("/count")
-async def count(filter: Filter, obsolete: bool = obsolete_param) -> int:
+async def count(
+    filter: Filter,
+    obsolete: bool = obsolete_param,
+    product_type: ProductType = product_type_param,
+) -> int:
     """Count the total number of products meeting the specified filter criteria"""
-    return await query.count(filter, obsolete)
+    return await query.count(filter, obsolete, product_type)
 
 
 @app.post("/aggregate")
 async def aggregate(
-    stages: List[Stage], obsolete: bool = obsolete_param
+    stages: List[Stage],
+    obsolete: bool = obsolete_param,
+    product_type: ProductType = product_type_param,
 ) -> List[AggregateResult] | AggregateCountResult:
     """Get the aggregate count of products by the specified grouping field. If a $count stage is supplied then the count of distinct group values will be returned"""
-    return await query.aggregate(stages, obsolete)
+    return await query.aggregate(stages, obsolete, product_type)
 
 
 @app.post("/find")
 async def find(
     find_query: FindQuery,
     obsolete: bool = obsolete_param,
+    product_type: ProductType = product_type_param,
 ) -> List[Dict]:
     """Fetch the specified product documents"""
-    return await query.find(find_query, obsolete)
+    return await query.find(find_query, obsolete, product_type)
 
 
 @app.get("/importfrommongo")
@@ -98,10 +109,13 @@ async def importfrommongo(
         None,
         alias="from",
         description="The last updated date from which to import products. A full import will be performed if this is not supplied. Supply but leave blank to import products updated since the last import",
-    )
+    ),
+    product_type: ProductType = Query(
+        ProductType.food, description="The product type to import"
+    ),
 ):
     """Runs a full or incremental import from MongoDB"""
-    return await ingestion.import_from_mongo(start_from)
+    return await ingestion.import_from_mongo(start_from, product_type)
 
 
 # Currently you have to know the PostgreSQL database username and password to import scans

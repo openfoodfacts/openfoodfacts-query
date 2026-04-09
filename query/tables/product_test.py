@@ -7,6 +7,7 @@ async def test_create_product():
     async with get_transaction() as transaction:
         product = await create_product(transaction, code=random_code())
         assert product["id"] > 0
+        assert product["collection_id"] == 10
 
 
 def test_normalize_code():

@@ -47,3 +47,5 @@ omit = [
     "query/conftest.py"
 ]
 
+[tool.black]
+target-version = ["py311"]

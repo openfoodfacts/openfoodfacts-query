@@ -25,6 +25,19 @@ async def test_count_route():
     assert response.json() == 1
 
 
+async def test_count_route_with_product_type():
+    async with get_transaction() as transaction:
+        tags = await create_test_tags(transaction)
+
+    client = TestClient(app)
+    response = client.post(
+        "/count?product_type=petfood",
+        json={"origins_tags": tags.origin_value},
+    )
+    assert response.status_code == 200
+    assert response.json() == 0
+
+
 async def test_count_obsolete():
     async with get_transaction() as transaction:
         tags = await create_test_tags(transaction)

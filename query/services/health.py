@@ -3,7 +3,8 @@
 import redis.asyncio as redis
 
 from query.services.event import STREAM_NAME
-from query.tables.settings import get_last_message_id, get_last_updated
+from query.tables.collection_type import FOOD, get_last_updated
+from query.tables.settings import get_last_message_id
 
 from ..config import config_settings
 from ..database import get_transaction
@@ -17,7 +18,7 @@ async def check_health():
     try:
         info = {}
         async with get_transaction() as transaction:
-            info["last_scheduled_update"] = await get_last_updated(transaction)
+            info["last_scheduled_update"] = await get_last_updated(transaction, FOOD)
         health.add("postgres", HealthItemStatusEnum.up, info=info)
     except Exception as e:
         health.add("postgres", HealthItemStatusEnum.down, str(e))

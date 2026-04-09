@@ -1,7 +1,8 @@
 """Global settings that are stored in the database"""
 
 import logging
-from datetime import datetime
+
+import asyncpg
 
 from query.database import get_transaction
 
@@ -23,15 +24,6 @@ async def add_pre_migration_message_id(transaction):
     )
 
 
-async def get_last_updated(transaction) -> datetime:
-    """The most recent last_updated date for a product in the PostgreSQL database"""
-    return await transaction.fetchval("SELECT last_updated FROM settings")
-
-
-async def set_last_updated(transaction, last_updated):
-    await transaction.execute("UPDATE settings SET last_updated = $1", last_updated)
-
-
 async def get_last_message_id(transaction) -> str:
     """The last message id that was received from Redis. Used when resuming the Redis listener"""
     return (await transaction.fetchval("SELECT last_message_id FROM settings")) or "0"
@@ -47,13 +39,17 @@ async def set_pre_migration_message_id():
     """
     # Use a separate transaction so that this doesn't block the current instance from updating last_message_id
     async with get_transaction() as transaction:
-        setting = await transaction.fetch(
-            "UPDATE settings SET pre_migration_message_id = last_message_id WHERE pre_migration_message_id IS NULL RETURNING pre_migration_message_id"
-        )
-        if len(setting) == 1:
-            logger.info(
-                f"Will resume messages at id: {setting[0]['pre_migration_message_id']}"
+        try:
+            setting = await transaction.fetch(
+                "UPDATE settings SET pre_migration_message_id = last_message_id WHERE pre_migration_message_id IS NULL RETURNING pre_migration_message_id"
             )
+            if len(setting) == 1:
+                logger.info(
+                    f"Will resume messages at id: {setting[0]['pre_migration_message_id']}"
+                )
+        except asyncpg.PostgresError as sql_error:
+            # This is expected if the setting table hasn't been created yet
+            logger.warning(f"Not able to set resume messages id: {sql_error}")
 
 
 async def apply_pre_migration_message_id():
