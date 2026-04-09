@@ -92,8 +92,8 @@ async def test_process_events_does_not_import_with_filter_at_all_if_no_known_pro
     import_with_filter: Mock,
 ):
     async with get_transaction() as transaction:
-        beauty_event = sample_event({"product_type": "unknown", "rev": "1"})
-        await process_events(transaction, [beauty_event])
+        unknown_event = sample_event({"product_type": "unknown", "rev": "1"})
+        await process_events(transaction, [unknown_event])
 
         # Import is not called
         assert not import_with_filter.called

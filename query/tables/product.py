@@ -142,6 +142,7 @@ async def migration_add_collection(transaction):
     await transaction.execute(
         f"""UPDATE product SET collection_id = {FOOD_OBSOLETE} WHERE obsolete"""
     )
+    # obsolete was False for existing non obsolete products and NULL for deleted products
     await transaction.execute(
         f"""UPDATE product SET collection_id = {DELETED} WHERE obsolete IS NULL"""
     )
