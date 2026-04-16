@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.3.1...v0.4.0) (2026-04-16)
+
+
+### Features
+
+* Add support for all product types ([#289](https://github.com/openfoodfacts/openfoodfacts-query/issues/289)) ([e871a95](https://github.com/openfoodfacts/openfoodfacts-query/commit/e871a952174e28373a59cbde887f786d9a315c6a))
+
 ## [0.3.1](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.3.0...v0.3.1) (2026-04-09)
 
 
