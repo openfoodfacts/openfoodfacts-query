@@ -35,7 +35,7 @@ async def set_last_message_id(transaction, message_id):
 
 async def set_pre_migration_message_id():
     """Makes a note of the last Redis message_id before a data migration starts.
-    Messages after this will bre re-played on the new version once the upgrade finishes
+    Messages after this will be re-played on the new version once the upgrade finishes
     """
     # Use a separate transaction so that this doesn't block the current instance from updating last_message_id
     async with get_transaction() as transaction:
