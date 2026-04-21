@@ -12,7 +12,7 @@ tag_tables_v1 = {
     "allergens_tags": "product_allergens_tag",
     "amino_acids_tags": "product_amino_acids_tag",
     "brands_tags": "product_brands_tag",
-    "categories_properties_tags": "product_categories_properites_tag",
+    "categories_properties_tags": "product_categories_properties_tag",
     "categories_tags": "product_categories_tag",
     "checkers_tags": "product_checkers_tag",
     "cities_tags": "product_cities_tag",
