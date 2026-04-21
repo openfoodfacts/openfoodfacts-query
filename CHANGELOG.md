@@ -38,7 +38,7 @@
 
 ### Features
 
-* Populate event tables for developpers ([#230](https://github.com/openfoodfacts/openfoodfacts-query/issues/230)) ([f713bfa](https://github.com/openfoodfacts/openfoodfacts-query/commit/f713bfabb527f9b1918bd59bd502633168f57134))
+* Populate event tables for developers ([#230](https://github.com/openfoodfacts/openfoodfacts-query/issues/230)) ([f713bfa](https://github.com/openfoodfacts/openfoodfacts-query/commit/f713bfabb527f9b1918bd59bd502633168f57134))
 * remove ip from messages ([#247](https://github.com/openfoodfacts/openfoodfacts-query/issues/247)) ([c621888](https://github.com/openfoodfacts/openfoodfacts-query/commit/c62188850bfaf0979909697ce46951932caa9b7d))
 * Support new nutrition schema ([#213](https://github.com/openfoodfacts/openfoodfacts-query/issues/213)) ([fd10890](https://github.com/openfoodfacts/openfoodfacts-query/commit/fd1089019b55806602a707257ca8951d8e9a4945))
 
