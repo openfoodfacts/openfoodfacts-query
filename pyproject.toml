@@ -16,7 +16,7 @@ dependencies = [
     "redis[hiredis]",
     "apscheduler",
     "toml",
-    "pymongo (>=4.13.2,<5.0.0)",
+    "pymongo (>=4.17.0,<5.0.0)",
 ]
 
 
