@@ -102,7 +102,7 @@ jobs:
           echo "POSTGRES_REPLICATION_SOURCE_PORT=16002" >> $GITHUB_ENV
 
       - name: Wait for container build workflow
-        uses: fountainhead/action-wait-for-check@v1.2.0
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
         id: wait-build
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -120,7 +120,7 @@ jobs:
         run: echo Timeout && false # fail if build time out
 
       - name: Checkout git repository
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USERNAME }}
@@ -142,7 +142,7 @@ jobs:
             git checkout -qf ${{ github.sha }}
 
       - name: Set common environment variables
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USERNAME }}
@@ -191,7 +191,7 @@ jobs:
             echo "LOG_LEVEL=${{ env.LOG_LEVEL }}" >> .env
 
       - name: Create Postgresql config file for primary postgres
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         # although .net instance is not currently replicated,
         # we set it up to be able to run tests if needed
         if: "! contains(matrix.env, '-replica-')"
@@ -227,7 +227,7 @@ jobs:
             echo "host    replication     all             10.0.0.0/8                 scram-sha-256" >> confs/postgresql/prod_hba.conf
 
       - name: Create Postgresql config file for replica postgres
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         if: "contains(matrix.env, '-replica-')"
         with:
           host: ${{ env.SSH_HOST }}
@@ -252,7 +252,7 @@ jobs:
             echo "hot_standby=on" >> confs/postgresql/prod.conf
 
       - name: Start services (primary)
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         if: "! contains(matrix.env, '-replica-')"
         with:
           host: ${{ env.SSH_HOST }}
@@ -270,7 +270,7 @@ jobs:
             make migrate_database_docker && docker compose up -d 2>&1
 
       - name: Start services (replica)
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         if: "contains(matrix.env, '-replica-')"
         with:
           host: ${{ env.SSH_HOST }}
@@ -290,7 +290,7 @@ jobs:
             docker compose up -d 2>&1
 
       - name: Check services are up
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         if: ${{ always() }}
         id: livecheck
         with:
@@ -314,7 +314,7 @@ jobs:
             exit $exit_code;
 
       - name: Post config (primary)
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         if: "! contains(matrix.env, '-replica-')"
         with:
           host: ${{ env.SSH_HOST }}
@@ -329,7 +329,7 @@ jobs:
             make create_replication_user
 
       - name: Cleanup obsolete Docker objects
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         if: ${{ always() }}
         with:
           host: ${{ env.SSH_HOST }}
