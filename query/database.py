@@ -41,6 +41,12 @@ async def create_connection_pool():
         host=config_settings.POSTGRES_HOST.split(":")[0],
         port=config_settings.POSTGRES_HOST.split(":")[-1],
         init=init_connection_codecs,
+        min_size=5,  # Keeps 5 connections warm and ready
+        max_size=20,  # Limits physical connections to a maximum of 20
+        # Crucial parameters for long-running pools
+        max_queries=50000,  # Rebuilds a connection after 50k queries to prevent memory leaks
+        max_inactive_connection_lifetime=300.0,  # Closes connections that sit idle for more than 5 minutes
+        command_timeout=60.0,  # Fails safely if a query hangs for over 60 seconds
     )
     return pool
 
