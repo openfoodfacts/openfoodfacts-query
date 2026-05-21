@@ -10,7 +10,7 @@ from asyncpg import Connection
 from query.tables.settings import set_pre_migration_message_id
 
 from .config import config_settings
-from .database import get_transaction
+from .database import create_connection_pool, get_transaction
 
 MIGRATIONS_TABLE = "mikro_orm_migrations"
 MIGRATIONS_FOLDER = "query/migrations"
@@ -83,5 +83,11 @@ async def migrate_database(apply=False):
 
 
 if __name__ == "__main__":
-    if asyncio.run(migrate_database(True)):
-        logger.info("Migrations completed successfully")
+    # Start the database pool
+    pool = asyncio.run(create_connection_pool())
+    try:
+        if asyncio.run(migrate_database(True)):
+            logger.info("Migrations completed successfully")
+
+    finally:
+        asyncio.run(pool.close())

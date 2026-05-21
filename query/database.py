@@ -11,24 +11,45 @@ from .config import config_settings
 
 logger = logging.getLogger(__name__)
 
+pool: asyncpg.Pool = None
+
 
 @asynccontextmanager
-async def get_transaction() -> AsyncGenerator[asyncpg.Connection, Any]:
-    connection: asyncpg.Connection = await asyncpg.connect(
+async def database_lifespan():
+    """Lifespan handler for creating the database connection pool"""
+    try:
+        pool = await create_connection_pool()
+        yield
+    finally:
+        await pool.close()
+
+
+async def init_connection_codecs(conn: asyncpg.Connection):
+    """Automatically configures codecs on every new physical pool connection."""
+    await conn.set_type_codec(
+        "jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"
+    )
+
+
+async def create_connection_pool():
+    """Creates a global connection pool to the PostgreSQL database"""
+    global pool
+    pool = await asyncpg.create_pool(
         user=config_settings.POSTGRES_USER,
         password=config_settings.POSTGRES_PASSWORD,
         database=config_settings.POSTGRES_DB,
         host=config_settings.POSTGRES_HOST.split(":")[0],
         port=config_settings.POSTGRES_HOST.split(":")[-1],
+        init=init_connection_codecs,
     )
-    try:
-        await connection.set_type_codec(
-            "jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"
-        )
+    return pool
+
+
+@asynccontextmanager
+async def get_transaction() -> AsyncGenerator[asyncpg.Connection, Any]:
+    async with pool.acquire() as connection:
         async with connection.transaction():
             yield connection
-    finally:
-        await connection.close()
 
 
 def get_rows_affected(response: str):

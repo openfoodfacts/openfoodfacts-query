@@ -15,6 +15,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from query.services.event import import_events
 
 from .config import config_settings
+from .database import database_lifespan
 from .events import redis_lifespan
 from .models.health import Health
 from .models.query import (
@@ -36,10 +37,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(_):
-    async with redis_lifespan():
-        with scheduler_lifespan():
-            yield
-            logger.info("Shutting down")
+    async with database_lifespan():
+        async with redis_lifespan():
+            with scheduler_lifespan():
+                yield
+                logger.info("Shutting down")
 
 
 # Read metadata from the pyproject.toml file

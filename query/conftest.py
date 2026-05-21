@@ -6,6 +6,7 @@ from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
 from .config import config_settings
+from .database import create_connection_pool
 from .migrator import migrate_database
 
 
@@ -50,5 +51,20 @@ async def setup(request):
         # Don't fetch data from MongoDB at startup for test containers as we create our own test data
         config_settings.SKIP_DATA_MIGRATIONS = True
 
+    # Create connection pool
+    pool = await create_connection_pool()
+
     # Always run migrations, even if not using testcontainers
     await migrate_database(True)
+
+    # Run tests
+    yield
+
+    # Cleanup
+    await pool.close()
+
+
+@pytest.fixture(scope="session")
+def anyio_backend():
+    """Forces anyio-based clients to utilize the standard asyncio loop backend."""
+    return "asyncio"
