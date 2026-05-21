@@ -32,11 +32,6 @@ async def setup(request):
         postgres.start()
         redis.start()
 
-        def remove_container():
-            postgres.stop()
-            redis.stop()
-
-        request.addfinalizer(remove_container)
         config_settings.POSTGRES_HOST = (
             f"{postgres.get_container_host_ip()}:{postgres.get_exposed_port(5432)}"
         )
@@ -51,17 +46,21 @@ async def setup(request):
         # Don't fetch data from MongoDB at startup for test containers as we create our own test data
         config_settings.SKIP_DATA_MIGRATIONS = True
 
-    # Create connection pool
-    pool = await create_connection_pool()
-
     # Always run migrations, even if not using testcontainers
     await migrate_database(True)
+
+    # Create connection pool. Note only do this after migrations as the pool might contain connections that don't have the search_path set up, etc.
+    pool = await create_connection_pool()
 
     # Run tests
     yield
 
     # Cleanup
     await pool.close()
+
+    if test_settings.USE_TESTCONTAINERS:
+        postgres.stop()
+        redis.stop()
 
 
 @pytest.fixture(scope="session")

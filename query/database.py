@@ -24,23 +24,34 @@ async def database_lifespan():
         await pool.close()
 
 
-async def init_connection_codecs(conn: asyncpg.Connection):
+async def init_connection(connection: asyncpg.Connection):
     """Automatically configures codecs on every new physical pool connection."""
-    await conn.set_type_codec(
+    await set_type_codec(connection)
+
+
+async def set_type_codec(connection):
+    await connection.set_type_codec(
         "jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"
     )
+
+
+def get_db_config():
+    """Returns the database configuration as a dict"""
+    return {
+        "user": config_settings.POSTGRES_USER,
+        "password": config_settings.POSTGRES_PASSWORD,
+        "database": config_settings.POSTGRES_DB,
+        "host": config_settings.POSTGRES_HOST.split(":")[0],
+        "port": config_settings.POSTGRES_HOST.split(":")[-1],
+    }
 
 
 async def create_connection_pool():
     """Creates a global connection pool to the PostgreSQL database"""
     global pool
     pool = await asyncpg.create_pool(
-        user=config_settings.POSTGRES_USER,
-        password=config_settings.POSTGRES_PASSWORD,
-        database=config_settings.POSTGRES_DB,
-        host=config_settings.POSTGRES_HOST.split(":")[0],
-        port=config_settings.POSTGRES_HOST.split(":")[-1],
-        init=init_connection_codecs,
+        **get_db_config(),
+        init=init_connection,
         min_size=5,  # Keeps 5 connections warm and ready
         max_size=20,  # Limits physical connections to a maximum of 20
         # Crucial parameters for long-running pools
@@ -53,9 +64,19 @@ async def create_connection_pool():
 
 @asynccontextmanager
 async def get_transaction() -> AsyncGenerator[asyncpg.Connection, Any]:
-    async with pool.acquire() as connection:
-        async with connection.transaction():
-            yield connection
+    if pool:
+        async with pool.acquire() as connection:
+            async with connection.transaction():
+                yield connection
+    else:
+        # During migrations we don't start the pool as pooled connections might not contain the search_path, etc.
+        connection: asyncpg.Connection = await asyncpg.connect(**get_db_config())
+        try:
+            await set_type_codec(connection)
+            async with connection.transaction():
+                yield connection
+        finally:
+            await connection.close()
 
 
 def get_rows_affected(response: str):
