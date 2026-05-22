@@ -26,6 +26,7 @@ from ..config import config_settings
 from ..database import get_transaction, strip_nuls
 from ..models.product import Source
 from ..mongodb import find_products
+from ..tables import product_temp
 from ..tables.product import (
     PRODUCT_FIELD_COLUMNS,
     PRODUCT_TAG,
@@ -40,9 +41,6 @@ from ..tables.product_ingredient import (
     create_ingredients_from_staging,
 )
 from ..tables.product_tags import COUNTRIES_TAG, TAG_TABLES, create_tags_from_staging
-from ..tables.settings import (
-    set_pre_migration_message_id,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -109,9 +107,7 @@ async def import_with_filter(
     # We currently use a temporary table to stage the unstructured product data to minimize overall storage
     # Ideally this would be a permanent table so that we can easily extend the relational model without having
     # to do a full import
-    await transaction.execute(
-        "CREATE TEMP TABLE product_temp (id int PRIMARY KEY, last_updated timestamptz, data jsonb)"
-    )
+    await product_temp.create_table(transaction)
     # Commit the temporary table so it isn't rolled back on failure. Stays active for the session
     await transaction.execute("COMMIT")
     await transaction.execute("BEGIN TRANSACTION")

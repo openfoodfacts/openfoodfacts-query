@@ -253,7 +253,7 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         ]
         assert found_carbohydrate
         assert found_carbohydrate[0]["value"] == 21
-        
+
         # Should cater for nutrients supplied in quotes
         fat_nutrient = await get_nutrient(transaction, "fat")
         found_fat = [
@@ -263,7 +263,6 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         ]
         assert found_fat
         assert found_fat[0]["value"] == 30
-        
 
 
 @patch.object(ingestion, "find_products")
@@ -488,29 +487,30 @@ async def test_import_from_event_source_should_always_update_product(
         assert product_existing["last_processed"] > last_processed
 
 
-async def test_not_get_an_error_with_concurrent_imports():
-    products = get_test_products()
+# The following doesn't work because patching is not thread-safe. See https://gist.github.com/styoe/38d5445cfa482024af533a4079b703c1
+# async def test_not_get_an_error_with_concurrent_imports():
+#     products = get_test_products()
 
-    async def one_import():
-        with patch.object(ingestion, "find_products") as find_products_mock:
-            patch_context_manager(find_products_mock, mock_cursor(products))
-            async with get_transaction() as transaction:
-                await ingestion.import_with_filter(
-                    transaction,
-                    {"code": {"$in": [products[0]["code"], products[1]["code"]]}},
-                    Source.event,
-                )
+#     async def one_import():
+#         with patch.object(ingestion, "find_products") as find_products_mock:
+#             patch_context_manager(find_products_mock, mock_cursor(products))
+#             async with get_transaction() as transaction:
+#                 await ingestion.import_with_filter(
+#                     transaction,
+#                     {"code": {"$in": [products[0]["code"], products[1]["code"]]}},
+#                     Source.event,
+#                 )
 
-    running_imports = []
-    for i in range(11):
-        running_imports.append(one_import())
+#     running_imports = []
+#     for i in range(11):
+#         running_imports.append(one_import())
 
-    await asyncio.gather(*running_imports)
-    async with get_transaction() as transaction:
-        found_product = await transaction.fetch(
-            "SELECT * FROM product WHERE code = $1", products[0]["code"]
-        )
-        assert len(found_product) == 1
+#     await asyncio.gather(*running_imports)
+#     async with get_transaction() as transaction:
+#         found_product = await transaction.fetch(
+#             "SELECT * FROM product WHERE code = $1", products[0]["code"]
+#         )
+#         assert len(found_product) == 1
 
 
 @patch.object(ingestion, "find_products")
