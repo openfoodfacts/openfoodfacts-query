@@ -2,13 +2,13 @@ import math
 import time
 from unittest.mock import Mock, patch
 
-from ..database import get_transaction
-from ..events import STREAM_NAME
-from ..models.domain_event import DomainEvent
-from ..models.product import Source
-from ..services.event import import_events, process_events
-from ..test_helper import random_code
-from . import event
+from query.database import get_transaction
+from query.events import STREAM_NAME
+from query.models.domain_event import DomainEvent
+from query.models.product import Source
+from query.services import event
+from query.services.event import import_events, process_events
+from query.test_helper import random_code
 
 message_index = 0
 

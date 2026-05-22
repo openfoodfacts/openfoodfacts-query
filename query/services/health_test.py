@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
-from ..models.health import HealthItemStatusEnum, HealthStatusEnum
-from ..services.health import check_health
-from ..test_helper import error_cursor, mock_cursor, patch_context_manager
-from . import health
+from query.models.health import HealthItemStatusEnum, HealthStatusEnum
+from query.services import health
+from query.services.health import check_health
+from query.test_helper import error_cursor, mock_cursor, patch_context_manager
 
 
 @patch.object(health, "find_products")

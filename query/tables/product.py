@@ -6,14 +6,13 @@ from typing import List
 
 from asyncpg import Connection
 
+from query.database import create_record, get_rows_affected
+from query.models.product import Source
 from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
 from query.tables.loaded_tag import PARTIAL_TAGS, check_tag_is_loaded
 from query.tables.product_country import delete_product_countries
-
-from ..database import create_record, get_rows_affected
-from ..models.product import Source
-from ..tables.product_ingredient import delete_ingredients
-from ..tables.product_tags import TAG_TABLES, delete_tags
+from query.tables.product_ingredient import delete_ingredients
+from query.tables.product_tags import TAG_TABLES, delete_tags
 
 PRODUCT_FIELD_BASE_COLUMNS = {
     "code": "code",

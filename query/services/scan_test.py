@@ -1,16 +1,15 @@
 from unittest.mock import ANY, Mock, patch
 
+from query.database import get_transaction
+from query.models.scan import ProductScans
+from query.services import scan
 from query.services.query_find_test import TEST_YEAR
+from query.services.scan import import_scans
 from query.tables.collection_type import FOOD
-
-from ..database import get_transaction
-from ..models.scan import ProductScans
-from ..services.scan import import_scans
-from ..tables.country import add_all_countries
-from ..tables.product import PRODUCT_SCANS_TAG, normalize_code
-from ..tables.product_country import PRODUCT_COUNTRY_TAG
-from ..test_helper import random_code
-from . import scan
+from query.tables.country import add_all_countries
+from query.tables.product import PRODUCT_SCANS_TAG, normalize_code
+from query.tables.product_country import PRODUCT_COUNTRY_TAG
+from query.test_helper import random_code
 
 OLDEST_YEAR = TEST_YEAR - 5
 

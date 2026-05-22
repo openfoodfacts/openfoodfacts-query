@@ -6,6 +6,7 @@ from typing import Any, Dict
 
 from pymongo import AsyncMongoClient
 
+from query.config import config_settings
 from query.tables.collection_type import (
     BEAUTY,
     BEAUTY_OBSOLETE,
@@ -16,8 +17,6 @@ from query.tables.collection_type import (
     PRODUCT,
     PRODUCT_OBSOLETE,
 )
-
-from .config import config_settings
 
 # Limit the MongoDB logging as it is a bit verbose
 logging.getLogger("pymongo").setLevel(logging.WARNING)

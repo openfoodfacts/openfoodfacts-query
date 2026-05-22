@@ -3,9 +3,9 @@ from datetime import datetime, timezone
 import pytest
 from asyncpg import PostgresError
 
-from .database import create_record, get_rows_affected, get_transaction, strip_nuls
-from .tables import product_temp
-from .test_helper import random_code
+from query.database import create_record, get_rows_affected, get_transaction, strip_nuls
+from query.tables import product_temp
+from query.test_helper import random_code
 
 
 async def test_rows_affected_returned_correctly():

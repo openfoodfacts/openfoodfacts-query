@@ -4,9 +4,8 @@ There is currently no API to query this data, it is just being used internally t
 
 from asyncpg import Connection
 
+from query.database import get_rows_affected
 from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
-
-from ..database import get_rows_affected
 
 # Note we can't list explicit fields here because of the potentially unlimited nesting of sub-ingredients
 INGREDIENTS_TAG = "ingredients"

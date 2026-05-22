@@ -12,25 +12,24 @@ from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-from query.services.event import import_events
-
-from .config import config_settings
-from .database import database_lifespan
-from .events import redis_lifespan
-from .models.health import Health
-from .models.query import (
+from query.config import config_settings
+from query.database import database_lifespan
+from query.events import redis_lifespan
+from query.models.health import Health
+from query.models.query import (
     AggregateCountResult,
     AggregateResult,
     Filter,
     FindQuery,
     Stage,
 )
-from .models.scan import ProductScans
-from .scheduler import scheduler_lifespan
-from .services import ingestion, query
-from .services.health import check_health
-from .services.scan import import_scans
-from .tables.collection_type import ProductType
+from query.models.scan import ProductScans
+from query.scheduler import scheduler_lifespan
+from query.services import ingestion, query
+from query.services.event import import_events
+from query.services.health import check_health
+from query.services.scan import import_scans
+from query.tables.collection_type import ProductType
 
 logger = logging.getLogger(__name__)
 

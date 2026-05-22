@@ -2,14 +2,13 @@
 
 import redis.asyncio as redis
 
+from query.config import config_settings
+from query.database import get_transaction
+from query.models.health import Health, HealthItemStatusEnum
+from query.mongodb import find_products
 from query.services.event import STREAM_NAME
 from query.tables.collection_type import FOOD, get_last_updated
 from query.tables.settings import get_last_message_id
-
-from ..config import config_settings
-from ..database import get_transaction
-from ..models.health import Health, HealthItemStatusEnum
-from ..mongodb import find_products
 
 
 async def check_health():
