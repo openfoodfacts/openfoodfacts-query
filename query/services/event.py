@@ -4,13 +4,12 @@ import math
 from datetime import datetime, timezone
 from typing import Dict, List
 
+from query.database import get_transaction, strip_nuls
+from query.models.domain_event import DomainEvent
+from query.models.product import Source
+from query.services.ingestion import import_with_filter
 from query.tables.collection_type import SUPPORTED_PRODUCT_TYPES
-
-from ..database import get_transaction, strip_nuls
-from ..models.domain_event import DomainEvent
-from ..models.product import Source
-from ..services.ingestion import import_with_filter
-from ..tables.product_update_event import create_events
+from query.tables.product_update_event import create_events
 
 STREAM_NAME = "product_updates"
 

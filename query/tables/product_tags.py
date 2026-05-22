@@ -1,9 +1,8 @@
 """The set of tables that store product tags. Each tag is simply an array of values on the product.
 The order of tags is not preserved"""
 
+from query.database import create_record, get_rows_affected
 from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
-
-from ..database import create_record, get_rows_affected
 
 COUNTRIES_TAG = "countries_tags"
 tag_tables_v1 = {

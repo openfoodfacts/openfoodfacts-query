@@ -1,7 +1,7 @@
 """The Number of scans for each product by country and year"""
 
-from ..database import create_record
-from ..models.scan import ProductScans
+from query.database import create_record
+from query.models.scan import ProductScans
 
 
 async def create_table(transaction):

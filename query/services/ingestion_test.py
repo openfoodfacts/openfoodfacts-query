@@ -5,8 +5,10 @@ import time
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
+from query.database import get_transaction
+from query.models.product import Source
 from query.models.query import Filter
-from query.services import query
+from query.services import ingestion, query
 from query.tables.collection_type import (
     BEAUTY,
     DELETED,
@@ -16,19 +18,14 @@ from query.tables.collection_type import (
     get_last_updated,
     set_last_updated,
 )
+from query.tables.country import add_all_countries, get_country
 from query.tables.nutrient import get_nutrient
+from query.tables.product import create_product, get_product, get_product_by_id
+from query.tables.product_country import create_product_country, get_product_countries
+from query.tables.product_ingredient import get_ingredients
 from query.tables.product_nutrient import get_product_nutrients
-
-from ..database import get_transaction
-from ..models.product import Source
-from ..services import ingestion
-from ..tables.country import add_all_countries, get_country
-from ..tables.product import create_product, get_product, get_product_by_id
-from ..tables.product_country import create_product_country, get_product_countries
-from ..tables.product_ingredient import get_ingredients
-from ..tables.product_tags import create_tag, get_tags
-from ..test_helper import mock_cursor, patch_context_manager, random_code
-from . import ingestion
+from query.tables.product_tags import create_tag, get_tags
+from query.test_helper import mock_cursor, patch_context_manager, random_code
 
 
 async def test_get_process_id_is_monotonically_increasing():

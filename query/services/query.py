@@ -6,11 +6,8 @@ from typing import Dict, List
 from asyncpg import Connection
 from fastapi import HTTPException, status
 
-from query.tables.collection_type import COLLECTION_MAP, ProductType
-from query.tables.product_nutrient import NUTRIENT_TAG, NUTRITION_TAG
-
-from ..database import get_transaction
-from ..models.query import (
+from query.database import get_transaction
+from query.models.query import (
     AggregateCountResult,
     AggregateResult,
     Filter,
@@ -18,17 +15,19 @@ from ..models.query import (
     SortColumn,
     Stage,
 )
-from ..mongodb import find_products
-from ..tables.country import get_country
-from ..tables.loaded_tag import check_tag_is_loaded, get_loaded_tags
-from ..tables.product import (
+from query.mongodb import find_products
+from query.tables.collection_type import COLLECTION_MAP, ProductType
+from query.tables.country import get_country
+from query.tables.loaded_tag import check_tag_is_loaded, get_loaded_tags
+from query.tables.product import (
     PRODUCT_FIELD_COLUMNS,
     PRODUCT_FIELD_SCANS_COLUMNS,
     PRODUCT_SCANS_TAG,
     get_product_column_for_field,
 )
-from ..tables.product_country import PRODUCT_COUNTRY_TAG
-from ..tables.product_tags import TAG_TABLES
+from query.tables.product_country import PRODUCT_COUNTRY_TAG
+from query.tables.product_nutrient import NUTRIENT_TAG, NUTRITION_TAG
+from query.tables.product_tags import TAG_TABLES
 
 logger = logging.getLogger(__name__)
 

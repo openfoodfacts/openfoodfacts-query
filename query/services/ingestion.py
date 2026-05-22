@@ -9,6 +9,11 @@ import asyncpg
 from asyncpg import Connection
 from uvicorn.logging import TRACE_LOG_LEVEL
 
+from query.config import config_settings
+from query.database import get_transaction, strip_nuls
+from query.models.product import Source
+from query.mongodb import find_products
+from query.tables import product_temp
 from query.tables.collection_type import (
     COLLECTION_MAP,
     COLLECTION_NAMES,
@@ -16,18 +21,7 @@ from query.tables.collection_type import (
     get_last_updated,
     set_last_updated,
 )
-from query.tables.product_nutrient import (
-    NUTRIENT_TAG,
-    NUTRITION_TAG,
-    create_product_nutrients_from_staging,
-)
-
-from ..config import config_settings
-from ..database import get_transaction, strip_nuls
-from ..models.product import Source
-from ..mongodb import find_products
-from ..tables import product_temp
-from ..tables.product import (
+from query.tables.product import (
     PRODUCT_FIELD_COLUMNS,
     PRODUCT_TAG,
     create_minimal_product,
@@ -35,12 +29,21 @@ from ..tables.product import (
     get_minimal_product,
     update_products_from_staging,
 )
-from ..tables.product_country import fixup_product_countries
-from ..tables.product_ingredient import (
+from query.tables.product_country import fixup_product_countries
+from query.tables.product_ingredient import (
     INGREDIENTS_TAG,
     create_ingredients_from_staging,
 )
-from ..tables.product_tags import COUNTRIES_TAG, TAG_TABLES, create_tags_from_staging
+from query.tables.product_nutrient import (
+    NUTRIENT_TAG,
+    NUTRITION_TAG,
+    create_product_nutrients_from_staging,
+)
+from query.tables.product_tags import (
+    COUNTRIES_TAG,
+    TAG_TABLES,
+    create_tags_from_staging,
+)
 
 logger = logging.getLogger(__name__)
 

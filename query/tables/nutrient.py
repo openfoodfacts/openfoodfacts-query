@@ -1,6 +1,6 @@
 """Full list of nutrient tags that appear on actual products"""
 
-from ..database import create_record, get_rows_affected
+from query.database import create_record, get_rows_affected
 
 
 async def create_table(transaction):

@@ -2,9 +2,8 @@
 
 from asyncpg import Connection
 
+from query.database import create_record, get_rows_affected
 from query.tables.nutrient import create_nutrients_from_staging
-
-from ..database import create_record, get_rows_affected
 
 NUTRIENT_TAG = "nutriments"
 NUTRITION_TAG = "nutrition.aggregated_set.nutrients"

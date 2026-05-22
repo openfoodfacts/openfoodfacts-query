@@ -4,20 +4,17 @@ import pytest
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
-from query.services import scan
+from query.database import get_transaction
+from query.models.query import Filter, FindQuery, Fragment, Qualify, SortColumn
+from query.services import query, scan
+from query.services.query_count_test import create_test_tags
 from query.services.scan import scans_fully_loaded
 from query.tables.collection_type import FOOD_OBSOLETE
+from query.tables.country import get_country
 from query.tables.product_nutrient import NUTRIENT_TAG, NUTRITION_TAG
 from query.tables.product_scans import create_product_scan
-
-from ..database import get_transaction
-from ..models.query import Filter, FindQuery, Fragment, Qualify, SortColumn
-from ..services import query
-from ..services.query_count_test import create_test_tags
-from ..tables.country import get_country
-from ..tables.product_scans_by_country import create_scan
-from ..test_helper import mock_cursor, patch_context_manager
-from . import query
+from query.tables.product_scans_by_country import create_scan
+from query.test_helper import mock_cursor, patch_context_manager
 
 TEST_YEAR = 1900
 

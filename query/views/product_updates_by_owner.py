@@ -1,6 +1,6 @@
 """A view to return aggregated product update information"""
 
-from ..database import config_settings
+from query.database import config_settings
 
 
 async def create_view(transaction):

@@ -9,11 +9,10 @@ from contextlib import contextmanager
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from query.database import get_transaction
+from query.events import start_redis_listener, stop_redis_listener
+from query.services.ingestion import import_from_mongo
 from query.tables.collection_type import SUPPORTED_PRODUCT_TYPES
-
-from .database import get_transaction
-from .events import start_redis_listener, stop_redis_listener
-from .services.ingestion import import_from_mongo
 
 logger = logging.getLogger(__name__)
 

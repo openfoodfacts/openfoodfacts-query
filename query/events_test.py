@@ -9,11 +9,9 @@ import pytest
 from redis.asyncio import Redis, ResponseError, from_url
 from testcontainers.redis import RedisContainer
 
-from query.services import event
-
-from . import events
-from .database import get_transaction
-from .events import (
+from query import events
+from query.database import get_transaction
+from query.events import (
     STREAM_NAME,
     get_message_timestamp,
     get_retry_interval,
@@ -21,7 +19,8 @@ from .events import (
     redis_client,
     redis_listener,
 )
-from .test_helper import random_code
+from query.services import event
+from query.test_helper import random_code
 
 logger = logging.getLogger(__name__)
 

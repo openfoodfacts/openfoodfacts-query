@@ -3,11 +3,10 @@ from contextlib import asynccontextmanager
 from fastapi import status
 from httpx import ASGITransport, AsyncClient
 
+from query.database import get_transaction
+from query.routes import app
+from query.services.query_count_test import create_test_tags
 from query.services.query_find_test import create_tags_and_scans
-
-from .database import get_transaction
-from .routes import app
-from .services.query_count_test import create_test_tags
 
 
 @asynccontextmanager

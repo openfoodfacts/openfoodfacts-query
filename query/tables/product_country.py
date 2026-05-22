@@ -2,10 +2,9 @@
 The recent and total scans columns are used for popularity sorting and need to be refreshed each year
 from the product_scans_by_country"""
 
+from query.database import create_record
 from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
 from query.tables.loaded_tag import PARTIAL_TAGS
-
-from ..database import create_record
 
 PRODUCT_COUNTRY_TAG = "product_country"
 PARTIAL_TAGS.append(PRODUCT_COUNTRY_TAG)
