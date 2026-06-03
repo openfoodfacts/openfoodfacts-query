@@ -164,7 +164,7 @@ jobs:
             echo "COMPOSE_PROFILES=${{ env.COMPOSE_PROFILES }}" >> .env
             echo "COMPOSE_PATH_SEPARATOR=," >> .env
             echo "RESTART_POLICY=always" >> .env
-            echo "COMPOSE_FILE=docker-compose.yml" >> .env
+            echo "COMPOSE_FILE=docker-compose.yml;docker/monitor.yml" >> .env
             echo "TAG=sha-${{ github.sha }}" >> .env
 
             # App environment variables
@@ -185,6 +185,7 @@ jobs:
             echo "QUERY_POSTGRES_WORK_MEM=${{ env.QUERY_POSTGRES_WORK_MEM }}" >> .env
             echo "POSTGRES_CONFIG_FILE=./confs/postgresql/prod.conf" >> .env
             echo "POSTGRES_HBA_FILE=./confs/postgresql/prod_hba.conf" >> .env
+            echo "POSTGRES_EXPORTER_EXPOSE=5514" >> .env
 
             # Use docker volume for now
             echo "QUERY_DATA_DIR=dbdata" >> .env
