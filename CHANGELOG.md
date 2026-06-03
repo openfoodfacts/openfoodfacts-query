@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.4.0...v0.5.0) (2026-06-03)
+
+
+### Features
+
+* Implement database connection pooling ([#314](https://github.com/openfoodfacts/openfoodfacts-query/issues/314)) ([dcfea07](https://github.com/openfoodfacts/openfoodfacts-query/commit/dcfea071e071cc2bb63056902d6510cd9d548b1c))
+
+
+### Bug Fixes
+
+* Correction to docker compose file separator ([#323](https://github.com/openfoodfacts/openfoodfacts-query/issues/323)) ([28655f6](https://github.com/openfoodfacts/openfoodfacts-query/commit/28655f679696ba55e131d7d2d35920acfc2f3f48))
+
 ## [0.4.0](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.3.1...v0.4.0) (2026-05-04)
 
 
