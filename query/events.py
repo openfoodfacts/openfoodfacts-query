@@ -56,6 +56,12 @@ async def redis_listener():
                 # response is an array of tuples of stream name and array of messages
                 if response:
                     async with get_transaction() as transaction:
+                        # Lock the settings table so that we don't overlap with imports
+                        pre_migration_message_id = await transaction.fetchval("SELECT pre_migration_message_id FROM settings FOR UPDATE")
+                        # Quite the listener if a migration has just finished
+                        if pre_migration_message_id:
+                            return
+
                         await messages_received(transaction, response)
                         # Each message is a tuple of the message id followed by a dict that is the payload
                         last_message_id = response[0][1][-1][0]
