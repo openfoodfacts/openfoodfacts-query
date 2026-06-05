@@ -277,7 +277,7 @@ async def test_listener_waits_for_lock_on_settings_before_proceeding(
             )  # Sleep needs to allow messages_processed to run at least once
             assert not message_processed_task.done()
 
-        await message_processed_task
+        assert (await message_processed_task) is None
 
         # Settings should be updated with the last message id
         assert set_id.call_args[0][1] == message_id1

@@ -459,7 +459,7 @@ async def test_skip_if_migrating(
             # When doing an import. Don't await here as should be blocked by above lock
             import_task = asyncio.create_task(ingestion.import_from_mongo("2000-01-01"))
 
-        await import_task
+        assert (await import_task) is None
 
         # then: import should be skipped
         assert import_with_filter.call_count == 0

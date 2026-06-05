@@ -15,5 +15,5 @@ async def test_migration_doesnt_start_until_imports_are_finished():
         await asyncio.sleep(0.1)
 
         assert not task.done()
-    await task
+    assert (await task) is None
     assert task.done()
