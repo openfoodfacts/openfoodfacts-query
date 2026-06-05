@@ -411,15 +411,23 @@ async def test_set_last_updated_correctly_if_one_product_has_an_invalid_date(
         )
 
 
-@patch.object(ingestion, "logger")
-@patch.object(ingestion, "find_products")
+@patch.object(ingestion, "import_with_filter")
 async def test_skip_if_already_importing(
-    find_products_mock: Mock,
-    logger_mock: Mock,
+    import_with_filter: Mock,
 ):
+    import_running = False
+    concurrent_call = False
+    async def alert_concurrent_import(*args, **kwargs):
+        nonlocal import_running, concurrent_call
+        if import_running:
+            concurrent_call = True
+        import_running = True
+        await asyncio.sleep(0.2)
+        import_running = False
+
+    import_with_filter.side_effect = alert_concurrent_import
+    
     # given: import already running
-    products = get_test_products()
-    patch_context_manager(find_products_mock, mock_cursor(products))
     # Note, don't await. In python need to use create_task to ensure the routine actually starts
     first_import = asyncio.create_task(ingestion.import_from_mongo("2000-01-01"))
 
@@ -427,8 +435,11 @@ async def test_skip_if_already_importing(
     await ingestion.import_from_mongo("2001-01-01")
     await first_import
 
-    # then: second import just logs a warning
-    assert logger_mock.warning.called
+    # then: no concurrent imports should happen
+    assert concurrent_call == False
+    
+    # But import_with_filter was called twice
+    assert import_with_filter.call_count == 2
 
 
 @patch.object(ingestion, "find_products")

@@ -381,21 +381,16 @@ async def apply_product_updates(
             retrying = True
 
 
-import_running = {}
-
-
 async def import_from_mongo(from_date: str = None, product_type=ProductType.food):
     """Imports data from MongoDB that has been updated since the date specified.
     If the date specified is None then full import is performed.
     If the date is empty then products updated since the last incremental import will be loaded
     """
-    global import_running
-    if import_running.get(product_type):
-        logger.warning("Skipping as import already running")
-        return
+    
+    # Lock the settings table while we are doing the update to prevent multiple concurrent imports.
+    async with get_transaction() as lock_transaction:
+        await lock_transaction.fetchval("SELECT pre_migration_message_id FROM settings FOR UPDATE");
 
-    import_running[product_type] = True
-    try:
         # If from_date is supplied or empty (as opposed to not supplied) then do an incremental import
         source = Source.full_load if from_date == None else Source.incremental_load
         async with get_transaction() as transaction:
@@ -407,5 +402,3 @@ async def import_from_mongo(from_date: str = None, product_type=ProductType.food
                 from_datetime=from_datetime,
                 product_type=product_type,
             )
-    finally:
-        import_running[product_type] = False
