@@ -6,8 +6,9 @@ from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
 from query.config import config_settings
-from query.database import create_connection_pool, get_transaction
+from query.database import create_connection_pool
 from query.migrator import migrate_database
+from query.tables.settings import apply_pre_migration_message_id
 
 
 # Don't prefix with "Test" as otherwise pytest thinks this is a test class
@@ -50,8 +51,7 @@ async def setup(request):
     await migrate_database(True)
     
     # Clear the pre-migration message id so that tests don't think a migration has just finished
-    async with get_transaction() as transaction:
-        await transaction.execute("UPDATE settings SET pre_migration_message_id = NULL")
+    await apply_pre_migration_message_id()
 
     # Create connection pool. Note only do this after migrations as the pool might contain connections that don't have the search_path set up, etc.
     pool = await create_connection_pool()
