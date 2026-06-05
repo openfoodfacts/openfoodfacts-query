@@ -412,7 +412,7 @@ async def test_set_last_updated_correctly_if_one_product_has_an_invalid_date(
 
 
 @patch.object(ingestion, "import_with_filter")
-async def test_skip_if_already_importing(
+async def test_wait_if_already_importing(
     import_with_filter: Mock,
 ):
     import_running = False
@@ -440,6 +440,27 @@ async def test_skip_if_already_importing(
     
     # But import_with_filter was called twice
     assert import_with_filter.call_count == 2
+
+
+@patch.object(ingestion, "import_with_filter")
+async def test_skip_if_migrating(
+    import_with_filter: Mock,
+):
+    try:
+        # given: migration is running
+        async with get_transaction() as migration_transaction:
+            await migration_transaction.execute("UPDATE settings SET pre_migration_message_id = 1")
+
+            # When doing an import. Don't await here as should be blocked by above lock
+            import_task = asyncio.create_task(ingestion.import_from_mongo("2000-01-01"))
+
+        await import_task
+
+        # then: import should be skipped
+        assert import_with_filter.call_count == 0
+    finally:
+        async with get_transaction() as migration_transaction:
+            await migration_transaction.execute("UPDATE settings SET pre_migration_message_id = NULL")
 
 
 @patch.object(ingestion, "find_products")

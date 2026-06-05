@@ -389,7 +389,10 @@ async def import_from_mongo(from_date: str = None, product_type=ProductType.food
     
     # Lock the settings table while we are doing the update to prevent multiple concurrent imports.
     async with get_transaction() as lock_transaction:
-        await lock_transaction.fetchval("SELECT pre_migration_message_id FROM settings FOR UPDATE");
+        pre_migration_message_id = await lock_transaction.fetchval("SELECT pre_migration_message_id FROM settings FOR UPDATE");
+        if pre_migration_message_id:
+            logger.warning("Skipping as a migration has just finished")
+            return
 
         # If from_date is supplied or empty (as opposed to not supplied) then do an incremental import
         source = Source.full_load if from_date == None else Source.incremental_load
