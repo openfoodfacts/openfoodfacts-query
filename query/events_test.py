@@ -263,12 +263,18 @@ async def test_listener_waits_for_lock_on_settings_before_proceeding(
 
         async with get_transaction() as lock_transaction:
             # Lock the settings table as if we were doing an import
-            await lock_transaction.fetchval("SELECT pre_migration_message_id FROM settings FOR UPDATE")
+            await lock_transaction.fetchval(
+                "SELECT pre_migration_message_id FROM settings FOR UPDATE"
+            )
 
             # Start the redis listener
             redis_listener_task = asyncio.create_task(redis_listener())
-            message_processed_task = asyncio.create_task(messages_processed(messages_received))
-            await asyncio.sleep(0.3) # Sleep needs to allow messages_processed to run at least once
+            message_processed_task = asyncio.create_task(
+                messages_processed(messages_received)
+            )
+            await asyncio.sleep(
+                0.3
+            )  # Sleep needs to allow messages_processed to run at least once
             assert not message_processed_task.done()
 
         await message_processed_task
@@ -282,8 +288,9 @@ async def test_listener_waits_for_lock_on_settings_before_proceeding(
 @patch.object(events, "get_last_message_id")
 @patch.object(events, "set_last_message_id")
 @patch.object(events, "messages_received")
+@patch.object(events, "logger")
 async def test_listener_quits_if_migration_has_just_heppened(
-    messages_received: Mock, set_id: Mock, get_id: Mock
+    logger_mock: Mock, messages_received: Mock, set_id: Mock, get_id: Mock
 ):
     async with redis_client() as redis:
         # Get the most recent message id so we don't pick up old messages
@@ -295,7 +302,9 @@ async def test_listener_quits_if_migration_has_just_heppened(
         try:
             async with get_transaction() as migration_transaction:
                 # Lock the settings table as if we were doing a migration
-                await migration_transaction.execute("UPDATE settings SET pre_migration_message_id = 1")
+                await migration_transaction.execute(
+                    "UPDATE settings SET pre_migration_message_id = 1"
+                )
 
                 # Start the redis listener
                 redis_listener_task = asyncio.create_task(redis_listener())
@@ -304,14 +313,17 @@ async def test_listener_quits_if_migration_has_just_heppened(
                 assert not messages_received.called
                 assert not redis_listener_task.done()
 
-            # Transaction completes, redis listener should finish
+            # Transaction completes, redis listener should finish and log a warning
             await asyncio.sleep(0.1)
             assert redis_listener_task.done()
             assert not messages_received.called
             assert not set_id.called
+            assert logger_mock.warning.called
         finally:
             async with get_transaction() as migration_transaction:
-                await migration_transaction.execute("UPDATE settings SET pre_migration_message_id = NULL")
+                await migration_transaction.execute(
+                    "UPDATE settings SET pre_migration_message_id = NULL"
+                )
 
 
 @patch.object(event, "import_with_filter")

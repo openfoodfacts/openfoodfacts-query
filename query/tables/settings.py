@@ -61,3 +61,11 @@ async def apply_pre_migration_message_id():
         )
         if len(setting) == 1:
             logger.info(f"Resuming messages from id: {setting[0]['last_message_id']}")
+
+
+async def can_import(transaction) -> bool:
+    """Check if we can start an import or if a migration has just finished"""
+    pre_migration_message_id = await transaction.fetchval(
+        "SELECT pre_migration_message_id FROM settings FOR UPDATE"
+    )
+    return not pre_migration_message_id

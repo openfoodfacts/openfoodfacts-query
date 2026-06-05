@@ -49,7 +49,7 @@ async def setup(request):
 
     # Always run migrations, even if not using testcontainers
     await migrate_database(True)
-    
+
     # Clear the pre-migration message id so that tests don't think a migration has just finished
     await apply_pre_migration_message_id()
 

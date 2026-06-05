@@ -44,6 +44,7 @@ from query.tables.product_tags import (
     TAG_TABLES,
     create_tags_from_staging,
 )
+from query.tables.settings import can_import
 
 logger = logging.getLogger(__name__)
 
@@ -386,12 +387,11 @@ async def import_from_mongo(from_date: str = None, product_type=ProductType.food
     If the date specified is None then full import is performed.
     If the date is empty then products updated since the last incremental import will be loaded
     """
-    
+
     # Lock the settings table while we are doing the update to prevent multiple concurrent imports.
     async with get_transaction() as lock_transaction:
-        pre_migration_message_id = await lock_transaction.fetchval("SELECT pre_migration_message_id FROM settings FOR UPDATE");
-        if pre_migration_message_id:
-            logger.warning("Skipping as a migration has just finished")
+        if not await can_import(lock_transaction):
+            logger.warning("Skipping as a migration is running")
             return
 
         # If from_date is supplied or empty (as opposed to not supplied) then do an incremental import
