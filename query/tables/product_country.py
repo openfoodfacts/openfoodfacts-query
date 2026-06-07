@@ -95,7 +95,7 @@ async def fixup_product_countries(transaction, collection_id):
                 country c
             WHERE pc.product_id = pt.id
             AND c.id = pc.country_id
-            AND c.code <> 'world'
+            AND c.tag <> 'en:world'
             AND NOT EXISTS (SELECT * FROM product_countries_tag pct WHERE pct.product_id = pc.product_id AND pct.value = c.tag)
         """)
 
@@ -113,7 +113,7 @@ async def fixup_product_country_scans(transaction, current_year, oldest_year):
             from product_scans_by_country s
             join product p on p.id = s.product_id
             join country c on c.id = s.country_id
-            where (c.code = 'world' or
+            where (c.tag = 'en:world' or
                 exists (select * from product_countries_tag t where t.product_id = s.product_id and t.value = c.tag))
             group by product_id, p.collection_id, country_id
             on conflict (product_id, country_id)
