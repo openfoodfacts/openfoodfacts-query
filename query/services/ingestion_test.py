@@ -18,7 +18,7 @@ from query.tables.collection_type import (
     get_last_updated,
     set_last_updated,
 )
-from query.tables.country import add_all_countries, get_country
+from query.tables.country import add_all_countries, create_country, get_country
 from query.tables.nutrient import get_nutrient
 from query.tables.product import create_product, get_product, get_product_by_id
 from query.tables.product_country import create_product_country, get_product_countries
@@ -116,6 +116,10 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         uk = await get_country(transaction, "en:united-kingdom")
         await create_product_country(transaction, product_existing, uk, 2, 10)
 
+        # Fixing #257: Create an existing product_country for a countries_tag not included in the import that has no code
+        no_code_country = await create_country(transaction, tag=random_code())
+        await create_product_country(transaction, product_existing, no_code_country, 0, 0)
+
         product_unchanged = await create_product(
             transaction, code=random_code(), process_id=0
         )
@@ -162,7 +166,7 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
         assert any(i for i in ingredients_existing if i["value"] == "old_ingredient")
         assert any(i for i in ingredients_existing if i["value"] == "new_ingredient")
 
-        # should create an entry for each country plus world but not UK
+        # should create an entry for each country plus world but not UK or the random country with no code
         countries_existing = await get_product_countries(transaction, product_existing)
         assert len(countries_existing) == 3
         existing_world = next(
