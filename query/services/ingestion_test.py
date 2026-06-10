@@ -118,7 +118,9 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 
         # Fixing #257: Create an existing product_country for a countries_tag not included in the import that has no code
         no_code_country = await create_country(transaction, tag=random_code())
-        await create_product_country(transaction, product_existing, no_code_country, 0, 0)
+        await create_product_country(
+            transaction, product_existing, no_code_country, 0, 0
+        )
 
         product_unchanged = await create_product(
             transaction, code=random_code(), process_id=0
@@ -415,15 +417,24 @@ async def test_set_last_updated_correctly_if_one_product_has_an_invalid_date(
         )
 
 
-@patch.object(ingestion, "logger")
-@patch.object(ingestion, "find_products")
-async def test_skip_if_already_importing(
-    find_products_mock: Mock,
-    logger_mock: Mock,
+@patch.object(ingestion, "import_with_filter")
+async def test_wait_if_already_importing(
+    import_with_filter: Mock,
 ):
+    import_running = False
+    concurrent_call = False
+
+    async def alert_concurrent_import(*args, **kwargs):
+        nonlocal import_running, concurrent_call
+        if import_running:
+            concurrent_call = True
+        import_running = True
+        await asyncio.sleep(0.2)
+        import_running = False
+
+    import_with_filter.side_effect = alert_concurrent_import
+
     # given: import already running
-    products = get_test_products()
-    patch_context_manager(find_products_mock, mock_cursor(products))
     # Note, don't await. In python need to use create_task to ensure the routine actually starts
     first_import = asyncio.create_task(ingestion.import_from_mongo("2000-01-01"))
 
@@ -431,8 +442,40 @@ async def test_skip_if_already_importing(
     await ingestion.import_from_mongo("2001-01-01")
     await first_import
 
-    # then: second import just logs a warning
-    assert logger_mock.warning.called
+    # then: no concurrent imports should happen
+    assert concurrent_call == False
+
+    # But import_with_filter was called twice
+    assert import_with_filter.call_count == 2
+
+
+@patch.object(ingestion, "import_with_filter")
+@patch.object(ingestion, "logger")
+async def test_skip_if_migrating(
+    logger: Mock,
+    import_with_filter: Mock,
+):
+    try:
+        # given: migration is running
+        async with get_transaction() as migration_transaction:
+            await migration_transaction.execute(
+                "UPDATE settings SET pre_migration_message_id = 1"
+            )
+
+            # When doing an import. Don't await here as should be blocked by above lock
+            import_task = asyncio.create_task(ingestion.import_from_mongo("2000-01-01"))
+
+        assert (await import_task) is None
+
+        # then: import should be skipped
+        assert import_with_filter.call_count == 0
+        # And a warning should be logged
+        assert logger.warning.called
+    finally:
+        async with get_transaction() as migration_transaction:
+            await migration_transaction.execute(
+                "UPDATE settings SET pre_migration_message_id = NULL"
+            )
 
 
 @patch.object(ingestion, "find_products")
@@ -486,32 +529,6 @@ async def test_import_from_event_source_should_always_update_product(
         assert product_existing["source"] == Source.event
         assert product_existing["process_id"] != 10
         assert product_existing["last_processed"] > last_processed
-
-
-# The following doesn't work because patching is not thread-safe. See https://gist.github.com/styoe/38d5445cfa482024af533a4079b703c1
-# async def test_not_get_an_error_with_concurrent_imports():
-#     products = get_test_products()
-
-#     async def one_import():
-#         with patch.object(ingestion, "find_products") as find_products_mock:
-#             patch_context_manager(find_products_mock, mock_cursor(products))
-#             async with get_transaction() as transaction:
-#                 await ingestion.import_with_filter(
-#                     transaction,
-#                     {"code": {"$in": [products[0]["code"], products[1]["code"]]}},
-#                     Source.event,
-#                 )
-
-#     running_imports = []
-#     for i in range(11):
-#         running_imports.append(one_import())
-
-#     await asyncio.gather(*running_imports)
-#     async with get_transaction() as transaction:
-#         found_product = await transaction.fetch(
-#             "SELECT * FROM product WHERE code = $1", products[0]["code"]
-#         )
-#         assert len(found_product) == 1
 
 
 @patch.object(ingestion, "find_products")

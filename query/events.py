@@ -14,6 +14,7 @@ from query.database import get_transaction, strip_nuls
 from query.models.domain_event import DomainEvent
 from query.services.event import STREAM_NAME, process_events
 from query.tables.settings import (
+    acquire_import_lock,
     apply_pre_migration_message_id,
     get_last_message_id,
     set_last_message_id,
@@ -56,6 +57,14 @@ async def redis_listener():
                 # response is an array of tuples of stream name and array of messages
                 if response:
                     async with get_transaction() as transaction:
+                        # Lock the settings table so that we don't overlap with imports
+                        if not await acquire_import_lock(transaction):
+                            # Migration has started. Stop the listener as a new instance of the service will be started after the migration
+                            logger.warning(
+                                "Quitting Redis listener as a migration is running"
+                            )
+                            return
+
                         await messages_received(transaction, response)
                         # Each message is a tuple of the message id followed by a dict that is the payload
                         last_message_id = response[0][1][-1][0]
