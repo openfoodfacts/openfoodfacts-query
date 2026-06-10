@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.1...v0.5.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* Replace obsolete with collection_id in product_country index ([#332](https://github.com/openfoodfacts/openfoodfacts-query/issues/332)) ([182e825](https://github.com/openfoodfacts/openfoodfacts-query/commit/182e82542d0e778ff42f2a3c1493c64e173443e5))
+
 ## [0.5.1](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.0...v0.5.1) (2026-06-10)
 
 
