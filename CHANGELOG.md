@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.0...v0.5.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* Import was not cleaning up product_country records that linked to a country with no code ([#326](https://github.com/openfoodfacts/openfoodfacts-query/issues/326)) ([2dc91b4](https://github.com/openfoodfacts/openfoodfacts-query/commit/2dc91b4626603f60f5ebb89ec893674d32412200))
+* Prevent concurrent imports and stop importing during migrations ([#325](https://github.com/openfoodfacts/openfoodfacts-query/issues/325)) ([3fa4a35](https://github.com/openfoodfacts/openfoodfacts-query/commit/3fa4a3552157b67d5115e9149f1151496554ba82))
+
 ## [0.5.0](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.4.0...v0.5.0) (2026-06-03)
 
 
