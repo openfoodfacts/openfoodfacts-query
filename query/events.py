@@ -26,7 +26,10 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def redis_client() -> AsyncGenerator[redis.Redis, Any]:
     """Creates a connection to Redis"""
-    client = redis.from_url(config_settings.REDIS_URL, decode_responses=True)
+    # Timeout increased to 10s to avoid periodic network:TimeoutError. May need to investigate further if this isn't enough
+    client = redis.from_url(
+        config_settings.REDIS_URL, decode_responses=True, socket_timeout=10.0
+    )
     try:
         yield client
     finally:
@@ -72,6 +75,8 @@ async def redis_listener():
 
                 # Reset error count on success
                 error_count = 0
+                # Add small delay to avaoid hammering Redis
+                await asyncio.sleep(0.1)
 
             except Exception as e:
                 retry_in = get_retry_interval()
