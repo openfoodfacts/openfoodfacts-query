@@ -44,7 +44,7 @@ from query.tables.product_tags import (
     TAG_TABLES,
     create_tags_from_staging,
 )
-from query.tables.settings import can_import
+from query.tables.settings import acquire_import_lock
 
 logger = logging.getLogger(__name__)
 
@@ -390,7 +390,7 @@ async def import_from_mongo(from_date: str = None, product_type=ProductType.food
 
     # Lock the settings table while we are doing the update to prevent multiple concurrent imports.
     async with get_transaction() as lock_transaction:
-        if not await can_import(lock_transaction):
+        if not await acquire_import_lock(lock_transaction):
             logger.warning("Skipping as a migration is running")
             return
 

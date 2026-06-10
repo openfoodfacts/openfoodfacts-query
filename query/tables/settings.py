@@ -65,8 +65,9 @@ async def apply_pre_migration_message_id():
             logger.info(f"Resuming messages from id: {setting[0]['last_message_id']}")
 
 
-async def can_import(transaction) -> bool:
-    """Check if we can start an import or if a migration has just finished"""
+async def acquire_import_lock(transaction) -> bool:
+    """Check if we can start an import or if a migration has just finished. Locks the settings table
+    if successful to prevent other imports and migrations from running concurrently"""
     pre_migration_message_id = await transaction.fetchval(
         "SELECT pre_migration_message_id FROM settings FOR UPDATE"
     )

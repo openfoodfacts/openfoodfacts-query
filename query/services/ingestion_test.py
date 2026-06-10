@@ -118,7 +118,9 @@ async def test_import_from_mongo_should_import_a_new_product_update_existing_pro
 
         # Fixing #257: Create an existing product_country for a countries_tag not included in the import that has no code
         no_code_country = await create_country(transaction, tag=random_code())
-        await create_product_country(transaction, product_existing, no_code_country, 0, 0)
+        await create_product_country(
+            transaction, product_existing, no_code_country, 0, 0
+        )
 
         product_unchanged = await create_product(
             transaction, code=random_code(), process_id=0
