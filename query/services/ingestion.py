@@ -155,12 +155,12 @@ async def import_with_filter(
                     from_time = math.floor(filter_date.timestamp())
                     collection_filter["last_updated_t"] = {"$gt": from_time}
                     logger.info(
-                        f"Starting import of {COLLECTION_NAMES[collection_id]} from {filter_date}"
+                        f"Starting {source} import of {COLLECTION_NAMES[collection_id]} from {filter_date}"
                     )
                     effective_full_load = False
             if source != Source.event and not filter_date:
                 logger.info(
-                    f"Starting full import of {COLLECTION_NAMES[collection_id]}"
+                    f"Starting {source} import of {COLLECTION_NAMES[collection_id]}"
                 )
 
             async with find_products(
@@ -193,7 +193,7 @@ async def import_with_filter(
                         skip_count += 1
                         if not (skip_count % batch_size):
                             logger.info(
-                                f"Skipped {skip_count} {COLLECTION_NAMES[collection_id]} products"
+                                f"Skipped {skip_count} {COLLECTION_NAMES[collection_id]} products during {source} import"
                             )
                         continue
 
@@ -234,7 +234,7 @@ async def import_with_filter(
                 )
             if skip_count % batch_size:
                 logger.info(
-                    f"Skipped {skip_count} {COLLECTION_NAMES[collection_id]} products"
+                    f"Skipped {skip_count} {COLLECTION_NAMES[collection_id]} products during {source} import"
                 )
 
             if source != Source.event and max_last_updated != MIN_DATETIME:
@@ -339,7 +339,7 @@ async def apply_product_updates(
 
             product_count = len(product_updates)
             logger.info(
-                f"Imported {product_count} {COLLECTION_NAMES[collection_id]} products"
+                f"Imported {product_count} {COLLECTION_NAMES[collection_id]} products ({source})"
             )
             del product_updates[:]
 
@@ -390,12 +390,14 @@ async def import_from_mongo(from_date: str = None, product_type=ProductType.food
 
     # Lock the settings table while we are doing the update to prevent multiple concurrent imports.
     async with get_transaction() as lock_transaction:
-        if not await acquire_import_lock(lock_transaction):
-            logger.warning("Skipping as a migration is running")
-            return
-
         # If from_date is supplied or empty (as opposed to not supplied) then do an incremental import
         source = Source.full_load if from_date == None else Source.incremental_load
+
+        logger.info(f"Waiting for import lock before {source} import of {product_type}...")
+        if not await acquire_import_lock(lock_transaction):
+            logger.warning(f"Skipping {source} import of {product_type} as a migration is running")
+            return
+
         async with get_transaction() as transaction:
             from_datetime = datetime.fromisoformat(from_date) if from_date else None
             await import_with_filter(
@@ -405,3 +407,5 @@ async def import_from_mongo(from_date: str = None, product_type=ProductType.food
                 from_datetime=from_datetime,
                 product_type=product_type,
             )
+
+        logger.info(f"Releasing import lock after {source} import of {product_type}")
