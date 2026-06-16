@@ -391,7 +391,7 @@ async def import_from_mongo(from_date: str = None, product_type=ProductType.food
     # Lock the settings table while we are doing the update to prevent multiple concurrent imports.
     async with get_transaction() as lock_transaction:
         # If from_date is supplied or empty (as opposed to not supplied) then do an incremental import
-        source = Source.full_load if from_date == None else Source.incremental_load
+        source = Source.full_load if from_date is None else Source.incremental_load
 
         logger.info(f"Waiting for import lock before {source} import of {product_type}...")
         if not await acquire_import_lock(lock_transaction):
