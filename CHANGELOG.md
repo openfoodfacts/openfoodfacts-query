@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.2...v0.5.3) (2026-06-16)
+
+
+### Bug Fixes
+
+* Extra logging on import to identify why scheduled imports aren't running ([#337](https://github.com/openfoodfacts/openfoodfacts-query/issues/337)) ([0dfbc09](https://github.com/openfoodfacts/openfoodfacts-query/commit/0dfbc099e7bd47d8a05685c058f8c76ec8444a38))
+
 ## [0.5.2](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.1...v0.5.2) (2026-06-10)
 
 
