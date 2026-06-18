@@ -226,8 +226,14 @@ async def find(
                 mongodb_filter, query.projection, collection_id
             ) as cursor:
                 async for result in cursor:
-                    code_index = product_codes.index(result["code"])
-                    mongodb_results[code_index] = result
+                    code = result["code"]
+                    code_index = product_codes.index(code)
+                    if mongodb_results[code_index]:
+                        logger.warning(
+                            f"Duplicate product code '{code}' found in MongoDB results"
+                        )
+                    else:
+                        mongodb_results[code_index] = result
 
             # Eliminate any None's from the result. Note this should only happen if there is a mismatch between off-query and MongoDB
             final_result = [result for result in mongodb_results if result]
