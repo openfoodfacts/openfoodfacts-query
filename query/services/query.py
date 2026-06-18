@@ -220,7 +220,7 @@ async def find(
             # Nee to convert rows to regular dictionaries to keep Pydantic happy
             return [dict(result) for result in results]
         else:
-            mongodb_filter = {"_id": {"$in": product_codes}}
+            mongodb_filter = {"code": {"$in": product_codes}}
             mongodb_results = [None] * len(product_codes)
             async with find_products(
                 mongodb_filter, query.projection, collection_id
