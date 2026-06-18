@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from fastapi import HTTPException, status
@@ -42,7 +42,7 @@ async def test_sorts_by_country_scans(mocked_mongo):
     )
     assert mocked_mongo.called
     call_args = mocked_mongo.call_args
-    assert len(call_args[0][0]["_id"]["$in"]) == 3
+    assert len(call_args[0][0]["code"]["$in"]) == 3
     assert results[0]["code"] == tags.product3["code"]
     assert results[1]["code"] == tags.product2["code"]
     assert results[2]["code"] == tags.product1["code"]
@@ -71,7 +71,7 @@ async def test_sorts_by_world_scans(mocked_mongo):
     )
     assert mocked_mongo.called
     call_args = mocked_mongo.call_args
-    assert len(call_args[0][0]["_id"]["$in"]) == 3
+    assert len(call_args[0][0]["code"]["$in"]) == 3
     assert call_args[0][1] == {"code": True, "product_name": True}
     assert len(results) == 3
     assert results[0]["code"] == tags.product2["code"]
@@ -103,7 +103,7 @@ async def test_limit_and_offset(mocked_mongo):
     )
     assert mocked_mongo.called
     call_args = mocked_mongo.call_args
-    assert len(call_args[0][0]["_id"]["$in"]) == 1
+    assert len(call_args[0][0]["code"]["$in"]) == 1
     assert call_args[0][1] == {"code": True, "product_name": True}
     assert len(results) == 1
     assert results[0]["code"] == tags.product3["code"]
@@ -131,10 +131,41 @@ async def test_obsolete(mocked_mongo):
     )
     assert mocked_mongo.called
     call_args = mocked_mongo.call_args
-    assert len(call_args[0][0]["_id"]["$in"]) == 1
+    assert len(call_args[0][0]["code"]["$in"]) == 1
     assert call_args[0][2] == FOOD_OBSOLETE
     assert len(results) == 1
     assert results[0]["code"] == tags.product4["code"]
+
+
+@patch.object(query, "find_products")
+@patch.object(query, "logger")
+async def test_copes_with_duplicate_codes_in_mongodb(logger_mock: Mock, mocked_mongo: Mock):
+    tags = await create_tags_and_scans()
+
+    patch_context_manager(
+        mocked_mongo,
+        mock_cursor(
+            [
+                {"code": tags.product1["code"]},
+                {"code": tags.product1["code"]},
+                {"code": tags.product2["code"]},
+            ]
+        ),
+    )
+    results = await query.find(
+        FindQuery(
+            filter=Filter(amino_acids_tags=tags.amino_value),
+            projection={"code": True, "product_name": True},
+            sort=[("popularity_key", -1)],
+        )
+    )
+    assert mocked_mongo.called
+    call_args = mocked_mongo.call_args
+    assert len(call_args[0][0]["code"]["$in"]) == 2
+    assert len(results) == 2
+    assert results[0]["code"] == tags.product2["code"]
+    assert results[1]["code"] == tags.product1["code"]
+    assert logger_mock.warning.called
 
 
 @patch.object(query, "get_loaded_tags", return_value=[])

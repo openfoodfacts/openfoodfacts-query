@@ -22,6 +22,11 @@ async def create_table(transaction: Connection):
         "create index product_update_updated_date_index on product_update (updated_date);"
     )
 
+async def migration_add_product_foreign_key(transaction: Connection):
+    await transaction.execute("DELETE FROM product_update WHERE product_id NOT IN (SELECT id FROM product);")
+    await transaction.execute(
+        "ALTER TABLE product_update ADD CONSTRAINT product_update_product_id_fkey FOREIGN KEY (product_id) REFERENCES product(id) ON UPDATE CASCADE ON DELETE CASCADE;"
+    )
 
 async def create_updates_from_events(transaction: Connection, event_ids: List[int]):
     await create_contributors_from_events(transaction, event_ids)
