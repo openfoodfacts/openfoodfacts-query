@@ -139,7 +139,9 @@ async def test_obsolete(mocked_mongo):
 
 @patch.object(query, "find_products")
 @patch.object(query, "logger")
-async def test_copes_with_duplicate_codes_in_mongodb(logger_mock: Mock, mocked_mongo: Mock):
+async def test_copes_with_duplicate_codes_in_mongodb(
+    logger_mock: Mock, mocked_mongo: Mock
+):
     tags = await create_tags_and_scans()
 
     patch_context_manager(

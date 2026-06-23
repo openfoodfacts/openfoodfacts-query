@@ -66,12 +66,16 @@ async def test_skip_locked():
         # Lock the table in one transaction
         await transaction1.execute("UPDATE settings SET last_message_id = $1", id)
 
-        async with get_transaction() as transaction2:
-            # Try to lock it again in another
-            fetched_id = await transaction2.fetchval(
-                "SELECT last_message_id FROM settings FOR UPDATE SKIP LOCKED"
-            )
-            assert fetched_id is None
+        try:
+            async with get_transaction() as transaction2:
+                # Try to lock it again in another
+                fetched_id = await transaction2.fetchval(
+                    "SELECT last_message_id FROM settings FOR UPDATE SKIP LOCKED"
+                )
+                assert fetched_id is None
+        finally:
+            # Rollback the first transaction so that the test doesn't leave the database with invalid data
+            await transaction1.execute("ROLLBACK")
 
 
 def test_strip_nuls_copes_with_dict_values():
