@@ -76,7 +76,6 @@ async def test_skip_locked():
         finally:
             # Rollback the first transaction so that the test doesn't leave the database with invalid data
             await transaction1.execute("ROLLBACK")
-        
 
 
 def test_strip_nuls_copes_with_dict_values():

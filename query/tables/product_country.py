@@ -55,9 +55,7 @@ async def migration_add_collection(transaction):
 
 
 async def migration_fix_index(transaction):
-    await transaction.execute(
-        "DROP INDEX IF EXISTS product_country_ix1;"
-    )
+    await transaction.execute("DROP INDEX IF EXISTS product_country_ix1;")
     await transaction.execute(
         "CREATE INDEX product_country_ix1 ON product_country (country_id, collection_id, recent_scans DESC, total_scans DESC, product_id);"
     )

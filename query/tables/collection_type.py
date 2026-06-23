@@ -24,7 +24,7 @@ class ProductType(str, Enum):
     petfood = "petfood"
     beauty = "beauty"
     product = "product"
-    
+
     def __str__(self):
         return self.value
 

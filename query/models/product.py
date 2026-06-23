@@ -17,6 +17,6 @@ class Source(str, Enum):
 
     partial = "partial"
     """Partial data refresh, i.e. not all fields will be populated"""
-    
+
     def __str__(self):
         return self.value
