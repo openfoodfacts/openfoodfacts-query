@@ -107,7 +107,7 @@ async def stop_redis_listener():
             logger.debug("Redis listener cancelled successfully")
 
 
-# Note we keep a global varible here so we can pause and result the listener during imports
+# Note we keep a global variable here so we can pause and restart the listener during imports
 @asynccontextmanager
 async def redis_lifespan():
     """Lifespan handler for starting and stopping Redis with FastAPI"""
