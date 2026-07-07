@@ -75,7 +75,7 @@ async def redis_listener():
 
                 # Reset error count on success
                 error_count = 0
-                # Add small delay to avaoid hammering Redis
+                # Add small delay to avoid hammering Redis
                 await asyncio.sleep(0.1)
 
             except Exception as e:
