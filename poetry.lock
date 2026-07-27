@@ -222,14 +222,14 @@ uvloop = ["uvloop (>=0.15.2) ; sys_platform != \"win32\"", "winloop (>=0.5.0) ; 
 
 [[package]]
 name = "certifi"
-version = "2026.6.17"
+version = "2026.7.22"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.7"
 groups = ["dev"]
 files = [
-    {file = "certifi-2026.6.17-py3-none-any.whl", hash = "sha256:2227dcbaafe0d2f59279d1762ddddc37783ed4354594f194ffc31d20f41fc3db"},
-    {file = "certifi-2026.6.17.tar.gz", hash = "sha256:024c88eeec92ca068db80f02b8b07c9cef7b9fe261d1d535abfd5abd6f6af432"},
+    {file = "certifi-2026.7.22-py3-none-any.whl", hash = "sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775"},
+    {file = "certifi-2026.7.22.tar.gz", hash = "sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55"},
 ]
 
 [[package]]
@@ -919,14 +919,14 @@ re2 = ["google-re2 (>=1.1)"]
 
 [[package]]
 name = "platformdirs"
-version = "4.10.1"
+version = "4.11.0"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`."
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "platformdirs-4.10.1-py3-none-any.whl", hash = "sha256:0e4eff26be2d75293977f7cddc153fd9b8eaa7fb0c7b64ffe4076cb443117443"},
-    {file = "platformdirs-4.10.1.tar.gz", hash = "sha256:ceab4084426fe6319ce18e86deada8ab1b7487c7aee7040c55e277c9ae793695"},
+    {file = "platformdirs-4.11.0-py3-none-any.whl", hash = "sha256:360ccded2b7fce0af0ff80cc8f5942a1c5d99b0e856033acb030bfc634709e74"},
+    {file = "platformdirs-4.11.0.tar.gz", hash = "sha256:0555d18370482847566ffabcaa53ad7c6c1c29f195989ae1ed634a05f76ea1e0"},
 ]
 
 [[package]]
@@ -1607,14 +1607,14 @@ full = ["httpx (>=0.27.0,<0.29.0)", "httpx2 (>=2.0.0)", "itsdangerous", "jinja2"
 
 [[package]]
 name = "testcontainers"
-version = "4.14.2"
+version = "4.15.0"
 description = "Python library for throwaway instances of anything that can run in a Docker container"
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "testcontainers-4.14.2-py3-none-any.whl", hash = "sha256:0d0522c3cd8f8d9627cda41f7a6b51b639fa57bdc492923c045117933c668d68"},
-    {file = "testcontainers-4.14.2.tar.gz", hash = "sha256:1340ccf16fe3acd9389a6c9e1d9ab21d9fe99a8afdf8165f89c3e69c1967d239"},
+    {file = "testcontainers-4.15.0-py3-none-any.whl", hash = "sha256:8796c14e76604031ad39cf0ed3b8e9806283a1fbf5270965c2b1c594caa31b74"},
+    {file = "testcontainers-4.15.0.tar.gz", hash = "sha256:085cde086337632e19002719460b7b80bbab2bdd51bb3ea04f77d0de96504706"},
 ]
 
 [package.dependencies]
@@ -1632,8 +1632,9 @@ azurite = ["azure-storage-blob (>=12)"]
 chroma = ["chromadb-client (>=1)"]
 clickhouse = ["clickhouse-driver"]
 cosmosdb = ["azure-cosmos (>=4)"]
-db2 = ["ibm-db-sa ; platform_machine != \"aarch64\" and platform_machine != \"arm64\"", "sqlalchemy (>=2)"]
-generic = ["httpx", "redis (>=7)"]
+cratedb = ["httpx", "sqlalchemy-cratedb"]
+db2 = ["ibm-db-sa ; platform_machine != \"aarch64\" and platform_machine != \"arm64\"", "sqlalchemy"]
+generic = ["httpx", "redis (>=7)", "sqlalchemy"]
 google = ["google-cloud-datastore (>=2)", "google-cloud-pubsub (>=2)"]
 influxdb = ["influxdb (>=5)", "influxdb-client (>=1)"]
 k3s = ["kubernetes", "pyyaml (>=6.0.3)"]
@@ -1642,19 +1643,19 @@ localstack = ["boto3 (>=1)"]
 mailpit = ["cryptography"]
 minio = ["minio (>=7)"]
 mongodb = ["pymongo (>=4)"]
-mssql = ["pymssql (>=2)", "sqlalchemy (>=2)"]
-mysql = ["pymysql[rsa] (>=1)", "sqlalchemy (>=2)"]
+mssql = ["pymssql (>=2)", "sqlalchemy"]
+mysql = ["pymysql[rsa] (>=1)", "sqlalchemy"]
 nats = ["nats-py (>=2)"]
 neo4j = ["neo4j (>=6)"]
 openfga = ["openfga-sdk"]
 opensearch = ["opensearch-py (>=3) ; python_version < \"4.0\""]
-oracle = ["oracledb (>=3)", "sqlalchemy (>=2)"]
-oracle-free = ["oracledb (>=3)", "sqlalchemy (>=2)"]
+oracle = ["oracledb (>=3)", "sqlalchemy"]
+oracle-free = ["oracledb (>=3)", "sqlalchemy"]
 qdrant = ["qdrant-client (>=1)"]
 rabbitmq = ["pika (>=1)"]
 redis = ["redis (>=7)"]
 registry = ["bcrypt (>=5)"]
-scylla = ["cassandra-driver (>=3)"]
+scylla = ["cassandra-driver (>=3) ; python_version < \"3.14\""]
 selenium = ["selenium (>=4)"]
 sftp = ["cryptography"]
 test-module-import = ["httpx"]
