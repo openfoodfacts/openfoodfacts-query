@@ -75,7 +75,7 @@ async def redis_listener():
 
                 # Reset error count on success
                 error_count = 0
-                # Add small delay to avaoid hammering Redis
+                # Add small delay to avoid hammering Redis
                 await asyncio.sleep(0.1)
 
             except Exception as e:
@@ -107,7 +107,7 @@ async def stop_redis_listener():
             logger.debug("Redis listener cancelled successfully")
 
 
-# Note we keep a global varible here so we can pause and result the listener during imports
+# Note we keep a global variable here so we can pause and restart the listener during imports
 @asynccontextmanager
 async def redis_lifespan():
     """Lifespan handler for starting and stopping Redis with FastAPI"""
