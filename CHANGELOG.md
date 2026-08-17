@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.4](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.3...v0.5.4) (2026-08-17)
+
+
+### Bug Fixes
+
+* Search MongoDB by code, not _id. Also remove invalid product codes ([#340](https://github.com/openfoodfacts/openfoodfacts-query/issues/340)) ([3c7be0d](https://github.com/openfoodfacts/openfoodfacts-query/commit/3c7be0dc605d30e73a96232f8d2cc7d9dbe97616))
+* Tests were corrupting the last_message_id if run without testcontainers ([#345](https://github.com/openfoodfacts/openfoodfacts-query/issues/345)) ([0b4e8ca](https://github.com/openfoodfacts/openfoodfacts-query/commit/0b4e8cafa76acfec4721e9010e7cdf46f38a7ac4))
+
+
+### Documentation
+
+* small typo fixes ([#352](https://github.com/openfoodfacts/openfoodfacts-query/issues/352)) ([43dc1ba](https://github.com/openfoodfacts/openfoodfacts-query/commit/43dc1ba198f9c52fc535a5696425d381d76bdcfd))
+
 ## [0.5.3](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.2...v0.5.3) (2026-06-16)
 
 
