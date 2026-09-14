@@ -2,7 +2,7 @@
 
 Open Food Facts Query copies selected product data from Open Food Facts into PostgreSQL.
 
-While openfoodfacts-query was setup to replace MongoDB facets queries (counts/filters/sorting),
+While openfoodfacts-query was set up to replace MongoDB facets queries (counts/filters/sorting),
 it took a relational approach to data modeling,
 also with the mindset of having a live datastore for analytics.
 
@@ -24,7 +24,7 @@ It stores the product code and a selection of direct product fields such as the 
 ## Facets
 
 Many Open Food Facts fields are arrays, especially the `*_tags` fields.
-(normalized values, often mapped to [taxonomies](https://wiki.openfoodfacts.org/Taxonomies_introduction))
+These are normalized values, often mapped to [taxonomies](https://wiki.openfoodfacts.org/Taxonomies_introduction).
 
 Instead of storing those arrays in one column, Query expands them into separate tables such as `product_categories_tag`, `product_brands_tag`, or `product_labels_tag`.
 Each row links one product to one facet value.
@@ -44,7 +44,7 @@ That keeps nutrient filtering and sorting consistent.
 
 `product_update_event` stores the raw event message as JSON, together with message and timestamp metadata.
 `product_update` is a more query-friendly version of that history: it links an event to a product, a revision, an update type, a contributor, and an update date.
-`contributors` store usernames associated with events.
+`contributor` stores the event `user_id` values associated with events.
 
 So the database keeps both:
 
