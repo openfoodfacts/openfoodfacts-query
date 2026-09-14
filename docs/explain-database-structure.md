@@ -1,7 +1,10 @@
 # Explain database structure
 
 Open Food Facts Query copies selected product data from Open Food Facts into PostgreSQL.
-The goal is not to reproduce the full MongoDB document as-is, but to reshape it into tables that are easier to query for filters, counts, and aggregations.
+
+While openfoodfacts-query was setup to replace MongoDB facets queries (counts/filters/sorting),
+it took a relational approach to data modeling,
+also with the mindset of having a live datastore for analytics.
 
 ## Main idea
 
@@ -18,12 +21,11 @@ The database is organized around a few families of tables:
 The `product` table is the root table.
 It stores the product code and a selection of direct product fields such as the name, creator, timestamps, completeness, nutriscore, environmental score, and scan counters.
 
-During imports, raw product JSON is first loaded into the temporary `product_temp` table.
-From there, the ingestion code updates `product` and the related tables.
-
 ## Facets
 
 Many Open Food Facts fields are arrays, especially the `*_tags` fields.
+(normalized values, often mapped to [taxonomies](https://wiki.openfoodfacts.org/Taxonomies_introduction))
+
 Instead of storing those arrays in one column, Query expands them into separate tables such as `product_categories_tag`, `product_brands_tag`, or `product_labels_tag`.
 Each row links one product to one facet value.
 
@@ -42,13 +44,18 @@ That keeps nutrient filtering and sorting consistent.
 
 `product_update_event` stores the raw event message as JSON, together with message and timestamp metadata.
 `product_update` is a more query-friendly version of that history: it links an event to a product, a revision, an update type, a contributor, and an update date.
+`contributors` store usernames associated with events.
 
 So the database keeps both:
 
 - the original event payload for traceability
 - a lean relational table for reporting and queries on product history
 
-## How code maps tables
+## Indexes
+
+Currently openfoodfacts-query does not have a lot of indexes. Adding indexes can be discussed if there are valid use cases.
+
+## Some notes about the code
 
 The project does not use a classic ORM with one class per table.
 Instead, each table, or group of very similar tables, is handled by a module in `query.tables`.
@@ -57,3 +64,7 @@ Migrations also call those functions.
 
 Python classes in `query.models` are mostly API and event models.
 For example, query models build the list of allowed fields from `query.tables.product`, so the database structure and the query API stay aligned.
+
+During imports, raw product JSON is first loaded into the temporary `product_temp` table.
+From there, the ingestion code updates `product` and the related tables.
+
