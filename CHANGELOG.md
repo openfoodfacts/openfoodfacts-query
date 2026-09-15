@@ -1,5 +1,65 @@
 # Changelog
 
+## [0.5.4](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.3...v0.5.4) (2026-09-15)
+
+
+### Bug Fixes
+
+* Add release please manifest ([#386](https://github.com/openfoodfacts/openfoodfacts-query/issues/386)) ([44947bc](https://github.com/openfoodfacts/openfoodfacts-query/commit/44947bcf01bddd74695a9fc9844cc680b469588a))
+* Search MongoDB by code, not _id. Also remove invalid product codes ([#340](https://github.com/openfoodfacts/openfoodfacts-query/issues/340)) ([3c7be0d](https://github.com/openfoodfacts/openfoodfacts-query/commit/3c7be0dc605d30e73a96232f8d2cc7d9dbe97616))
+* Tests were corrupting the last_message_id if run without testcontainers ([#345](https://github.com/openfoodfacts/openfoodfacts-query/issues/345)) ([0b4e8ca](https://github.com/openfoodfacts/openfoodfacts-query/commit/0b4e8cafa76acfec4721e9010e7cdf46f38a7ac4))
+
+
+### Chore & Maintenance
+
+* **deps-dev:** bump the deps-dev group across 1 directory with 2 updates ([#348](https://github.com/openfoodfacts/openfoodfacts-query/issues/348)) ([92aab28](https://github.com/openfoodfacts/openfoodfacts-query/commit/92aab2839f3045b163282610f12bce728625f5dd))
+* **deps-dev:** bump the deps-dev group across 1 directory with 2 updates ([#351](https://github.com/openfoodfacts/openfoodfacts-query/issues/351)) ([74b246f](https://github.com/openfoodfacts/openfoodfacts-query/commit/74b246f6ed6a9e71d872be8808ca128c28f51b76))
+* **deps-dev:** bump the deps-dev group across 1 directory with 3 updates ([#361](https://github.com/openfoodfacts/openfoodfacts-query/issues/361)) ([5346fab](https://github.com/openfoodfacts/openfoodfacts-query/commit/5346fab24659ba23382332f9c587115830d60936))
+* **deps-dev:** bump the deps-dev group across 1 directory with 3 updates ([#368](https://github.com/openfoodfacts/openfoodfacts-query/issues/368)) ([fc9b3c9](https://github.com/openfoodfacts/openfoodfacts-query/commit/fc9b3c97a66c04758e8eb5f44445dfbf15b4a3ad))
+* **deps-dev:** bump the deps-dev group across 1 directory with 5 updates ([#355](https://github.com/openfoodfacts/openfoodfacts-query/issues/355)) ([a83aa96](https://github.com/openfoodfacts/openfoodfacts-query/commit/a83aa9662f7abaec2e89cb0291bbd20dfe194ae4))
+* **deps-dev:** bump the deps-dev group across 1 directory with 5 updates ([#358](https://github.com/openfoodfacts/openfoodfacts-query/issues/358)) ([be6e952](https://github.com/openfoodfacts/openfoodfacts-query/commit/be6e95283bd811ec64b9770af76c05507ad5676c))
+* **deps-dev:** bump the deps-dev group with 2 updates ([#371](https://github.com/openfoodfacts/openfoodfacts-query/issues/371)) ([66b9aa2](https://github.com/openfoodfacts/openfoodfacts-query/commit/66b9aa27b8cbc9e46fdfc7eee363fff8c2bf0de1))
+* **deps-dev:** bump the deps-dev group with 2 updates ([#374](https://github.com/openfoodfacts/openfoodfacts-query/issues/374)) ([0cfc57c](https://github.com/openfoodfacts/openfoodfacts-query/commit/0cfc57cd97ac3daa2b178933d4ffabc4050556e5))
+* **deps-dev:** bump the deps-dev group with 3 updates ([#376](https://github.com/openfoodfacts/openfoodfacts-query/issues/376)) ([e5675a2](https://github.com/openfoodfacts/openfoodfacts-query/commit/e5675a2c9d76143eca9e985528495f1feea91948))
+* **deps-dev:** bump the deps-dev group with 3 updates ([#383](https://github.com/openfoodfacts/openfoodfacts-query/issues/383)) ([bac1ef7](https://github.com/openfoodfacts/openfoodfacts-query/commit/bac1ef7582daaf65007fb1ee4b590fd7f4ea3faa))
+* **deps-dev:** bump the deps-dev group with 4 updates ([#378](https://github.com/openfoodfacts/openfoodfacts-query/issues/378)) ([54a6b26](https://github.com/openfoodfacts/openfoodfacts-query/commit/54a6b260b9f6e9098d5edc535e68299c319d94df))
+* **deps-dev:** bump the deps-dev group with 5 updates ([#344](https://github.com/openfoodfacts/openfoodfacts-query/issues/344)) ([6da656a](https://github.com/openfoodfacts/openfoodfacts-query/commit/6da656a4a1382ce4d5ccff0dae2b299bfb52ba73))
+* **deps-dev:** bump wrapt from 2.2.2 to 2.3.0 in the deps-dev group across 1 directory ([#366](https://github.com/openfoodfacts/openfoodfacts-query/issues/366)) ([6e7f448](https://github.com/openfoodfacts/openfoodfacts-query/commit/6e7f448db394964f4b2b6069823dec0ce88171f7))
+* **deps:** bump actions/checkout from 6.0.3 to 7.0.0 in the deps-github-actions group ([#342](https://github.com/openfoodfacts/openfoodfacts-query/issues/342)) ([7fffbea](https://github.com/openfoodfacts/openfoodfacts-query/commit/7fffbeaacaf31c279465effb0faf9525352d74ba))
+* **deps:** bump actions/labeler from 6.1.0 to 6.2.0 in the deps-github-actions group ([#353](https://github.com/openfoodfacts/openfoodfacts-query/issues/353)) ([d5685c2](https://github.com/openfoodfacts/openfoodfacts-query/commit/d5685c2e9f16a247ba754d2abc1cdd2888360302))
+* **deps:** bump actions/setup-python from 6.2.0 to 6.3.0 in the deps-github-actions group ([#346](https://github.com/openfoodfacts/openfoodfacts-query/issues/346)) ([382066a](https://github.com/openfoodfacts/openfoodfacts-query/commit/382066a7a3bcd44d15615cb7cd5a8f9b1d854854))
+* **deps:** bump docker/login-action from 4.5.1 to 4.6.0 in the deps-github-actions group ([#364](https://github.com/openfoodfacts/openfoodfacts-query/issues/364)) ([c8e3123](https://github.com/openfoodfacts/openfoodfacts-query/commit/c8e31239c7d275d6bdc0d4d32e5b6647eb2100eb))
+* **deps:** bump docker/setup-buildx-action from 4.2.0 to 4.3.0 in the deps-github-actions group ([#372](https://github.com/openfoodfacts/openfoodfacts-query/issues/372)) ([e068d1c](https://github.com/openfoodfacts/openfoodfacts-query/commit/e068d1cd2ce56bf90f3a51211bc6eda216d3c58c))
+* **deps:** bump pymongo from 4.18.0 to 4.18.1 in the deps-production group across 1 directory ([#382](https://github.com/openfoodfacts/openfoodfacts-query/issues/382)) ([7f15ee7](https://github.com/openfoodfacts/openfoodfacts-query/commit/7f15ee757811874b538e69663259cf6f4a6a679e))
+* **deps:** bump starlette from 1.3.1 to 1.6.0 in the deps-production group ([#367](https://github.com/openfoodfacts/openfoodfacts-query/issues/367)) ([9a4c672](https://github.com/openfoodfacts/openfoodfacts-query/commit/9a4c6721ffa86b5fc5ec28830951aa7154224d25))
+* **deps:** bump the deps-github-actions group with 4 updates ([#349](https://github.com/openfoodfacts/openfoodfacts-query/issues/349)) ([ebde473](https://github.com/openfoodfacts/openfoodfacts-query/commit/ebde47352ff6b184e80aa6acba749835a4bd52b4))
+* **deps:** bump the deps-github-actions group with 4 updates ([#359](https://github.com/openfoodfacts/openfoodfacts-query/issues/359)) ([0b2b876](https://github.com/openfoodfacts/openfoodfacts-query/commit/0b2b876ee610574753642c3e369699e03cef12d7))
+* **deps:** bump the deps-production group across 1 directory with 2 updates ([#373](https://github.com/openfoodfacts/openfoodfacts-query/issues/373)) ([faee4a6](https://github.com/openfoodfacts/openfoodfacts-query/commit/faee4a6fc0fac0a139564d8cf9c569161899373b))
+* **deps:** bump the deps-production group across 1 directory with 2 updates ([#375](https://github.com/openfoodfacts/openfoodfacts-query/issues/375)) ([8c0847d](https://github.com/openfoodfacts/openfoodfacts-query/commit/8c0847d07887dc2b8dcd66cf9ccd6363833f6734))
+* **deps:** bump the deps-production group across 1 directory with 3 updates ([#370](https://github.com/openfoodfacts/openfoodfacts-query/issues/370)) ([98ceef1](https://github.com/openfoodfacts/openfoodfacts-query/commit/98ceef1e58e50aee8f530182cd77f2536ccfd57e))
+* **deps:** bump the deps-production group across 1 directory with 4 updates ([#377](https://github.com/openfoodfacts/openfoodfacts-query/issues/377)) ([d323f53](https://github.com/openfoodfacts/openfoodfacts-query/commit/d323f53b57e4badb496ec5e0488a366914445ea6))
+* **deps:** bump the deps-production group with 2 updates ([#354](https://github.com/openfoodfacts/openfoodfacts-query/issues/354)) ([177ae6b](https://github.com/openfoodfacts/openfoodfacts-query/commit/177ae6b25848702f71189bb069928440aa9689c8))
+* **deps:** bump the deps-production group with 2 updates ([#357](https://github.com/openfoodfacts/openfoodfacts-query/issues/357)) ([6a8718f](https://github.com/openfoodfacts/openfoodfacts-query/commit/6a8718fb0ae84b5cb28b143e0435d6020607d8bf))
+* **deps:** bump the deps-production group with 2 updates ([#360](https://github.com/openfoodfacts/openfoodfacts-query/issues/360)) ([8134c8d](https://github.com/openfoodfacts/openfoodfacts-query/commit/8134c8d8a607874d222784368af892b3b34ff2c0))
+* **deps:** bump the deps-production group with 3 updates ([#350](https://github.com/openfoodfacts/openfoodfacts-query/issues/350)) ([8cf9963](https://github.com/openfoodfacts/openfoodfacts-query/commit/8cf9963afd83b4148f5efd6cbd224f7b4d08983a))
+* **deps:** bump the deps-production group with 4 updates ([#343](https://github.com/openfoodfacts/openfoodfacts-query/issues/343)) ([b12614c](https://github.com/openfoodfacts/openfoodfacts-query/commit/b12614cc264578fd1c7d161f23bcfef0dbab4173))
+* **deps:** bump the deps-production group with 4 updates ([#365](https://github.com/openfoodfacts/openfoodfacts-query/issues/365)) ([8c15bc4](https://github.com/openfoodfacts/openfoodfacts-query/commit/8c15bc4ca0bbe0bf0087474056c7a3551ce353e8))
+* **deps:** bump the deps-production group with 5 updates ([#347](https://github.com/openfoodfacts/openfoodfacts-query/issues/347)) ([b32d8d2](https://github.com/openfoodfacts/openfoodfacts-query/commit/b32d8d20a5c91d1551e0da895111a6f55e09847e))
+* **deps:** bump toshimaru/auto-author-assign from 3.0.3 to 3.1.0 in the deps-github-actions group ([#369](https://github.com/openfoodfacts/openfoodfacts-query/issues/369)) ([c561038](https://github.com/openfoodfacts/openfoodfacts-query/commit/c561038937071bedc1ce9d58d9660c50821689cc))
+* Update release please config to include all PR types ([#385](https://github.com/openfoodfacts/openfoodfacts-query/issues/385)) ([e473568](https://github.com/openfoodfacts/openfoodfacts-query/commit/e4735683e52d552c4e560e203f4acfeb05a294ba))
+
+
+### Documentation
+
+* small typo fixes ([#352](https://github.com/openfoodfacts/openfoodfacts-query/issues/352)) ([43dc1ba](https://github.com/openfoodfacts/openfoodfacts-query/commit/43dc1ba198f9c52fc535a5696425d381d76bdcfd))
+
+
+### Continuous Integration
+
+* container deploy permissions ([#381](https://github.com/openfoodfacts/openfoodfacts-query/issues/381)) ([2621127](https://github.com/openfoodfacts/openfoodfacts-query/commit/26211273fa7e03bc18eeb9bfc4a60e0f71361181))
+* permissions for github projects ([#379](https://github.com/openfoodfacts/openfoodfacts-query/issues/379)) ([a1d96fd](https://github.com/openfoodfacts/openfoodfacts-query/commit/a1d96fd6580d911e0e28af8e85fb49515af820d3))
+* permissions for semantic prs ([#380](https://github.com/openfoodfacts/openfoodfacts-query/issues/380)) ([a08c330](https://github.com/openfoodfacts/openfoodfacts-query/commit/a08c3300c824a97e5483c8158319ad780cdb1536))
+
 ## [0.5.3](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.2...v0.5.3) (2026-06-16)
 
 
