@@ -83,7 +83,7 @@ jobs:
         if: matrix.env == 'off-query-replica-org'
         run: |
           # This is deployed on Hetzner, close to superset
-          echo "SSH_PROXY_HOST=hetzner-03.infra.openfoodfacts.org" >> $GITHUB_ENV
+          echo "SSH_PROXY_HOST=hetzner-02.infra.openfoodfacts.org" >> $GITHUB_ENV
           echo "SSH_USERNAME=off" >> $GITHUB_ENV
           echo "SSH_PROXY_USERNAME=off" >> $GITHUB_ENV
           echo "SSH_HOST=10.12.1.202" >> $GITHUB_ENV
