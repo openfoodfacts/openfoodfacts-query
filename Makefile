@@ -12,8 +12,8 @@ include .env
 export
 
 # Set the DEPS_DIR if it hasn't been set already
-ifeq (${DEPS_DIR},)
-	export DEPS_DIR=${PWD}/deps
+ifeq ("${DEPS_DIR}","")
+	export DEPS_DIR="${PWD}/deps"
 endif
 
 install:
@@ -86,26 +86,26 @@ build_asyncapi:
 # Run dependent projects
 run_deps: clone_deps
 	@for dep in ${DEPS} ; do \
-		cd ${DEPS_DIR}/$$dep && $(MAKE) run; \
+		cd "${DEPS_DIR}/$$dep" && $(MAKE) run; \
 	done
 
 # Clone dependent projects without running them
 clone_deps:
-	@mkdir -p ${DEPS_DIR}; \
+	@mkdir -p "${DEPS_DIR}"; \
 	for dep in ${DEPS} ; do \
 		echo $$dep; \
-		if [ ! -d ${DEPS_DIR}/$$dep ]; then \
+		if [ ! -d "${DEPS_DIR}"/$$dep ]; then \
 			git clone --filter=blob:none --sparse \
-				https://github.com/openfoodfacts/$$dep.git ${DEPS_DIR}/$$dep; \
+				https://github.com/openfoodfacts/$$dep.git "${DEPS_DIR}"/$$dep; \
 		else \
-			cd ${DEPS_DIR}/$$dep && git pull; \
+			cd "${DEPS_DIR}"/$$dep && git pull; \
 		fi; \
 	done
 
 # Stop dependent projects
 stop_deps:
 	@for dep in ${DEPS} ; do \
-		cd ${DEPS_DIR}/$$dep && $(MAKE) stop; \
+		cd "${DEPS_DIR}"/$$dep && $(MAKE) stop; \
 	done
 
 # Called from other projects to stop this project
