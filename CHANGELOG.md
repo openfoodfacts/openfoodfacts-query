@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.5](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.4...v0.5.5) (2026-10-23)
+
+
+### Bug Fixes
+
+* Don't delete tags if no products affected ([#401](https://github.com/openfoodfacts/openfoodfacts-query/issues/401)) ([b982659](https://github.com/openfoodfacts/openfoodfacts-query/commit/b982659f075e263f1844388e475152e153f39f87))
+
+
+### Chore & Maintenance
+
+* **deps-dev:** bump the deps-dev group with 4 updates ([#399](https://github.com/openfoodfacts/openfoodfacts-query/issues/399)) ([f7147e9](https://github.com/openfoodfacts/openfoodfacts-query/commit/f7147e92d6eb652a664e5c47b36b02f134627682))
+* **deps:** bump the deps-production group across 1 directory with 6 updates ([#398](https://github.com/openfoodfacts/openfoodfacts-query/issues/398)) ([b6f0443](https://github.com/openfoodfacts/openfoodfacts-query/commit/b6f04438b45721644479c4af157e6a3d0f04474e))
+
 ## [0.5.4](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.3...v0.5.4) (2026-10-12)
 
 
