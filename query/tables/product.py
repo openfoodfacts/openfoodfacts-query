@@ -249,9 +249,11 @@ async def delete_products(transaction, process_id, source, collections, codes=No
         *args,
     )
     deleted_ids = [result["id"] for result in results]
-    await delete_tags(transaction, deleted_ids)
-    await delete_ingredients(transaction, deleted_ids)
-    await delete_product_countries(transaction, deleted_ids)
+    # Don't call the following for an empty array as SQL runs very slowly
+    if deleted_ids:
+        await delete_tags(transaction, deleted_ids)
+        await delete_ingredients(transaction, deleted_ids)
+        await delete_product_countries(transaction, deleted_ids)
 
 
 async def fixup_product_scans(transaction, current_year):

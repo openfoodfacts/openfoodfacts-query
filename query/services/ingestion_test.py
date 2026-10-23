@@ -9,6 +9,7 @@ from query.database import get_transaction
 from query.models.product import Source
 from query.models.query import Filter
 from query.services import ingestion, query
+from query.tables import product
 from query.tables.collection_type import (
     BEAUTY,
     DELETED,
@@ -580,6 +581,36 @@ async def test_event_load_should_flag_products_not_in_mongodb_as_deleted(
         deleted_tags = await get_tags(transaction, "ingredients_tags", deleted_product)
         assert len(deleted_tags) == 1
         assert deleted_tags[0]["collection_id"] == DELETED
+
+
+@patch.object(ingestion, "find_products")
+@patch.object(product, "delete_tags")
+async def test_delete_tags_not_called_if_product_not_in_query(
+    delete_tags_mock: Mock, find_products_mock: Mock
+):
+    async with get_transaction() as transaction:
+        # given: an existing product that doesn't exist in mongo_db or off-query
+        product_code_to_delete = random_code()
+
+        # when: doing an incremental import from mongo_db where the id is mentioned
+        products = get_test_products()
+        patch_context_manager(find_products_mock, mock_cursor(products))
+        await ingestion.import_with_filter(
+            transaction,
+            {
+                "code": {
+                    "$in": [
+                        products[0]["code"],
+                        products[1]["code"],
+                        product_code_to_delete,
+                    ]
+                }
+            },
+            Source.event,
+        )
+
+        # then: delete_tags should not be called
+        assert not delete_tags_mock.called
 
 
 @patch.object(ingestion, "find_products")
