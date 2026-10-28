@@ -82,9 +82,9 @@ async def create_ingredients_from_staging(transaction: Connection, log, collecti
           tag.value->>'ciqual_food_code',
           tag.value->>'text',
           tag.value->>'percent',
-          (tag.value->>'percent_min')::numeric,
-          (tag.value->>'percent_max')::numeric,
-          (tag.value->>'percent_estimate')::numeric,
+          (tag.value->>'percent_min')::double precision,
+          (tag.value->>'percent_max')::double precision,
+          (tag.value->>'percent_estimate')::double precision,
           tag.value->'ingredients',
           {collection_id}
         from product_temp product
@@ -117,9 +117,9 @@ async def create_ingredients_from_staging(transaction: Connection, log, collecti
             tag.value->>'ciqual_food_code',
             tag.value->>'text',
             tag.value->>'percent',
-            (tag.value->>'percent_min')::numeric,
-            (tag.value->>'percent_max')::numeric,
-            (tag.value->>'percent_estimate')::numeric,
+            (tag.value->>'percent_min')::double precision,
+            (tag.value->>'percent_max')::double precision,
+            (tag.value->>'percent_estimate')::double precision,
             tag.value->'ingredients',
             {collection_id}
           from product_ingredient pi 
@@ -135,6 +135,6 @@ async def create_ingredients_from_staging(transaction: Connection, log, collecti
 
 async def delete_ingredients(transaction, product_ids):
     await transaction.execute(
-        f"UPDATE product_ingredient SET collection_id = {DELETED} WHERE product_id = ANY($1::numeric[])",
+        f"UPDATE product_ingredient SET collection_id = {DELETED} WHERE product_id = ANY($1::int[])",
         product_ids,
     )
