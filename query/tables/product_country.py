@@ -133,6 +133,6 @@ async def fixup_product_country_scans(transaction, current_year, oldest_year):
 async def delete_product_countries(transaction, product_ids):
     """Soft delete by setting the collection_id to DELETED"""
     await transaction.execute(
-        f"UPDATE product_country SET collection_id = {DELETED} WHERE product_id = ANY($1::numeric[])",
+        f"UPDATE product_country SET collection_id = {DELETED} WHERE product_id = ANY($1::int[])",
         product_ids,
     )
