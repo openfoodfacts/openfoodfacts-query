@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.6](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.5...v0.5.6) (2026-10-28)
+
+
+### Bug Fixes
+
+* Use generic numeric type where data comes from an external source ([#408](https://github.com/openfoodfacts/openfoodfacts-query/issues/408)) ([0347747](https://github.com/openfoodfacts/openfoodfacts-query/commit/0347747707582022fec334752d0f9938ba94c241))
+* Use specific type casts for numeric columns ([#406](https://github.com/openfoodfacts/openfoodfacts-query/issues/406)) ([a1dbda6](https://github.com/openfoodfacts/openfoodfacts-query/commit/a1dbda674d6fe1f357b0def8c6a7542c2d7e1541))
+
+
+### Chore & Maintenance
+
+* **deps-dev:** bump the deps-dev group with 3 updates ([#404](https://github.com/openfoodfacts/openfoodfacts-query/issues/404)) ([5c5cb43](https://github.com/openfoodfacts/openfoodfacts-query/commit/5c5cb433cafccf8e9652ab066fc1bd3f7ae1db4b))
+* **deps:** bump the deps-github-actions group with 2 updates ([#402](https://github.com/openfoodfacts/openfoodfacts-query/issues/402)) ([36146f1](https://github.com/openfoodfacts/openfoodfacts-query/commit/36146f17873f7468c47c7fc030b5e90b70cd5bd6))
+* **deps:** bump the deps-production group across 1 directory with 4 updates ([#403](https://github.com/openfoodfacts/openfoodfacts-query/issues/403)) ([6ea1122](https://github.com/openfoodfacts/openfoodfacts-query/commit/6ea1122e0c37ac2ecc1ba802983dfa7f736002c7))
+
 ## [0.5.5](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.4...v0.5.5) (2026-10-23)
 
 
