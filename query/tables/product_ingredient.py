@@ -82,9 +82,9 @@ async def create_ingredients_from_staging(transaction: Connection, log, collecti
           tag.value->>'ciqual_food_code',
           tag.value->>'text',
           tag.value->>'percent',
-          (tag.value->>'percent_min')::double precision,
-          (tag.value->>'percent_max')::double precision,
-          (tag.value->>'percent_estimate')::double precision,
+          (tag.value->>'percent_min')::numeric,
+          (tag.value->>'percent_max')::numeric,
+          (tag.value->>'percent_estimate')::numeric,
           tag.value->'ingredients',
           {collection_id}
         from product_temp product
@@ -117,9 +117,9 @@ async def create_ingredients_from_staging(transaction: Connection, log, collecti
             tag.value->>'ciqual_food_code',
             tag.value->>'text',
             tag.value->>'percent',
-            (tag.value->>'percent_min')::double precision,
-            (tag.value->>'percent_max')::double precision,
-            (tag.value->>'percent_estimate')::double precision,
+            (tag.value->>'percent_min')::numeric,
+            (tag.value->>'percent_max')::numeric,
+            (tag.value->>'percent_estimate')::numeric,
             tag.value->'ingredients',
             {collection_id}
           from product_ingredient pi 
