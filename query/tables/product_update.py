@@ -52,7 +52,7 @@ async def create_updates_from_events(transaction: Connection, event_ids: List[in
         event_id)
       SELECT 
       	p.id,
-        COALESCE(CASE WHEN pg_input_is_valid(pe.message->>'rev', 'int') THEN (pe.message->>'rev')::int ELSE p.revision END, 0),
+        COALESCE(CASE WHEN pg_input_is_valid(pe.message->>'rev', 'numeric') THEN (pe.message->>'rev')::numeric ELSE p.revision END, 0),
         date(pe.updated_at at time zone 'UTC') updated_day,
         update_type.id,
         contributor.id,

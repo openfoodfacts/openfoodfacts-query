@@ -32,7 +32,7 @@ async def insert_product_scans(transaction, scans: ProductScans):
         # As mentioned above, need to cast ints in the SQL because of the source values clause
         await transaction.executemany(
             """insert into product_scans (product_id, year, scan_count, unique_scan_count) 
-            select product.id, source.year::smallint, source.scans::int, source.unique_scans::int
+            select product.id, source.year::numeric, source.scans::numeric, source.unique_scans::numeric
             from (values ($1, $2, $3, $4)) as source (code, year, scans, unique_scans)
             join product on product.code = source.code
             on conflict (product_id, year) 
