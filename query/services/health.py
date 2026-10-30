@@ -40,6 +40,17 @@ async def check_health():
         except Exception:
             redis_info["last-processed-id"] = "Unknown"
 
+        try:
+            async with get_transaction() as transaction:
+                info["last-processed-bulk-id"] = await get_last_message_id(transaction, True)
+        except Exception:
+            redis_info["last-processed-bulk-id"] = "Unknown"
+        try:
+            redis_info = await redis_client.xinfo_stream(STREAM_NAME + ":bulk")
+            info["last-generated-bulk-id"] = redis_info["last-generated-id"]
+        except Exception:
+            info["last-generated-bulk-id"] = "Unknown"
+
         health.add("redis", HealthItemStatusEnum.up, info=info)
     except Exception as e:
         health.add("redis", HealthItemStatusEnum.down, str(e))

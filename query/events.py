@@ -21,6 +21,9 @@ from query.tables.settings import (
 )
 
 logger = logging.getLogger(__name__)
+# Process bulk messages (True) in smaller batches and with a shorter blocking timeout to avoid blocking the processing of normal messages (False)
+BATCH_SIZE = {False: 1000, True: 100}
+BLOCKING_TIMEOUT = {False: 5000, True: 100}
 
 
 @asynccontextmanager
@@ -51,40 +54,61 @@ async def redis_listener():
     global error_count
     error_count = 0
     async with get_transaction() as transaction:
-        last_message_id = await get_last_message_id(transaction)
+        last_message_ids = {
+            False: await get_last_message_id(transaction),
+            True: await get_last_message_id(transaction, True),
+        }
 
     async with redis_client() as redis:
         while True:
-            try:
-                response = await redis.xread({STREAM_NAME: last_message_id}, 1000, 5000)
-                # response is an array of tuples of stream name and array of messages
-                if response:
-                    async with get_transaction() as transaction:
-                        # Lock the settings table so that we don't overlap with imports
-                        if not await acquire_import_lock(transaction):
-                            # Migration has started. Stop the listener as a new instance of the service will be started after the migration
-                            logger.warning(
-                                "Quitting Redis listener as a migration is running"
+            for is_bulk in [False, True]:
+                try:
+                    response = await redis.xread(
+                        {
+                            STREAM_NAME
+                            + (":bulk" if is_bulk else ""): last_message_ids[is_bulk]
+                        },
+                        BATCH_SIZE[is_bulk],
+                        BLOCKING_TIMEOUT[is_bulk],
+                    )
+                    # response is an array of tuples of stream name and array of messages
+                    if response:
+                        async with get_transaction() as transaction:
+                            # Lock the settings table so that we don't overlap with imports
+                            if not await acquire_import_lock(transaction):
+                                # Migration has started. Stop the listener as a new instance of the service will be started after the migration
+                                logger.warning(
+                                    "Quitting Redis listener as a migration is running"
+                                )
+                                return
+
+                            await messages_received(transaction, response)
+                            # Each message is a tuple of the message id followed by a dict that is the payload
+                            last_message_ids[is_bulk] = response[0][1][-1][0]
+                            await set_last_message_id(
+                                transaction, last_message_ids[is_bulk], is_bulk
                             )
-                            return
 
-                        await messages_received(transaction, response)
-                        # Each message is a tuple of the message id followed by a dict that is the payload
-                        last_message_id = response[0][1][-1][0]
-                        await set_last_message_id(transaction, last_message_id)
+                    # Reset error count on success
+                    error_count = 0
+                    # Add small delay to avoid hammering Redis
+                    await asyncio.sleep(0.1)
 
-                # Reset error count on success
-                error_count = 0
-                # Add small delay to avoid hammering Redis
-                await asyncio.sleep(0.1)
+                    if response and not is_bulk:
+                        # Don't process bulk messages until we've processed all the normal messages
+                        break
 
-            except Exception as e:
-                retry_in = get_retry_interval()
-                logger.error(
-                    f"Error processing messages. Retrying {retry_in} s. {repr(e)}"
-                )
-                # Exponential back-off indefinitely, Listener will be completely stopped by scheduled import every 24 hours
-                await asyncio.sleep(retry_in)
+                except Exception as e:
+                    # Don't do exponential backoff for bulk messages
+                    if is_bulk:
+                        logger.error(f"Error processing bulk messages. {repr(e)}")
+                    else:
+                        retry_in = get_retry_interval()
+                        logger.error(
+                            f"Error processing messages. Retrying {retry_in} s. {repr(e)}"
+                        )
+                        # Exponential back-off indefinitely, Listener will be completely stopped by scheduled import every 24 hours
+                        await asyncio.sleep(retry_in)
 
 
 redis_listener_task = None
