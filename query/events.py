@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Dict, List
 
 import redis.asyncio as redis
+from redis.maint_notifications import MaintNotificationsConfig
 
 from query.config import config_settings
 from query.database import get_transaction, strip_nuls
@@ -31,7 +32,10 @@ async def redis_client() -> AsyncGenerator[redis.Redis, Any]:
     """Creates a connection to Redis"""
     # Timeout increased to 10s to avoid periodic network:TimeoutError. May need to investigate further if this isn't enough
     client = redis.from_url(
-        config_settings.REDIS_URL, decode_responses=True, socket_timeout=10.0
+        config_settings.REDIS_URL,
+        decode_responses=True,
+        socket_timeout=10.0,
+        maint_notifications_config=MaintNotificationsConfig(enabled=False),
     )
     try:
         yield client
