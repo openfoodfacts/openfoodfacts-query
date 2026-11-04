@@ -262,6 +262,11 @@ async def import_with_filter(
             await delete_products(
                 transaction, process_id, Source.full_load, collection_ids
             )
+    except BaseException:
+        # A cancelled or failed query aborts the transaction. Roll it back before
+        # cleanup so DROP does not replace the original error or cancellation.
+        await transaction.execute("ROLLBACK")
+        raise
     finally:
         await transaction.execute("DROP TABLE product_temp")
 
