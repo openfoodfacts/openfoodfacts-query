@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.7](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.6...v0.5.7) (2026-11-09)
+
+
+### Chore & Maintenance
+
+* **deps-dev:** bump the deps-dev group across 1 directory with 4 updates ([#417](https://github.com/openfoodfacts/openfoodfacts-query/issues/417)) ([f690ad0](https://github.com/openfoodfacts/openfoodfacts-query/commit/f690ad04834c2a65a4791b85e8a5f099fefa620b))
+* **deps-dev:** bump the deps-dev group with 7 updates ([#411](https://github.com/openfoodfacts/openfoodfacts-query/issues/411)) ([3835ce2](https://github.com/openfoodfacts/openfoodfacts-query/commit/3835ce24760a4801d1373e5f1c18deb5ad42269a))
+* **deps:** bump the deps-github-actions group with 4 updates ([#415](https://github.com/openfoodfacts/openfoodfacts-query/issues/415)) ([e9ba252](https://github.com/openfoodfacts/openfoodfacts-query/commit/e9ba25251b29bc7fded2f919048bc03158f45f06))
+* **deps:** bump the deps-production group across 1 directory with 7 updates ([#410](https://github.com/openfoodfacts/openfoodfacts-query/issues/410)) ([09a9273](https://github.com/openfoodfacts/openfoodfacts-query/commit/09a9273763ed3a037cdc2296dc6800a27a33d797))
+* **deps:** bump the deps-production group with 6 updates ([#416](https://github.com/openfoodfacts/openfoodfacts-query/issues/416)) ([38a9f65](https://github.com/openfoodfacts/openfoodfacts-query/commit/38a9f65031753afaf529e505271734c600bfed66))
+
 ## [0.5.6](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.5...v0.5.6) (2026-10-28)
 
 
