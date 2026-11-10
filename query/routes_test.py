@@ -29,6 +29,7 @@ async def get_test_client():
     ],
 )
 async def test_public_cors_preflight(path, method):
+    """Public endpoints accept cross-origin preflight requests."""
     async with get_test_client() as client:
         response = await client.options(
             path,
@@ -45,6 +46,7 @@ async def test_public_cors_preflight(path, method):
 
 @pytest.mark.parametrize("path", ["/scans", "/productupdates", "/importfrommongo"])
 async def test_other_routes_do_not_allow_cors(path):
+    """Other endpoints do not receive the public CORS policy."""
     async with get_test_client() as client:
         response = await client.options(
             path,
@@ -57,11 +59,31 @@ async def test_other_routes_do_not_allow_cors(path):
 
 
 async def test_public_cors_on_error_response():
+    """Validation errors on public endpoints include CORS headers."""
     async with get_test_client() as client:
         response = await client.post(
             "/find", json={}, headers={"Origin": "https://example.org"}
         )
     assert response.status_code == 422
+    assert response.headers["access-control-allow-origin"] == "*"
+
+
+async def test_public_cors_on_unhandled_error(monkeypatch):
+    """Unhandled errors on public endpoints include CORS headers."""
+
+    async def fail(*args, **kwargs):
+        """Simulate a query failure."""
+        raise RuntimeError("query failed")
+
+    monkeypatch.setattr("query.routes.query.count", fail)
+    async with AsyncClient(
+        transport=ASGITransport(app=app, raise_app_exceptions=False),
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/count", json={}, headers={"Origin": "https://example.org"}
+        )
+    assert response.status_code == 500
     assert response.headers["access-control-allow-origin"] == "*"
 
 

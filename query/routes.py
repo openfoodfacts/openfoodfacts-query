@@ -39,6 +39,7 @@ class PublicRoutesCORSMiddleware:
     """Apply CORS only to the public, read-only API routes."""
 
     def __init__(self, app):
+        """Configure CORS for public routes."""
         self.app = app
         self.cors_app = CORSMiddleware(
             app,
@@ -48,6 +49,7 @@ class PublicRoutesCORSMiddleware:
         )
 
     async def __call__(self, scope, receive, send):
+        """Apply the policy to matching HTTP requests."""
         if scope["type"] == "http" and scope["path"] in {
             "/health",
             "/count",
@@ -79,7 +81,6 @@ app = FastAPI(
     license_info={"name": metadata["project"]["license"]["text"]},
     version=metadata["project"]["version"],
 )
-app.add_middleware(PublicRoutesCORSMiddleware)
 
 
 @app.exception_handler(RequestValidationError)
@@ -194,3 +195,6 @@ async def product_updates(
     Use `scripts/product_revision_to_historical_events.pl` in Product Opener to load data for development.
     """
     await import_events(payloads)
+
+
+app = PublicRoutesCORSMiddleware(app)
