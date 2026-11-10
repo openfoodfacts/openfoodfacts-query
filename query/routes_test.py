@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+import pytest
 from fastapi import status
 from httpx import ASGITransport, AsyncClient
 
@@ -16,6 +17,74 @@ async def get_test_client():
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         yield client
+
+
+@pytest.mark.parametrize(
+    "path,method",
+    [
+        ("/health", "GET"),
+        ("/count", "POST"),
+        ("/aggregate", "POST"),
+        ("/find", "POST"),
+    ],
+)
+async def test_public_cors_preflight(path, method):
+    """Public endpoints accept cross-origin preflight requests."""
+    async with get_test_client() as client:
+        response = await client.options(
+            path,
+            headers={
+                "Origin": "https://example.org",
+                "Access-Control-Request-Method": method,
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "*"
+    assert "access-control-allow-credentials" not in response.headers
+
+
+@pytest.mark.parametrize("path", ["/scans", "/productupdates", "/importfrommongo"])
+async def test_other_routes_do_not_allow_cors(path):
+    """Other endpoints do not receive the public CORS policy."""
+    async with get_test_client() as client:
+        response = await client.options(
+            path,
+            headers={
+                "Origin": "https://example.org",
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+    assert "access-control-allow-origin" not in response.headers
+
+
+async def test_public_cors_on_error_response():
+    """Validation errors on public endpoints include CORS headers."""
+    async with get_test_client() as client:
+        response = await client.post(
+            "/find", json={}, headers={"Origin": "https://example.org"}
+        )
+    assert response.status_code == 422
+    assert response.headers["access-control-allow-origin"] == "*"
+
+
+async def test_public_cors_on_unhandled_error(monkeypatch):
+    """Unhandled errors on public endpoints include CORS headers."""
+
+    async def fail(*args, **kwargs):
+        """Simulate a query failure."""
+        raise RuntimeError("query failed")
+
+    monkeypatch.setattr("query.routes.query.count", fail)
+    async with AsyncClient(
+        transport=ASGITransport(app=app, raise_app_exceptions=False),
+        base_url="http://test",
+    ) as client:
+        response = await client.post(
+            "/count", json={}, headers={"Origin": "https://example.org"}
+        )
+    assert response.status_code == 500
+    assert response.headers["access-control-allow-origin"] == "*"
 
 
 async def test_count_route():
