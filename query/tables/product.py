@@ -256,7 +256,7 @@ async def delete_products(transaction, process_id, source, collections, codes=No
         await delete_product_countries(transaction, deleted_ids)
 
 
-async def fixup_product_scans(transaction, current_year):
+async def fixup_product_scans(transaction: Connection, current_year):
     await transaction.execute(
         """UPDATE product SET 
             scan_count = COALESCE(ps.scan_count,0),
@@ -265,6 +265,7 @@ async def fixup_product_scans(transaction, current_year):
         LEFT JOIN product_scans ps ON ps.product_id = p.id and ps.year = $1
         WHERE p.id = product.id""",
         current_year,
+        timeout=300.0,
     )
 
 
