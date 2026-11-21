@@ -2,6 +2,7 @@ import asyncio
 import logging
 import math
 import time
+from contextlib import suppress
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
@@ -19,8 +20,8 @@ from query.events import (
     redis_client,
     redis_listener,
 )
-from query.services import event
-from query.test_helper import random_code
+from query.services import event, ingestion
+from query.test_helper import mock_cursor, patch_context_manager, random_code
 
 logger = logging.getLogger(__name__)
 
@@ -450,3 +451,57 @@ def test_message_timestamp_uses_timestamp_if_provided():
     time_number = math.floor(time.time())
     test_timestamp = get_message_timestamp("100-0", {"timestamp": time_number})
     assert test_timestamp == datetime.fromtimestamp(time_number, timezone.utc)
+
+
+@patch.object(events, "get_last_message_id")
+@patch.object(ingestion, "find_products")
+async def test_listener_stops_when_import_query_is_cancelled(
+    find_products_mock, get_id_mock, monkeypatch, caplog
+):
+    product_code = random_code()
+    patch_context_manager(find_products_mock, mock_cursor([{"code": product_code}]))
+    query_started = asyncio.Event()
+    query_pid = None
+
+    async def slow_product_lookup(transaction, code):
+        nonlocal query_pid
+        query_pid = transaction.get_server_pid()
+        query_started.set()
+        await transaction.execute("SELECT pg_sleep(30)")
+
+    monkeypatch.setattr(ingestion, "get_minimal_product", slow_product_lookup)
+    monkeypatch.setattr(events, "redis_listener_task", None)
+    async with redis_client() as redis:
+        get_id_mock.return_value = await get_last_message_id(redis, STREAM_NAME)
+        await add_test_message(redis, product_code)
+
+    events.start_redis_listener()
+    stop_task = None
+    try:
+        await asyncio.wait_for(query_started.wait(), 5)
+        async with get_transaction() as observer:
+            async with asyncio.timeout(5):
+                while (
+                    await observer.fetchval(
+                        "SELECT wait_event FROM pg_stat_activity WHERE pid = $1",
+                        query_pid,
+                    )
+                    != "PgSleep"
+                ):
+                    await asyncio.sleep(0.01)
+        stop_task = asyncio.create_task(events.stop_redis_listener())
+        # Do not use wait_for here: its second cancellation could hide a hang.
+        done, _ = await asyncio.wait({stop_task}, timeout=2)
+        assert stop_task in done
+        await stop_task
+        assert events.redis_listener_task.cancelled()
+        assert "Error processing messages. Retrying" not in caplog.text
+    finally:
+        if stop_task is not None and not stop_task.done():
+            stop_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await stop_task
+        if not events.redis_listener_task.done():
+            events.redis_listener_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await events.redis_listener_task
