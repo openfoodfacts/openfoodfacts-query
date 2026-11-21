@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 
 pool: asyncpg.Pool = None
 
+LONG_STATEMENT_TIMEOUT = (
+    600.0  # 10 minutes, used for long-running queries like the scan import
+)
+
 
 @asynccontextmanager
 async def database_lifespan():
