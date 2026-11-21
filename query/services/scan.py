@@ -51,10 +51,14 @@ async def get_current_scan_year(transaction):
 
 
 async def scans_fully_loaded(transaction):
-    logger.info(f"Scans fully loaded, fixing up product scan counts and product country scan counts")
+    logger.info(
+        f"Scans fully loaded, fixing up product scan counts and product country scan counts"
+    )
     current_year = await get_current_scan_year(transaction)
     oldest_year = current_year - 5
     await fixup_product_country_scans(transaction, current_year, oldest_year)
     await fixup_product_scans(transaction, current_year)
     await append_loaded_tags(transaction, [PRODUCT_COUNTRY_TAG, PRODUCT_SCANS_TAG])
-    logger.info(f"Scans fully loaded, product scan counts and product country scan counts fixed up")
+    logger.info(
+        f"Scans fully loaded, product scan counts and product country scan counts fixed up"
+    )

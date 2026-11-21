@@ -109,7 +109,9 @@ async def fixup_product_countries(transaction, collection_id):
         """)
 
 
-async def fixup_product_country_scans(transaction: Connection, current_year, oldest_year):
+async def fixup_product_country_scans(
+    transaction: Connection, current_year, oldest_year
+):
     """Set the current and recent scans by country to use the scans from the supplied years"""
     # Note we only create a product_country entry if there is a corresponding product_countries_tag
     await transaction.execute(
