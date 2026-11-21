@@ -21,7 +21,12 @@ from query.events import (
     redis_listener,
 )
 from query.services import event, ingestion
-from query.test_helper import mock_cursor, patch_context_manager, random_code
+from query.test_helper import (
+    mock_cursor,
+    patch_context_manager,
+    random_code,
+    wait_for_postgres_sleep,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -479,21 +484,14 @@ async def test_listener_stops_when_import_query_is_cancelled(
     stop_task = None
     try:
         await asyncio.wait_for(query_started.wait(), 5)
-        async with get_transaction() as observer:
-            async with asyncio.timeout(5):
-                while (
-                    await observer.fetchval(
-                        "SELECT wait_event FROM pg_stat_activity WHERE pid = $1",
-                        query_pid,
-                    )
-                    != "PgSleep"
-                ):
-                    await asyncio.sleep(0.01)
+        assert query_pid is not None
+        await wait_for_postgres_sleep(query_pid)
         stop_task = asyncio.create_task(events.stop_redis_listener())
         # Do not use wait_for here: its second cancellation could hide a hang.
         done, _ = await asyncio.wait({stop_task}, timeout=2)
         assert stop_task in done
         await stop_task
+        # Shutdown should cancel the listener without logging a retryable error.
         assert events.redis_listener_task.cancelled()
         assert "Error processing messages. Retrying" not in caplog.text
     finally:

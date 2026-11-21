@@ -1,7 +1,10 @@
 """Various helper functions used during tests"""
 
+import asyncio
 from unittest.mock import Mock
 from uuid import uuid4
+
+from query.database import get_transaction
 
 
 def random_code():
@@ -31,3 +34,16 @@ def patch_context_manager(mock: Mock, *cursors):
         return cursor_list.pop(0) if cursor_list else mock_cursor([])
 
     mock.return_value.__aenter__.side_effect = next_cursor
+
+
+async def wait_for_postgres_sleep(pid: int):
+    """Wait until PostgreSQL is executing pg_sleep for the given connection."""
+    async with get_transaction() as observer:
+        async with asyncio.timeout(5):
+            while (
+                await observer.fetchval(
+                    "SELECT wait_event FROM pg_stat_activity WHERE pid = $1", pid
+                )
+                != "PgSleep"
+            ):
+                await asyncio.sleep(0.01)

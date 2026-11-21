@@ -29,7 +29,12 @@ from query.tables.product_country import create_product_country, get_product_cou
 from query.tables.product_ingredient import get_ingredients
 from query.tables.product_nutrient import get_product_nutrients
 from query.tables.product_tags import create_tag, get_tags
-from query.test_helper import mock_cursor, patch_context_manager, random_code
+from query.test_helper import (
+    mock_cursor,
+    patch_context_manager,
+    random_code,
+    wait_for_postgres_sleep,
+)
 
 
 async def test_get_process_id_is_monotonically_increasing():
@@ -1020,26 +1025,21 @@ async def test_cancelled_import_cleans_up_temp_table(find_products_mock, monkeyp
         )
         try:
             await asyncio.wait_for(query_started.wait(), 5)
-            # Wait for PostgreSQL to execute the query, not just the coroutine.
-            async with get_transaction() as observer:
-                async with asyncio.timeout(5):
-                    while (
-                        await observer.fetchval(
-                            "SELECT wait_event FROM pg_stat_activity WHERE pid = $1",
-                            transaction.get_server_pid(),
-                        )
-                        != "PgSleep"
-                    ):
-                        await asyncio.sleep(0.01)
+            # Wait for PostgreSQL to start executing the query, not just the coroutine.
+            await wait_for_postgres_sleep(transaction.get_server_pid())
             task.cancel()
+            # The cleanup must preserve the caller’s cancellation.
             with pytest.raises(asyncio.CancelledError):
                 await asyncio.wait_for(task, 5)
+            # The cancellation must still drop the temporary table.
             assert (
                 await transaction.fetchval("SELECT to_regclass('pg_temp.product_temp')")
                 is None
             )
+            # A SQL command must still work on the same transaction.
             assert await transaction.fetchval("SELECT 1") == 1
         finally:
+            # Do not leave the query running if an earlier assertion fails.
             if not task.done():
                 task.cancel()
                 with pytest.raises(asyncio.CancelledError):
@@ -1055,6 +1055,7 @@ async def test_failed_import_preserves_sql_error(find_products_mock, monkeypatch
 
     monkeypatch.setattr(ingestion, "get_minimal_product", invalid_product_lookup)
     async with get_transaction() as transaction:
+        # SQL errors should also reach the caller without leaving the table behind.
         with pytest.raises(asyncpg.DivisionByZeroError):
             await ingestion.import_with_filter(transaction, {}, Source.event)
         assert (
