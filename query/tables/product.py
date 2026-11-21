@@ -6,7 +6,7 @@ from typing import List
 
 from asyncpg import Connection
 
-from query.database import create_record, get_rows_affected
+from query.database import LONG_STATEMENT_TIMEOUT, create_record, get_rows_affected
 from query.models.product import Source
 from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
 from query.tables.loaded_tag import PARTIAL_TAGS, check_tag_is_loaded
@@ -265,7 +265,7 @@ async def fixup_product_scans(transaction: Connection, current_year):
         LEFT JOIN product_scans ps ON ps.product_id = p.id and ps.year = $1
         WHERE p.id = product.id""",
         current_year,
-        timeout=300.0,
+        timeout=LONG_STATEMENT_TIMEOUT,
     )
 
 

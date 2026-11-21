@@ -4,7 +4,7 @@ from the product_scans_by_country"""
 
 from asyncpg import Connection
 
-from query.database import create_record
+from query.database import LONG_STATEMENT_TIMEOUT, create_record
 from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
 from query.tables.loaded_tag import PARTIAL_TAGS
 
@@ -129,7 +129,7 @@ async def fixup_product_country_scans(transaction: Connection, current_year, old
             do update set recent_scans = excluded.recent_scans, total_scans = excluded.total_scans, collection_id = excluded.collection_id""",
         oldest_year,
         current_year,
-        timeout=300.0,
+        timeout=LONG_STATEMENT_TIMEOUT,
     )
 
 
