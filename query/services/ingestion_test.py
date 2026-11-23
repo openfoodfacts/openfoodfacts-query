@@ -999,3 +999,186 @@ async def test_transient_issue_is_retried(
 
     error_calls = logger_mock.error.call_args_list
     assert len(error_calls) == 0
+
+
+@patch.object(ingestion, "find_products")
+async def test_incremental_import_skips_and_deletes_mismatched_product_type(
+    find_products_mock: Mock,
+):
+    beauty_code = random_code()
+    stale_food_code = random_code()
+    valid_food_code = random_code()
+    new_beauty_code = random_code()
+
+    async with get_transaction() as transaction:
+        await set_last_updated(
+            transaction, FOOD, datetime(2023, 1, 1, tzinfo=timezone.utc)
+        )
+        await create_product(
+            transaction,
+            code=beauty_code,
+            collection_id=BEAUTY,
+            last_updated=datetime.fromtimestamp(last_updated - 10, timezone.utc),
+        )
+        stale_food = await create_product(
+            transaction,
+            code=stale_food_code,
+            collection_id=FOOD,
+            last_updated=datetime.fromtimestamp(last_updated - 10, timezone.utc),
+        )
+        await create_tag(transaction, "brands_tags", stale_food, "nivea")
+
+    patch_context_manager(
+        find_products_mock,
+        mock_cursor(
+            [
+                {
+                    "code": beauty_code,
+                    "product_type": "beauty",
+                    "last_updated_t": last_updated,
+                },
+                {
+                    "code": stale_food_code,
+                    "product_type": "beauty",
+                    "last_updated_t": last_updated + 5,
+                },
+                {
+                    "code": new_beauty_code,
+                    "product_type": "beauty",
+                    "last_updated_t": last_updated,
+                },
+                {
+                    "code": valid_food_code,
+                    "product_type": "food",
+                    "last_updated_t": last_updated,
+                },
+            ]
+        ),
+    )
+
+    await ingestion.import_from_mongo("", product_type=ProductType.food)
+
+    async with get_transaction() as transaction:
+        beauty_product = await get_product(transaction, beauty_code)
+        assert beauty_product["collection_id"] == BEAUTY
+
+        stale_product = await get_product(transaction, stale_food_code)
+        assert stale_product["collection_id"] == DELETED
+        stale_tags = await get_tags(transaction, "brands_tags", stale_product)
+        assert stale_tags[0]["collection_id"] == DELETED
+
+        assert await get_product(transaction, new_beauty_code) is None
+
+        valid_product = await get_product(transaction, valid_food_code)
+        assert valid_product["collection_id"] == FOOD
+
+        assert (await get_last_updated(transaction, FOOD)) == datetime.fromtimestamp(
+            last_updated + 5, timezone.utc
+        )
+
+
+@patch.object(ingestion, "find_products")
+async def test_event_import_skips_and_deletes_mismatched_product_type(
+    find_products_mock: Mock,
+):
+    beauty_code = random_code()
+    stale_food_code = random_code()
+
+    async with get_transaction() as transaction:
+        await create_product(
+            transaction,
+            code=beauty_code,
+            collection_id=BEAUTY,
+        )
+        await create_product(
+            transaction,
+            code=stale_food_code,
+            collection_id=FOOD,
+        )
+
+        patch_context_manager(
+            find_products_mock,
+            mock_cursor(
+                [
+                    {
+                        "code": beauty_code,
+                        "product_type": "beauty",
+                        "last_updated_t": last_updated,
+                    },
+                    {
+                        "code": stale_food_code,
+                        "product_type": "beauty",
+                        "last_updated_t": last_updated,
+                    },
+                ]
+            ),
+        )
+
+        await ingestion.import_with_filter(
+            transaction,
+            {"code": {"$in": [beauty_code, stale_food_code]}},
+            Source.event,
+            product_type=ProductType.food,
+        )
+
+        assert (await get_product(transaction, beauty_code))["collection_id"] == BEAUTY
+        assert (await get_product(transaction, stale_food_code))[
+            "collection_id"
+        ] == DELETED
+
+
+@patch.object(ingestion, "find_products")
+@patch.object(ingestion, "get_process_id")
+async def test_full_import_skips_mismatched_product_type_without_overwriting_beauty(
+    get_process_id_mock: Mock, find_products_mock: Mock
+):
+    beauty_code = random_code()
+    stale_food_code = random_code()
+    current_process_id = 0
+
+    def next_process_id(_):
+        nonlocal current_process_id
+        current_process_id += 1
+        return current_process_id
+
+    get_process_id_mock.side_effect = next_process_id
+
+    async with get_transaction() as transaction:
+        await create_product(
+            transaction,
+            code=beauty_code,
+            collection_id=BEAUTY,
+            process_id=0,
+        )
+        await create_product(
+            transaction,
+            code=stale_food_code,
+            collection_id=FOOD,
+            process_id=0,
+        )
+
+    patch_context_manager(
+        find_products_mock,
+        mock_cursor(
+            [
+                {
+                    "code": beauty_code,
+                    "product_type": "beauty",
+                    "last_updated_t": last_updated,
+                },
+                {
+                    "code": stale_food_code,
+                    "product_type": "beauty",
+                    "last_updated_t": last_updated,
+                },
+            ]
+        ),
+    )
+
+    await ingestion.import_from_mongo(None, product_type=ProductType.food)
+
+    async with get_transaction() as transaction:
+        assert (await get_product(transaction, beauty_code))["collection_id"] == BEAUTY
+        assert (await get_product(transaction, stale_food_code))[
+            "collection_id"
+        ] == DELETED
