@@ -97,6 +97,7 @@ async def import_with_filter(
     """
 
     found_product_codes = []
+    mismatched_product_codes = []
     codes_specified = "code" in filter and "$in" in filter["code"]
     if tags:
         # If explicit tags are provided then this is a partial load
@@ -132,6 +133,8 @@ async def import_with_filter(
         # Cater for new nutrition structure
         if NUTRIENT_TAG in tags:
             projection |= {NUTRITION_TAG: True}
+        # Always fetch product_type so we can skip documents that belong to a different collection
+        projection["product_type"] = True
 
         collection_ids = COLLECTION_MAP[product_type].values()
         effective_full_load = source in [Source.full_load, Source.incremental_load]
@@ -140,6 +143,7 @@ async def import_with_filter(
             max_last_updated = MIN_DATETIME
             update_count = 0
             skip_count = 0
+            collection_mismatched_codes = []
             product_updates = []
             filter_date = None
             # Clone the filter so that adding date criteria doesn't pollute the caller
@@ -168,15 +172,20 @@ async def import_with_filter(
             ) as cursor:
                 async for product_data in cursor:
                     product_code = product_data["code"]
+                    last_updated = get_product_last_updated(product_data)
+                    max_last_updated = max(last_updated, max_last_updated)
+
+                    doc_product_type = product_data.get("product_type")
+                    if doc_product_type and doc_product_type != product_type:
+                        collection_mismatched_codes.append(product_code)
+                        continue
+
                     existing_product = await get_minimal_product(
                         transaction, product_code
                     )
                     # Don't create new products for partial updates
                     if not existing_product and source == Source.partial:
                         continue
-
-                    last_updated = get_product_last_updated(product_data)
-                    max_last_updated = max(last_updated, max_last_updated)
 
                     if codes_specified:
                         found_product_codes.append(product_code)
@@ -236,6 +245,11 @@ async def import_with_filter(
                 logger.info(
                     f"Skipped {skip_count} {COLLECTION_NAMES[collection_id]} products during {source} import"
                 )
+            if collection_mismatched_codes:
+                logger.warning(
+                    f"Skipped {len(collection_mismatched_codes)} {COLLECTION_NAMES[collection_id]} products with mismatched product_type (sample: {collection_mismatched_codes[:5]})"
+                )
+                mismatched_product_codes.extend(collection_mismatched_codes)
 
             if source != Source.event and max_last_updated != MIN_DATETIME:
                 await set_last_updated(transaction, collection_id, max_last_updated)
@@ -261,6 +275,18 @@ async def import_with_filter(
         if effective_full_load:
             await delete_products(
                 transaction, process_id, Source.full_load, collection_ids
+            )
+        elif (
+            not codes_specified
+            and source != Source.partial
+            and mismatched_product_codes
+        ):
+            await delete_products(
+                transaction,
+                process_id,
+                source,
+                collection_ids,
+                list(dict.fromkeys(mismatched_product_codes)),
             )
     finally:
         await transaction.execute("DROP TABLE product_temp")
