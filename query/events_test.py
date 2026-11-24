@@ -35,9 +35,9 @@ async def test_redis_connection():
         assert (await get_last_message_id(redis, random_code())) == "0"
 
 
-async def add_test_message(redis: Redis, product_code):
+async def add_test_message(redis: Redis, product_code, is_bulk=False):
     return await redis.xadd(
-        STREAM_NAME,
+        STREAM_NAME + (":bulk" if is_bulk else ""),
         {
             "timestamp": math.floor(time.time()),
             "code": product_code,
@@ -142,6 +142,102 @@ async def test_listener_keeps_track_of_last_message_id(
         assert messages_received.call_count == 1
 
         assert get_retry_interval() == 1
+
+
+@patch.object(events, "get_last_message_id")
+@patch.object(events, "set_last_message_id")
+@patch.object(events, "messages_received")
+@patch('query.events.BATCH_SIZE', {False: 2, True: 2}) 
+async def test_messages_processed_in_batches(
+    messages_received: Mock, set_id: Mock, get_id: Mock
+):
+    async with redis_client() as redis:
+        # Get the most recent message id so we don't pick up old messages
+        get_id.return_value = await get_last_message_id(redis, STREAM_NAME)
+
+        # Add some messages
+        await add_test_message(redis, random_code())
+        message_id2 = await add_test_message(redis, random_code())
+        message_id3 = await add_test_message(redis, random_code())
+
+        # Start the redis listener
+        redis_listener_task = asyncio.create_task(redis_listener())
+
+        await messages_processed(messages_received, 2)
+
+        # Settings should be updated with the second and last message ids
+        assert set_id.call_args_list[0][0][1] == message_id2
+        assert set_id.call_args_list[1][0][1] == message_id3
+
+        assert len(messages_received.call_args_list[0][0][1][0][1]) == 2
+        assert len(messages_received.call_args_list[1][0][1][0][1]) == 1
+
+        await cancel_task(redis_listener_task)
+
+
+@patch.object(events, "get_last_message_id")
+@patch.object(events, "set_last_message_id")
+@patch.object(events, "messages_received")
+@patch('query.events.BLOCKING_TIMEOUT', {False: 200, True: 100})
+async def test_bulk_messages_processed(
+    messages_received: Mock, set_id: Mock, get_id: Mock
+):
+    async with redis_client() as redis:
+        # Get the most recent message ids so we don't pick up old messages
+        get_id.side_effect = [await get_last_message_id(redis, STREAM_NAME), await get_last_message_id(redis, STREAM_NAME + ":bulk")]
+
+        # Add some messages
+        product_code = random_code()
+        message_id = await add_test_message(redis, product_code, True)
+
+        # Start the redis listener
+        redis_listener_task = asyncio.create_task(redis_listener())
+
+        await messages_processed(messages_received)
+
+        # Settings for bulk messages should be updated
+        assert set_id.call_args_list[0][0][1] == message_id
+        assert set_id.call_args_list[0][0][2] == True
+
+        assert len(messages_received.call_args_list[0][0][1][0][1]) == 1
+
+        await cancel_task(redis_listener_task)
+
+
+@patch.object(events, "get_last_message_id")
+@patch.object(events, "set_last_message_id")
+@patch.object(events, "messages_received")
+@patch('query.events.BATCH_SIZE', {False: 2, True: 2}) 
+@patch('query.events.BLOCKING_TIMEOUT', {False: 200, True: 100})
+async def test_bulk_messages_processed_after_all_others(
+    messages_received: Mock, set_id: Mock, get_id: Mock
+):
+    async with redis_client() as redis:
+        # Get the most recent message ids so we don't pick up old messages
+        get_id.side_effect = [await get_last_message_id(redis, STREAM_NAME), await get_last_message_id(redis, STREAM_NAME + ":bulk")]
+
+        # Add a bulk message
+        bulk_message_id = await add_test_message(redis, random_code(), True)
+
+        # Add some normal messages
+        message_id1 = await add_test_message(redis, random_code())
+        message_id2 = await add_test_message(redis, random_code())
+        message_id3 = await add_test_message(redis, random_code())
+
+        # Start the redis listener
+        redis_listener_task = asyncio.create_task(redis_listener())
+
+        await messages_processed(messages_received, 3)
+
+        # All messages should be processed in order, with the bulk message last
+        assert messages_received.call_args_list[0][0][1][0][1][0][0] == message_id1
+        assert messages_received.call_args_list[0][0][1][0][1][1][0] == message_id2
+
+        assert messages_received.call_args_list[1][0][1][0][1][0][0] == message_id3
+
+        assert messages_received.call_args_list[2][0][1][0][1][0][0] == bulk_message_id
+
+        await cancel_task(redis_listener_task)
 
 
 def test_retry_interval():
