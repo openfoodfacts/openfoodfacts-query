@@ -40,10 +40,16 @@ async def wait_for_postgres_sleep(pid: int):
     """Wait until PostgreSQL is executing pg_sleep for the given connection."""
     async with get_transaction() as observer:
         async with asyncio.timeout(5):
-            while (
-                await observer.fetchval(
-                    "SELECT wait_event FROM pg_stat_activity WHERE pid = $1", pid
+            while True:
+                # PostgreSQL reports an executing pg_sleep as active, with
+                # PgSleep as its wait event. An idle connection cannot match.
+                is_sleeping = await observer.fetchval(
+                    """
+                    SELECT state = 'active' AND wait_event = 'PgSleep'
+                    FROM pg_stat_activity WHERE pid = $1
+                    """,
+                    pid,
                 )
-                != "PgSleep"
-            ):
+                if is_sleeping:
+                    return
                 await asyncio.sleep(0.01)
