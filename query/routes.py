@@ -10,6 +10,7 @@ import toml
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from query.config import config_settings
@@ -32,6 +33,32 @@ from query.services.scan import import_scans
 from query.tables.collection_type import ProductType
 
 logger = logging.getLogger(__name__)
+
+
+class PublicRoutesCORSMiddleware:
+    """Apply CORS only to the public, read-only API routes."""
+
+    def __init__(self, app):
+        """Configure CORS for public routes."""
+        self.app = app
+        self.cors_app = CORSMiddleware(
+            app,
+            allow_origins=["*"],
+            allow_methods=["GET", "POST"],
+            allow_headers=["Content-Type"],
+        )
+
+    async def __call__(self, scope, receive, send):
+        """Apply the policy to matching HTTP requests."""
+        if scope["type"] == "http" and scope["path"] in {
+            "/health",
+            "/count",
+            "/aggregate",
+            "/find",
+        }:
+            await self.cors_app(scope, receive, send)
+        else:
+            await self.app(scope, receive, send)
 
 
 @asynccontextmanager
@@ -168,3 +195,6 @@ async def product_updates(
     Use `scripts/product_revision_to_historical_events.pl` in Product Opener to load data for development.
     """
     await import_events(payloads)
+
+
+app = PublicRoutesCORSMiddleware(app)
