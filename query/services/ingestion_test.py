@@ -33,7 +33,7 @@ from query.test_helper import (
     mock_cursor,
     patch_context_manager,
     random_code,
-    wait_for_postgres_sleep,
+    wait_for_postgres_running_pgsleep,
 )
 
 
@@ -1026,7 +1026,7 @@ async def test_cancelled_import_cleans_up_temp_table(find_products_mock, monkeyp
         try:
             await asyncio.wait_for(query_started.wait(), 5)
             # Wait for PostgreSQL to start executing the query, not just the coroutine.
-            await wait_for_postgres_sleep(transaction.get_server_pid())
+            await wait_for_postgres_running_pgsleep(transaction.get_server_pid())
             task.cancel()
             # The cleanup must preserve the caller’s cancellation.
             with pytest.raises(asyncio.CancelledError):

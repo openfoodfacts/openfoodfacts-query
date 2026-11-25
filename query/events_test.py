@@ -25,7 +25,7 @@ from query.test_helper import (
     mock_cursor,
     patch_context_manager,
     random_code,
-    wait_for_postgres_sleep,
+    wait_for_postgres_running_pgsleep,
 )
 
 logger = logging.getLogger(__name__)
@@ -485,7 +485,7 @@ async def test_listener_stops_when_import_query_is_cancelled(
     try:
         await asyncio.wait_for(query_started.wait(), 5)
         assert query_pid is not None
-        await wait_for_postgres_sleep(query_pid)
+        await wait_for_postgres_running_pgsleep(query_pid)
         stop_task = asyncio.create_task(events.stop_redis_listener())
         # Do not use wait_for here: its second cancellation could hide a hang.
         done, _ = await asyncio.wait({stop_task}, timeout=2)

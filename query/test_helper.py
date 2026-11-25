@@ -36,7 +36,7 @@ def patch_context_manager(mock: Mock, *cursors):
     mock.return_value.__aenter__.side_effect = next_cursor
 
 
-async def wait_for_postgres_sleep(pid: int):
+async def wait_for_postgres_running_pgsleep(pid: int):
     """Wait until PostgreSQL is executing pg_sleep for the given connection."""
     async with get_transaction() as observer:
         async with asyncio.timeout(5):
