@@ -2,7 +2,9 @@
 The recent and total scans columns are used for popularity sorting and need to be refreshed each year
 from the product_scans_by_country"""
 
-from query.database import create_record
+from asyncpg import Connection
+
+from query.database import LONG_STATEMENT_TIMEOUT, create_record
 from query.tables.collection_type import DELETED, FOOD, FOOD_OBSOLETE
 from query.tables.loaded_tag import PARTIAL_TAGS
 
@@ -107,7 +109,9 @@ async def fixup_product_countries(transaction, collection_id):
         """)
 
 
-async def fixup_product_country_scans(transaction, current_year, oldest_year):
+async def fixup_product_country_scans(
+    transaction: Connection, current_year, oldest_year
+):
     """Set the current and recent scans by country to use the scans from the supplied years"""
     # Note we only create a product_country entry if there is a corresponding product_countries_tag
     await transaction.execute(
@@ -127,6 +131,7 @@ async def fixup_product_country_scans(transaction, current_year, oldest_year):
             do update set recent_scans = excluded.recent_scans, total_scans = excluded.total_scans, collection_id = excluded.collection_id""",
         oldest_year,
         current_year,
+        timeout=LONG_STATEMENT_TIMEOUT,
     )
 
 

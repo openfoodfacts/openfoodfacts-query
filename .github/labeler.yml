@@ -1,4 +1,4 @@
-# Add labels to any any pull request with changes to the specified paths
+# Add labels to any pull request with changes to the specified paths
 
 # Pull requests that update GitHub Actions code. If you navigate to the folder, you will have a README of what it does
 GitHub Actions:
@@ -7,4 +7,37 @@ GitHub Actions:
 
 📚 Documentation:
 - changed-files:
-  - any-glob-to-any-file: 'README.md'
+  - any-glob-to-any-file:
+    - '**/*.md'
+    - 'docs/**/*'
+
+python:
+- changed-files:
+  - any-glob-to-any-file: '**/*.py'
+
+🐳 Docker:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'Dockerfile'
+    - 'docker-compose*.yml'
+    - 'docker/**/*'
+
+dependencies:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'pyproject.toml'
+    - 'poetry.lock'
+
+countries:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'scripts/refresh_countries.py'
+    - 'query/assets/countries.json'
+    - 'query/tables/*country*.py'
+
+👩‍💻 DevOps:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'Makefile'
+    - 'env/**/*'
+    - 'confs/**/*'

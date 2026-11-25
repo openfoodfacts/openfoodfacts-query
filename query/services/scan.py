@@ -1,6 +1,8 @@
 """Routines that operate on product scan data. Scans are currently just loaded in a batch from logs
 but will hopefully be loaded from events in the future"""
 
+import logging
+
 from query.database import get_transaction
 from query.models.scan import ProductScans
 from query.tables.loaded_tag import append_loaded_tags
@@ -12,11 +14,14 @@ from query.tables.product_country import (
 from query.tables.product_scans import insert_product_scans
 from query.tables.product_scans_by_country import insert_product_scans_by_country
 
+logger = logging.getLogger(__name__)
+
 
 async def import_scans(scans: ProductScans, fully_loaded=False):
     """Imports batches of product scans (currently generated from logs).
     The caller should set the fully_loaded flag on the last batch which will then
     enable support for popularity based queries"""
+    logger.info(f"Importing {len(scans.root)} product scans")
     async with get_transaction() as transaction:
         # The PO import routine sends the directory name as the product code, so we need to normalize it
         normalized_scans = ProductScans.model_validate({})
@@ -46,8 +51,14 @@ async def get_current_scan_year(transaction):
 
 
 async def scans_fully_loaded(transaction):
+    logger.info(
+        f"Scans fully loaded, fixing up product scan counts and product country scan counts"
+    )
     current_year = await get_current_scan_year(transaction)
     oldest_year = current_year - 5
     await fixup_product_country_scans(transaction, current_year, oldest_year)
     await fixup_product_scans(transaction, current_year)
     await append_loaded_tags(transaction, [PRODUCT_COUNTRY_TAG, PRODUCT_SCANS_TAG])
+    logger.info(
+        f"Scans fully loaded, product scan counts and product country scan counts fixed up"
+    )
