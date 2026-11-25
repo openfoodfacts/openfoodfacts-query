@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.5.7](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.6...v0.5.7) (2026-11-25)
+
+
+### Bug Fixes
+
+* allow CORS for public query routes ([#418](https://github.com/openfoodfacts/openfoodfacts-query/issues/418)) ([055690e](https://github.com/openfoodfacts/openfoodfacts-query/commit/055690ea367fcff126297af87e6ae6ae665fab24))
+* Increase fixup timeout for product-level information ([#423](https://github.com/openfoodfacts/openfoodfacts-query/issues/423)) ([94fb8db](https://github.com/openfoodfacts/openfoodfacts-query/commit/94fb8db7157a738fd31b9fd430b96c396cdc6e72))
+* Increase scan import timeout further for staging ([#424](https://github.com/openfoodfacts/openfoodfacts-query/issues/424)) ([38d25c7](https://github.com/openfoodfacts/openfoodfacts-query/commit/38d25c7fcf533b9e7f7aeae81ae0de88a03f1929))
+* Increase timeout for final scans fixup ([#422](https://github.com/openfoodfacts/openfoodfacts-query/issues/422)) ([c857369](https://github.com/openfoodfacts/openfoodfacts-query/commit/c857369459da97c7d876ade4cc1e675b680ea57e))
+* preserve cancellation during import cleanup ([#414](https://github.com/openfoodfacts/openfoodfacts-query/issues/414)) ([de08b63](https://github.com/openfoodfacts/openfoodfacts-query/commit/de08b632ed5a6661469e360b5233e5edaf3814a5))
+
+
+### Chore & Maintenance
+
+* **deps-dev:** bump the deps-dev group across 1 directory with 4 updates ([#417](https://github.com/openfoodfacts/openfoodfacts-query/issues/417)) ([f690ad0](https://github.com/openfoodfacts/openfoodfacts-query/commit/f690ad04834c2a65a4791b85e8a5f099fefa620b))
+* **deps-dev:** bump the deps-dev group with 3 updates ([#426](https://github.com/openfoodfacts/openfoodfacts-query/issues/426)) ([2f0f131](https://github.com/openfoodfacts/openfoodfacts-query/commit/2f0f131a803af8c646ce54b1654f94698b74dc34))
+* **deps-dev:** bump the deps-dev group with 5 updates ([#420](https://github.com/openfoodfacts/openfoodfacts-query/issues/420)) ([2ddb200](https://github.com/openfoodfacts/openfoodfacts-query/commit/2ddb20046140d4b06bcdd920c7646f4654e4b6fe))
+* **deps-dev:** bump the deps-dev group with 7 updates ([#411](https://github.com/openfoodfacts/openfoodfacts-query/issues/411)) ([3835ce2](https://github.com/openfoodfacts/openfoodfacts-query/commit/3835ce24760a4801d1373e5f1c18deb5ad42269a))
+* **deps:** bump the deps-github-actions group with 4 updates ([#415](https://github.com/openfoodfacts/openfoodfacts-query/issues/415)) ([e9ba252](https://github.com/openfoodfacts/openfoodfacts-query/commit/e9ba25251b29bc7fded2f919048bc03158f45f06))
+* **deps:** bump the deps-production group across 1 directory with 4 updates ([#419](https://github.com/openfoodfacts/openfoodfacts-query/issues/419)) ([efe96ec](https://github.com/openfoodfacts/openfoodfacts-query/commit/efe96ec37fe5248ca5e6dc5d93182295a5c59e41))
+* **deps:** bump the deps-production group across 1 directory with 6 updates ([#425](https://github.com/openfoodfacts/openfoodfacts-query/issues/425)) ([79284d7](https://github.com/openfoodfacts/openfoodfacts-query/commit/79284d7db334d053dbb7fcf8f37e5824f753fa72))
+* **deps:** bump the deps-production group across 1 directory with 7 updates ([#410](https://github.com/openfoodfacts/openfoodfacts-query/issues/410)) ([09a9273](https://github.com/openfoodfacts/openfoodfacts-query/commit/09a9273763ed3a037cdc2296dc6800a27a33d797))
+* **deps:** bump the deps-production group with 6 updates ([#416](https://github.com/openfoodfacts/openfoodfacts-query/issues/416)) ([38a9f65](https://github.com/openfoodfacts/openfoodfacts-query/commit/38a9f65031753afaf529e505271734c600bfed66))
+* update labeler.yml with new files and labels ([#428](https://github.com/openfoodfacts/openfoodfacts-query/issues/428)) ([55ee159](https://github.com/openfoodfacts/openfoodfacts-query/commit/55ee1590eaf6f14b299128b488f695f6e1dd9191))
+
 ## [0.5.6](https://github.com/openfoodfacts/openfoodfacts-query/compare/v0.5.5...v0.5.6) (2026-10-28)
 
 
