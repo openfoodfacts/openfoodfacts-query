@@ -5,6 +5,9 @@ import time
 from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
+import asyncpg
+import pytest
+
 from query.database import get_transaction
 from query.models.product import Source
 from query.models.query import Filter
@@ -26,7 +29,12 @@ from query.tables.product_country import create_product_country, get_product_cou
 from query.tables.product_ingredient import get_ingredients
 from query.tables.product_nutrient import get_product_nutrients
 from query.tables.product_tags import create_tag, get_tags
-from query.test_helper import mock_cursor, patch_context_manager, random_code
+from query.test_helper import (
+    mock_cursor,
+    patch_context_manager,
+    random_code,
+    wait_for_postgres_running_pgsleep,
+)
 
 
 async def test_get_process_id_is_monotonically_increasing():
@@ -999,3 +1007,59 @@ async def test_transient_issue_is_retried(
 
     error_calls = logger_mock.error.call_args_list
     assert len(error_calls) == 0
+
+
+@patch.object(ingestion, "find_products")
+async def test_cancelled_import_cleans_up_temp_table(find_products_mock, monkeypatch):
+    patch_context_manager(find_products_mock, mock_cursor([{"code": random_code()}]))
+    query_started = asyncio.Event()
+
+    async def slow_product_lookup(transaction, code):
+        query_started.set()
+        await transaction.execute("SELECT pg_sleep(30)")
+
+    monkeypatch.setattr(ingestion, "get_minimal_product", slow_product_lookup)
+    async with get_transaction() as transaction:
+        task = asyncio.create_task(
+            ingestion.import_with_filter(transaction, {}, Source.event)
+        )
+        try:
+            await asyncio.wait_for(query_started.wait(), 5)
+            # Wait for PostgreSQL to start executing the query, not just the coroutine.
+            await wait_for_postgres_running_pgsleep(transaction.get_server_pid())
+            task.cancel()
+            # The cleanup must preserve the caller’s cancellation.
+            with pytest.raises(asyncio.CancelledError):
+                await asyncio.wait_for(task, 5)
+            # The cancellation must still drop the temporary table.
+            assert (
+                await transaction.fetchval("SELECT to_regclass('pg_temp.product_temp')")
+                is None
+            )
+            # A SQL command must still work on the same transaction.
+            assert await transaction.fetchval("SELECT 1") == 1
+        finally:
+            # Do not leave the query running if an earlier assertion fails.
+            if not task.done():
+                task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await task
+
+
+@patch.object(ingestion, "find_products")
+async def test_failed_import_preserves_sql_error(find_products_mock, monkeypatch):
+    patch_context_manager(find_products_mock, mock_cursor([{"code": random_code()}]))
+
+    async def invalid_product_lookup(transaction, code):
+        await transaction.execute("SELECT 1 / 0")
+
+    monkeypatch.setattr(ingestion, "get_minimal_product", invalid_product_lookup)
+    async with get_transaction() as transaction:
+        # SQL errors should also reach the caller without leaving the table behind.
+        with pytest.raises(asyncpg.DivisionByZeroError):
+            await ingestion.import_with_filter(transaction, {}, Source.event)
+        assert (
+            await transaction.fetchval("SELECT to_regclass('pg_temp.product_temp')")
+            is None
+        )
+        assert await transaction.fetchval("SELECT 1") == 1
